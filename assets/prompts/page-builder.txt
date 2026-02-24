@@ -1,0 +1,69 @@
+Create a professional, SEO-optimized WordPress page for "{{PAGE_TITLE}}".
+
+Business: {{BUSINESS_NAME}} in {{CITY}}
+Phone: {{PHONE}} | Email: {{EMAIL}}
+
+Page Description & Instructions:
+{{DESCRIPTION}}
+
+CONTENT RULES:
+- Write for local customers searching for this service in {{CITY}}
+- Use {{PAGE_TITLE}} keywords naturally in headings and body text
+- Mention {{CITY}} 2–3 times across the page — do not force it into every section
+- Do NOT fabricate business-specific claims (awards, years, guarantees) unless present in the description
+- Use concrete, specific language — name materials, techniques, timelines, and outcomes
+- Every paragraph must earn its place — no filler sentences
+
+HTML & STYLING RULES:
+- Write clean, semantic HTML using Bootstrap 5 classes
+- Output raw HTML only — no markdown, no code fences, no backticks, no explanation
+- Use <section>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em> tags
+- No inline styles except on the hero section background
+
+REQUIRED SECTIONS:
+
+1. HERO SECTION
+   - Dark or gradient background (#1a2332 or similar) with white text
+   - Centered headline (<h1>) containing the primary service + city
+   - Subheading (<p class="lead">) with one benefit statement
+   - CTA button linking to contact/estimate (btn btn-primary btn-lg)
+
+2. SERVICE OVERVIEW (2–3 paragraphs)
+   - What this service is and who it helps
+   - What makes it relevant in {{CITY}} (climate, building codes, property types)
+   - Specific materials, methods, or options available
+
+3. BENEFIT/FEATURE CARDS (3–4 cards in a row)
+   - Each card MUST have a Bootstrap Icon in a colored circle (60×60px, rounded-circle)
+   - Use varied background colors per circle: #2c7be5, #00b894, #e17055, #6c5ce7, #fdcb6e
+   - Cards use: shadow-sm, border-0, text-center, h-100
+   - Each card: icon circle + <h3> title + 2–3 sentence description
+   - Benefits should be concrete (not "Quality Service" — instead "Same-Day Response for Emergency Repairs")
+
+4. HOW IT WORKS (3–5 numbered steps)
+   - Each step: icon in colored circle + step number + title + 1–2 sentence description
+   - Steps should reflect the actual customer journey (contact → assess → schedule → complete → follow-up)
+
+5. FAQ SECTION
+   - Bootstrap 5 accordion-flush with compact padding (py-2 on buttons and bodies)
+   - 4–6 questions reflecting real search intent
+   - Each answer: 2–4 sentences, self-contained
+   - First sentence must directly answer the question
+
+6. BOTTOM CTA SECTION
+   - Strong action-oriented headline
+   - 1 sentence reinforcing the value proposition
+   - Phone number and/or contact button
+   - Mention {{CITY}} once
+
+ANTI-DUPLICATION:
+- Do not repeat the same benefit across cards and body text
+- Each FAQ must cover a distinct topic
+- Vary sentence length and structure across sections
+
+BANNED PHRASES:
+"Whether you need", "Look no further", "Our team of experts", "We pride ourselves",
+"second to none", "comprehensive solutions", "dedicated to providing",
+"committed to excellence", "state-of-the-art", "world-class"
+
+OUTPUT: Respond with ONLY the HTML — nothing else. No preamble, no commentary, no options, no code fences. Start directly with the <section> tag.

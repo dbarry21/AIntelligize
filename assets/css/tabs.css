@@ -1,0 +1,74 @@
+/* Make the tab bar sticky-ish and roomier */
+.myls-tabs {
+  position: sticky;
+  top: 32px; /* leaves space for admin bar */
+  z-index: 10;
+  background: #fff;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Base tab look */
+.myls-tabs .nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-weight: 600;
+  border-radius: 10px 10px 0 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #334155; /* slate-700 */
+}
+
+/* Icons inside tabs */
+.myls-tabs .nav-tab .dashicons {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+}
+
+/* Hover / focus */
+.myls-tabs .nav-tab:hover,
+.myls-tabs .nav-tab:focus {
+  color: #0ea5e9; /* sky-500 */
+  text-decoration: none;
+  outline: none;
+}
+
+/* Active tab = lifted card look */
+.myls-tabs .nav-tab.nav-tab-active {
+  color: #0f172a; /* slate-900 */
+  background: #fff;
+  border-color: #e5e7eb #e5e7eb #fff; /* bottom edge merges */
+  box-shadow: 0 2px 0 0 #fff, 0 -1px 0 0 #e5e7eb, 0 -6px 14px rgba(15,23,42,.04);
+}
+
+/* Optional: subtle separators for inactive tabs */
+.myls-tabs .nav-tab:not(.nav-tab-active) {
+  border-color: transparent;
+}
+
+/* Compact on mobile */
+@media (max-width: 782px) {
+  .myls-tabs .nav-tab {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+}
+
+/* Optional dark-mode support if you toggle a body attr */
+body[data-myls-theme="dark"] .myls-tabs {
+  background: #0b1020;
+  border-bottom-color: #1f2937;
+}
+body[data-myls-theme="dark"] .myls-tabs .nav-tab {
+  color: #e5e7eb;
+}
+body[data-myls-theme="dark"] .myls-tabs .nav-tab.nav-tab-active {
+  color: #fff;
+  background: #0b1020;
+  border-color: #1f2937 #1f2937 #0b1020;
+  box-shadow: none;
+}

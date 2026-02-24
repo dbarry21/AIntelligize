@@ -1,0 +1,36 @@
+The previous draft was rejected — it was too short, incomplete, used markdown instead of HTML, or included fabricated business details. Rewrite for {{CITY_STATE}} following these requirements exactly.
+
+INPUTS:
+- Page Title: {{PAGE_TITLE}}
+- City/State: {{CITY_STATE}}
+- Focus Keyword: {{FOCUS_KEYWORD}}
+- Service Subtype: {{SERVICE_SUBTYPE}}
+
+STRICT RULES:
+1. 400–600 words of clean HTML. No markdown, no backticks, no code fences.
+2. Allowed tags ONLY: <h2>, <h3>, <p>, <ul>, <li>, <strong>. No inline styles. No class attributes.
+3. Bold {{CITY_STATE}} and county names with <strong>. Bold 1–2 landmarks. Do not over-bold.
+4. Mention {{FOCUS_KEYWORD}} 2–3 times naturally.
+5. Do NOT mention any specific business. Area context only.
+6. Do NOT fabricate facts. Use general public knowledge.
+
+REQUIRED STRUCTURE (all sections mandatory this time):
+
+<h2>About <strong>{{SERVICE_SUBTYPE}}</strong> in <strong>{{CITY_STATE}}</strong></h2>
+
+<p>2–3 sentence intro connecting {{CITY_STATE}} to {{FOCUS_KEYWORD}} and the {{SERVICE_SUBTYPE}} context. Include county name.</p>
+
+<h3>[Neighborhoods or communities subsection]</h3>
+<ul><li>3–5 items: real neighborhoods, nearby cities, or communities</li></ul>
+
+<h3>[Recreation, landmarks, or local features subsection]</h3>
+<ul><li>3–5 items: real parks, venues, attractions, or seasonal highlights</li></ul>
+
+<h3>[Climate, transportation, or growth subsection]</h3>
+<p>1–2 sentences about seasonal weather, key roads/highways, or area growth relevant to {{SERVICE_SUBTYPE}}.</p>
+
+<p>Closing that ties back to {{SERVICE_SUBTYPE}} and {{FOCUS_KEYWORD}} in {{CITY_STATE}}.</p>
+
+BANNED: "Nestled in", "Located in", "Welcome to", "Situated in", "Known for its", "vibrant", "charming", "thriving", "bustling", "picturesque", "quaint", "hidden gem"
+
+OUTPUT: Respond with ONLY the HTML — nothing else. No commentary, no options, no code fences.

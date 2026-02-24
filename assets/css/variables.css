@@ -1,0 +1,58 @@
+:root {
+  /* ===== Primary Brand Colors ===== */
+  --myls-color-primary: #0ea5e9;
+  --myls-color-primary-hover: #0284c7;
+  --myls-color-dark: #0f172a;
+  
+  /* ===== Extended Bootstrap Palette ===== */
+  --myls-color-success: #198754;
+  --myls-color-danger: #dc3545;
+  --myls-color-warning: #ffc107;
+  --myls-color-info: #0dcaf0;
+  --myls-color-light: #f8f9fa;
+  --myls-color-secondary: #6c757d;
+  
+  /* ===== Gray Scale (systematic) ===== */
+  --myls-gray-50: #f8f9fa;
+  --myls-gray-100: #e9ecef;
+  --myls-gray-200: #dee2e6;
+  --myls-gray-300: #ced4da;
+  --myls-gray-400: #adb5bd;
+  --myls-gray-500: #6c757d;
+  --myls-gray-600: #495057;
+  --myls-gray-700: #343a40;
+  --myls-gray-800: #212529;
+  --myls-gray-900: #0f172a;
+  
+  /* ===== Spacing System (Bootstrap scale) ===== */
+  --myls-spacer-1: 0.25rem;  /* 4px */
+  --myls-spacer-2: 0.5rem;   /* 8px */
+  --myls-spacer-3: 1rem;     /* 16px */
+  --myls-spacer-4: 1.5rem;   /* 24px */
+  --myls-spacer-5: 3rem;     /* 48px */
+  
+  /* ===== Borders ===== */
+  --myls-border-width: 1px;
+  --myls-border-color: var(--myls-gray-300);
+  --myls-border-radius: 0.375rem;        /* 6px */
+  --myls-border-radius-sm: 0.25rem;      /* 4px */
+  --myls-border-radius-lg: 0.5rem;       /* 8px */
+  --myls-border-radius-xl: 0.75rem;      /* 12px */
+  
+  /* ===== Shadows ===== */
+  --myls-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --myls-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --myls-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --myls-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  
+  /* ===== Typography ===== */
+  --myls-font-size-sm: 0.875rem;   /* 14px */
+  --myls-font-size-base: 1rem;     /* 16px */
+  --myls-font-size-lg: 1.125rem;   /* 18px */
+  --myls-font-size-xl: 1.25rem;    /* 20px */
+  
+  /* ===== Transitions ===== */
+  --myls-transition-base: all 0.2s ease-in-out;
+  --myls-transition-fast: all 0.15s ease-in-out;
+}
+

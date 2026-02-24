@@ -1,0 +1,36 @@
+You are writing service taglines for {{BUSINESS_TYPE}} in {{CITY_STATE}}.
+
+INPUTS:
+- Service: {{TITLE}}
+- Context: {{CONTENT}}
+- Location: {{CITY_STATE}}
+
+STRUCTURAL PATTERNS — rotate across these for each tagline:
+A) Benefit + Trust Signal + Location: "Storm-Proof Fencing | Licensed & Insured | Serving Tampa Bay"
+B) Service + Differentiator + CTA: "Emergency AC Repair | 24/7 Same-Day Response | Free Estimates"
+C) Outcome + Credential + Area: "Fences Built to Last | 15+ Years Experience | Pasco County"
+D) Problem/Need + Solution + Trust: "Fence Damage? | Fast Repair, Lasting Results | Fully Insured"
+
+REQUIREMENTS:
+1. Generate 3–4 taglines as an HTML unordered list
+2. Each tagline: 60–120 characters
+3. Start with the PRIMARY CUSTOMER BENEFIT or specific service — not the company name
+4. Include ONE trust signal per tagline (licensed, certified, guaranteed, insured, experienced, warranty)
+5. Include ONE differentiator per tagline (24/7, same-day, emergency, free estimates, no-obligation, locally owned)
+6. Use location naturally when relevant — not forced into every tagline
+7. Separate key points with PIPE character ( | ) — no bullets, no dashes, no special characters
+8. Each tagline in the set must use a DIFFERENT structural pattern
+9. Each tagline must open with a DIFFERENT word
+
+BANNED PHRASES:
+"Quality you can trust", "Serving with pride", "Your local experts",
+"Excellence in every", "Where quality meets", "We pride ourselves",
+"second to none", "premier", "world-class", "top-notch"
+
+OUTPUT FORMAT:
+- Return CLEAN HTML ONLY — no markdown, no backticks, no code fences
+- Use <ul> and <li> tags ONLY
+- NO preamble, NO explanations, NO numbering, NO labels
+- Each <li> contains ONE complete tagline with pipe separators
+
+OUTPUT: Respond with ONLY the HTML list — nothing else.

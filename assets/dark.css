@@ -1,0 +1,4 @@
+/* AIntelligize — Dark overrides (front + admin) */
+.myls .myls-card, .myls-admin .myls-card { background:#111; }
+.myls-btn{background:#111;color:#f2f2f2}
+.myls-card-body, .myls-card-head{color:#ddd}

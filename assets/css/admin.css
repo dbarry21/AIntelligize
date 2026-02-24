@@ -1,0 +1,328 @@
+/* ========================================================================
+   AIntelligize - Admin Component Library
+   Builds on Bootstrap 5 with custom components and overrides
+   ======================================================================== */
+
+/* ===== Card Components ===== */
+.myls-card {
+  background: #fff;
+  border: var(--myls-border-width) solid var(--myls-border-color);
+  border-radius: var(--myls-border-radius-xl);
+  padding: var(--myls-spacer-4);
+  margin-bottom: var(--myls-spacer-3);
+  box-shadow: var(--myls-shadow-sm);
+}
+
+.myls-card-header {
+  margin-bottom: var(--myls-spacer-3);
+  padding-bottom: var(--myls-spacer-2);
+  border-bottom: var(--myls-border-width) solid var(--myls-border-color);
+}
+
+.myls-card-title {
+  margin: 0;
+  font-size: var(--myls-font-size-xl);
+  font-weight: 600;
+  color: var(--myls-color-dark);
+  display: flex;
+  align-items: center;
+  gap: var(--myls-spacer-2);
+}
+
+.myls-card-title i {
+  font-size: 1.2em;
+  color: var(--myls-color-primary);
+}
+
+/* Legacy support */
+.myls-admin-box {
+  border: 1px solid var(--myls-border-color);
+  background: #fff;
+  padding: var(--myls-spacer-3);
+  border-radius: var(--myls-border-radius);
+}
+
+/* ===== Layout Systems ===== */
+
+/* Two Column Layout */
+.myls-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: var(--myls-spacer-4);
+  margin-bottom: var(--myls-spacer-4);
+}
+
+@media (max-width: 991px) {
+  .myls-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Equal Columns */
+.myls-cols-equal {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--myls-spacer-3);
+}
+
+/* ===== Action Bars ===== */
+.myls-actions {
+  display: flex;
+  gap: var(--myls-spacer-2);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: var(--myls-spacer-3);
+  margin-bottom: var(--myls-spacer-3);
+}
+
+/* ===== Preview/Output Boxes ===== */
+.myls-preview-box,
+.myls-selectbox {
+  position: relative;
+  border: var(--myls-border-width) solid var(--myls-border-color);
+  border-radius: var(--myls-border-radius);
+  background: var(--myls-gray-50);
+  padding: var(--myls-spacer-3);
+  overflow: auto;
+  min-height: 120px;
+  max-height: 400px;
+  user-select: text;
+  -webkit-user-select: text;
+  font-family: 'Courier New', monospace;
+  font-size: var(--myls-font-size-sm);
+  line-height: 1.5;
+}
+
+/* ── Terminal-style results log (matches FAQ Migration) ───── */
+.myls-results-terminal {
+  background: #0b1220;
+  color: #d1e7ff;
+  border: 1px solid #1e2d3d;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  min-height: 180px;
+  max-height: 420px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+  scrollbar-width: thin;
+  scrollbar-color: #1e2d3d #0b1220;
+}
+.myls-results-terminal::-webkit-scrollbar { width: 8px; }
+.myls-results-terminal::-webkit-scrollbar-track { background: #0b1220; border-radius: 4px; }
+.myls-results-terminal::-webkit-scrollbar-thumb { background: #1e2d3d; border-radius: 4px; }
+.myls-results-terminal::-webkit-scrollbar-thumb:hover { background: #2a3f55; }
+.myls-results-terminal:focus { outline: 2px solid #2271b1; outline-offset: -2px; }
+
+/* Results header row — title left, PDF button right */
+.myls-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  margin-top: 14px;
+}
+.myls-results-header h3,
+.myls-results-header .h5,
+.myls-results-header label,
+.myls-results-header strong {
+  margin: 0;
+  font-size: 1.15em;
+}
+.myls-btn-export-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #d1e7ff;
+  background: #162233;
+  border: 1px solid #1e2d3d;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  text-decoration: none;
+  line-height: 1.4;
+}
+.myls-btn-export-pdf:hover {
+  background: #1e2d3d;
+  border-color: #2a3f55;
+  color: #ffffff;
+}
+.myls-btn-export-pdf i { font-size: 13px; }
+
+.myls-selectbox.is-focused {
+  outline: 2px solid rgba(14, 165, 233, 0.25);
+  outline-offset: 2px;
+  border-color: var(--myls-color-primary);
+}
+
+/* ===== Spinner/Loading States ===== */
+.myls-spinner,
+.myls-geo-spinner {
+  display: none;
+  align-items: center;
+  gap: var(--myls-spacer-2);
+  color: var(--myls-color-primary);
+}
+
+.myls-spinner .dashicons,
+.myls-geo-spinner .dashicons {
+  animation: myls-spin 0.9s linear infinite;
+}
+
+@keyframes myls-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ===== Subtab Navigation ===== */
+.myls-subtabs {
+  display: flex;
+  gap: var(--myls-spacer-2);
+  margin-bottom: var(--myls-spacer-4);
+  border-bottom: 2px solid var(--myls-gray-200);
+  flex-wrap: wrap;
+}
+
+.myls-subtab {
+  padding: var(--myls-spacer-2) var(--myls-spacer-3);
+  border: none;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--myls-gray-600);
+  transition: var(--myls-transition-fast);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--myls-spacer-1);
+}
+
+.myls-subtab:hover {
+  color: var(--myls-color-primary);
+  text-decoration: none;
+}
+
+.myls-subtab.active,
+.myls-subtab.nav-tab-active {
+  color: var(--myls-color-primary);
+  border-bottom-color: var(--myls-color-primary);
+}
+
+.myls-subtab i {
+  font-size: 1.1em;
+}
+
+/* ===== Form Enhancements ===== */
+.wrap .form-control,
+.wrap .form-select {
+  border-color: var(--myls-border-color);
+  border-radius: var(--myls-border-radius);
+}
+
+.wrap .form-control:focus,
+.wrap .form-select:focus {
+  border-color: var(--myls-color-primary);
+  box-shadow: 0 0 0 0.25rem rgba(14, 165, 233, 0.25);
+}
+
+.wrap .form-label {
+  font-weight: 600;
+  color: var(--myls-gray-700);
+  margin-bottom: var(--myls-spacer-1);
+}
+
+/* ===== Badges & Tags ===== */
+.myls-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  font-size: var(--myls-font-size-sm);
+  font-weight: 500;
+  border-radius: var(--myls-border-radius-sm);
+  background: var(--myls-gray-200);
+  color: var(--myls-gray-700);
+}
+
+.myls-badge-primary {
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--myls-color-primary);
+}
+
+.myls-badge-success {
+  background: rgba(25, 135, 84, 0.1);
+  color: var(--myls-color-success);
+}
+
+.myls-badge-warning {
+  background: rgba(255, 193, 7, 0.1);
+  color: #856404;
+}
+
+/* ===== Status Messages ===== */
+.myls-status {
+  padding: var(--myls-spacer-2) var(--myls-spacer-3);
+  border-radius: var(--myls-border-radius);
+  margin: var(--myls-spacer-2) 0;
+  font-size: var(--myls-font-size-sm);
+}
+
+.myls-status-info {
+  background: rgba(13, 202, 240, 0.1);
+  border-left: 3px solid var(--myls-color-info);
+  color: var(--myls-gray-800);
+}
+
+.myls-status-success {
+  background: rgba(25, 135, 84, 0.1);
+  border-left: 3px solid var(--myls-color-success);
+  color: var(--myls-gray-800);
+}
+
+.myls-status-warning {
+  background: rgba(255, 193, 7, 0.1);
+  border-left: 3px solid var(--myls-color-warning);
+  color: var(--myls-gray-800);
+}
+
+/* ===== Utility Classes ===== */
+.myls-text-muted {
+  color: var(--myls-gray-600) !important;
+  font-size: var(--myls-font-size-sm);
+}
+
+.myls-text-small {
+  font-size: var(--myls-font-size-sm);
+}
+
+.myls-divider {
+  border: 0;
+  border-top: var(--myls-border-width) solid var(--myls-border-color);
+  margin: var(--myls-spacer-4) 0;
+}
+
+/* ===== Responsive Utilities ===== */
+@media (max-width: 768px) {
+  .myls-card {
+    padding: var(--myls-spacer-3);
+  }
+  
+  .myls-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .myls-actions > * {
+    width: 100%;
+  }
+}
+

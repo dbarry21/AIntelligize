@@ -1,0 +1,23 @@
+.myls-ajax-search .myls-ajax-search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  max-height: 360px;
+  overflow-y: auto;
+  border-radius: .5rem;
+}
+
+.myls-ajax-search-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: .35rem;
+  flex: 0 0 auto;
+}
+
+.myls-ajax-search-title {
+  font-weight: 600;
+  line-height: 1.2;
+}

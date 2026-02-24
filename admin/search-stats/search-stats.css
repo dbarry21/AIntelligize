@@ -1,0 +1,290 @@
+/*
+ * AIntelligize — Search Stats Dashboard
+ * Extends stats-dashboard.css (ms-* classes)
+ * Search-specific additions only.
+ */
+
+/* ── Sub-grid table (inside expanded rows) ── */
+.ss-subgrid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.ss-subgrid thead th {
+    padding: 6px 10px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    color: var(--ms-text-muted);
+    background: #f8f9fa;
+    border-bottom: 2px solid var(--ms-border);
+}
+
+.ss-subgrid thead th:nth-child(n+3) {
+    text-align: right;
+}
+
+.ss-subgrid tbody td {
+    padding: 5px 10px;
+    border-bottom: 1px solid #f0f0f1;
+    color: var(--ms-text);
+}
+
+.ss-subgrid tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* ── GSC match highlight ── */
+.ss-gsc-match {
+    background: #f0fdf4 !important;
+}
+
+.ss-gsc-match:hover {
+    background: #dcfce7 !important;
+}
+
+/* ── Bonus GSC rows ── */
+.ss-gsc-bonus {
+    background: #fefce8 !important;
+}
+
+.ss-gsc-bonus:hover {
+    background: #fef9c3 !important;
+}
+
+.ss-bonus-header {
+    background: #fef3c7 !important;
+    border-top: 2px solid #d97706;
+}
+
+.ss-bonus-header td {
+    padding: 8px 10px !important;
+    font-size: 12px;
+}
+
+/* ── Type tags ── */
+.ss-type-tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: #e8f2fa;
+    color: var(--ms-accent);
+}
+
+.ss-type-gsc {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* ── AI Overview tag ── */
+.ss-ai-tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+/* ── Rank badges — color-coded by SERP position ── */
+.ss-rank-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ss-rank-top3 {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.ss-rank-top10 {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.ss-rank-top20 {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.ss-rank-low {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* ── Rank summary bar inside expanded detail ── */
+.ss-rank-summary {
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* ── Rank movement arrows ── */
+.ss-rank-up {
+    color: #16a34a;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 3px;
+}
+
+.ss-rank-down {
+    color: #dc2626;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 3px;
+}
+
+.ss-rank-flat {
+    color: #9ca3af;
+    font-size: 10px;
+    margin-left: 3px;
+}
+
+/* ── History button ── */
+.ss-history-btn {
+    color: var(--ms-accent);
+    text-decoration: none;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.ss-history-btn:hover {
+    color: #135e96;
+    text-decoration: underline;
+}
+
+/* ── History panel ── */
+.ss-history-inner {
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    background: #fefce8;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+}
+
+.ss-history-panel {
+    margin-bottom: 10px;
+}
+
+/* ── KPI AI variant ── */
+.ms-kpi-ai .ms-kpi-icon {
+    color: #8b5cf6;
+}
+
+/* ── Detail expand row ── */
+.ss-detail-inner {
+    padding: 12px 16px;
+    background: #fafbfc;
+    border-top: 2px solid var(--ms-accent);
+}
+
+.ss-expand {
+    color: var(--ms-accent);
+    text-decoration: none;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.ss-expand:hover {
+    color: #135e96;
+}
+
+.ss-detail-row td {
+    background: #fafbfc !important;
+    padding: 0 !important;
+}
+
+/* ── Action bar layout ── */
+.ss-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.ss-actions-sep {
+    border-left: 1px solid var(--ms-border);
+    padding-left: 12px;
+    margin-left: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ss-actions-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ── Text helpers ── */
+.ss-text-end { text-align: right; }
+.ss-fw-semi { font-weight: 600; }
+.ss-text-muted { color: var(--ms-text-muted); }
+.ss-small { font-size: 12px; }
+
+/* ── Phase badge (shown during Refresh All) ── */
+.ss-phase-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    animation: ss-pulse 1.5s ease-in-out infinite;
+}
+
+.ss-phase-scan { background: #dbeafe; color: #1d4ed8; }
+.ss-phase-ac   { background: #d1fae5; color: #065f46; }
+.ss-phase-gsc  { background: #fef3c7; color: #92400e; }
+
+@keyframes ss-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* ── Freshness badges ── */
+.ss-fresh    { background: var(--ms-green-light); color: var(--ms-green); }
+.ss-stale    { background: #fff3cd; color: #856404; }
+.ss-old      { background: var(--ms-red-light); color: var(--ms-red); }
+.ss-notrun   { background: #f0f0f1; color: #787c82; }
+
+/* ── Print ── */
+@media print {
+    #adminmenumain, #wpadminbar, #wpfooter,
+    .ss-actions, .ms-period-selector,
+    .notice, #screen-meta { display: none !important; }
+
+    .ss-detail-row { display: table-row !important; }
+    .ss-detail-inner { background: #fafbfc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ss-gsc-match   { background: #f0fdf4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ss-gsc-bonus   { background: #fefce8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ss-ai-tag      { background: #ede9fe !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ss-rank-badge  { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ss-rank-summary { background: #f0f9ff !important; border: 1px solid #bae6fd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ss-history-inner { background: #fefce8 !important; border: 1px solid #fde68a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ss-history-btn { display: none !important; }
+    .ss-history-panel { display: block !important; }
+    .ss-rank-up { color: #16a34a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ss-rank-down { color: #dc2626 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ms-kpi         { border: 1px solid #ccc !important; }
+    .ms-card        { border: 1px solid #ccc !important; page-break-inside: avoid; }
+    .ms-badge       { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

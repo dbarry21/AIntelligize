@@ -1,0 +1,22 @@
+/* Spacing */
+.myls-mb-0{margin-bottom:0!important}.myls-mb-1{margin-bottom:var(--myls-space-1)!important}
+.myls-mb-2{margin-bottom:var(--myls-space-2)!important}.myls-mb-3{margin-bottom:var(--myls-space-3)!important}
+.myls-mb-4{margin-bottom:var(--myls-space-4)!important}.myls-mb-5{margin-bottom:var(--myls-space-5)!important}
+.myls-gap-2{gap:var(--myls-space-2)} .myls-gap-3{gap:var(--myls-space-3)} .myls-gap-4{gap:var(--myls-space-4)}
+
+/* Borders & radius */
+.myls-border{border:1px solid var(--myls-border)}
+.myls-rounded{border-radius:var(--myls-radius)}
+.myls-rounded-sm{border-radius:var(--myls-radius-sm)}
+
+/* Text */
+.myls-muted{color:var(--myls-muted)}
+.myls-strong{font-weight:700}
+
+/* Layout helpers */
+.myls-flex{display:flex}.myls-wrap{flex-wrap:wrap}
+.myls-center{justify-content:center;align-items:center}
+.myls-grid{display:grid}.myls-w-100{width:100%}
+
+/* Chips / badges */
+.myls-chip{display:inline-block;border:1px solid var(--myls-border);border-radius:999px;padding:.2rem .6rem;font-size:.8rem}
