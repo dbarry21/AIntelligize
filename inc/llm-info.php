@@ -31,6 +31,22 @@ add_filter( 'query_vars', function( $vars ) {
     return $vars;
 } );
 
+/**
+ * Auto-flush rewrite rules once when the rule version changes.
+ * This ensures /llm-info is live after install or plugin update
+ * without requiring a manual Settings → Permalinks → Save Changes.
+ *
+ * Bump $current whenever the rewrite rule pattern changes.
+ */
+add_action( 'init', function() {
+    $ver_key = 'myls_llm_info_rewrite_ver';
+    $current = '1';
+    if ( get_option( $ver_key ) !== $current ) {
+        flush_rewrite_rules( false );
+        update_option( $ver_key, $current, true );
+    }
+}, 99 );
+
 
 /* =========================================================================
    2. DATA HELPERS  – thin wrappers around existing MYLS options

@@ -69,6 +69,18 @@ return [
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
+                <!-- Inline save row — shown when user clicks floppy, avoids blocked prompt() -->
+                <div id="myls_pb_save_row" style="display:none;" class="d-flex gap-1 mb-2">
+                    <input type="text" id="myls_pb_save_name" class="form-control form-control-sm"
+                           placeholder="Name this description…" style="flex:1;">
+                    <button type="button" class="button button-primary button-small" id="myls_pb_save_confirm">
+                        <i class="bi bi-check-lg"></i> Save
+                    </button>
+                    <button type="button" class="button button-small" id="myls_pb_save_cancel">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div id="myls_pb_desc_msg" style="display:none;font-size:12px;padding:4px 8px;border-radius:4px;margin-bottom:6px;"></div>
 
                 <textarea id="myls_pb_description" class="form-control mb-1" rows="8"
                           placeholder="Describe what this page is about. The more detail you give, the better the AI output.&#10;&#10;Example:&#10;Intelligize Chat is a WordPress plugin that adds an AI-powered chat widget. Highlight features like knowledge base training, customizable appearance, lead capture, and easy setup. Target audience: small business owners. Include a CTA to download."></textarea>
@@ -262,18 +274,33 @@ return [
             let descHistory = []; // cached history
 
             // ── Description History ─────────────────────────────────────
+
+            function descMsg(text, ok = true) {
+                const el = $('myls_pb_desc_msg');
+                el.textContent = text;
+                el.style.background = ok ? '#d4edda' : '#f8d7da';
+                el.style.color      = ok ? '#155724' : '#721c24';
+                el.style.display    = '';
+                clearTimeout(el._t);
+                el._t = setTimeout(() => { el.style.display = 'none'; }, 3000);
+            }
+
             async function loadDescHistory() {
                 try {
                     const fd = new FormData();
                     fd.append('action', 'myls_pb_list_descriptions');
                     fd.append('_wpnonce', $('myls_pb_nonce').value);
-                    const res = await fetch(ajaxurl, { method: 'POST', body: fd });
+                    const res  = await fetch(ajaxurl, { method: 'POST', body: fd });
                     const data = await res.json();
                     if (data?.success) {
                         descHistory = data.data.history || [];
                         renderDescDropdown();
+                    } else {
+                        descMsg('Could not load saved descriptions: ' + (data?.data?.message || 'unknown error'), false);
                     }
-                } catch(e) { /* silent */ }
+                } catch(e) {
+                    descMsg('Network error loading descriptions: ' + e.message, false);
+                }
             }
 
             function renderDescDropdown() {
@@ -281,72 +308,106 @@ return [
                 sel.innerHTML = '<option value="">— Saved Descriptions (' + descHistory.length + ') —</option>';
                 descHistory.forEach(item => {
                     const opt = document.createElement('option');
-                    opt.value = item.slug;
+                    opt.value       = item.slug;
                     opt.textContent = item.name + (item.updated ? ' · ' + item.updated.substring(0,10) : '');
                     sel.appendChild(opt);
                 });
             }
 
-            // Load selected description
+            // LOAD — fill textarea from selection
             $('myls_pb_desc_load')?.addEventListener('click', () => {
                 const slug = $('myls_pb_desc_history').value;
-                if (!slug) { alert('Select a saved description first.'); return; }
+                if (!slug) { descMsg('Select a saved description from the dropdown first.', false); return; }
                 const item = descHistory.find(h => h.slug === slug);
                 if (item) {
                     $('myls_pb_description').value = item.description;
+                    descMsg('Loaded: ' + item.name);
                 }
             });
 
-            // Save current description
-            $('myls_pb_desc_save')?.addEventListener('click', async () => {
+            // SAVE — show inline row instead of blocked prompt()
+            $('myls_pb_desc_save')?.addEventListener('click', () => {
                 const desc = $('myls_pb_description').value.trim();
-                if (!desc) { alert('Write a description first.'); return; }
+                if (!desc) { descMsg('Write a description first.', false); return; }
+                // Pre-fill with page title
+                const nameEl = $('myls_pb_save_name');
+                if (!nameEl.value) nameEl.value = $('myls_pb_title').value.trim() || '';
+                $('myls_pb_save_row').style.display = '';
+                nameEl.focus();
+                nameEl.select();
+            });
 
-                // Use page title as default name, or prompt
-                let name = $('myls_pb_title').value.trim() || '';
-                name = prompt('Save description as:', name || 'My Description');
-                if (!name) return;
+            $('myls_pb_save_cancel')?.addEventListener('click', () => {
+                $('myls_pb_save_row').style.display = 'none';
+            });
+
+            $('myls_pb_save_confirm')?.addEventListener('click', async () => {
+                const name = $('myls_pb_save_name').value.trim();
+                const desc = $('myls_pb_description').value.trim();
+                if (!name) { descMsg('Enter a name for this description.', false); return; }
+                if (!desc) { descMsg('Description textarea is empty.', false); return; }
 
                 const fd = new FormData();
-                fd.append('action', 'myls_pb_save_description');
-                fd.append('_wpnonce', $('myls_pb_nonce').value);
-                fd.append('desc_name', name);
+                fd.append('action',      'myls_pb_save_description');
+                fd.append('_wpnonce',    $('myls_pb_nonce').value);
+                fd.append('desc_name',   name);
                 fd.append('description', desc);
 
                 try {
-                    const res = await fetch(ajaxurl, { method: 'POST', body: fd });
+                    const res  = await fetch(ajaxurl, { method: 'POST', body: fd });
                     const data = await res.json();
                     if (data?.success) {
                         descHistory = data.data.history || [];
                         renderDescDropdown();
-                        // Auto-select the one we just saved
                         const slug = descHistory.find(h => h.name === name)?.slug;
                         if (slug) $('myls_pb_desc_history').value = slug;
+                        $('myls_pb_save_row').style.display = 'none';
+                        descMsg('Saved: ' + name);
+                    } else {
+                        descMsg(data?.data?.message || 'Save failed.', false);
                     }
-                    alert(data?.success ? data.data.message : (data?.data?.message || 'Error'));
-                } catch(e) { alert('Error: ' + e.message); }
+                } catch(e) { descMsg('Network error: ' + e.message, false); }
             });
 
-            // Delete selected description
+            // Allow Enter key in save name field
+            $('myls_pb_save_name')?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); $('myls_pb_save_confirm').click(); }
+                if (e.key === 'Escape') { $('myls_pb_save_row').style.display = 'none'; }
+            });
+
+            // DELETE — inline confirm via message div instead of confirm()
             $('myls_pb_desc_delete')?.addEventListener('click', async () => {
                 const slug = $('myls_pb_desc_history').value;
-                if (!slug) { alert('Select a description to delete.'); return; }
-                const item = descHistory.find(h => h.slug === slug);
-                if (!confirm('Delete "' + (item?.name || slug) + '"?')) return;
+                if (!slug) { descMsg('Select a description to delete first.', false); return; }
+                const item  = descHistory.find(h => h.slug === slug);
+                const label = item?.name || slug;
 
-                const fd = new FormData();
-                fd.append('action', 'myls_pb_delete_description');
-                fd.append('_wpnonce', $('myls_pb_nonce').value);
-                fd.append('desc_slug', slug);
-
-                try {
-                    const res = await fetch(ajaxurl, { method: 'POST', body: fd });
-                    const data = await res.json();
-                    if (data?.success) {
-                        descHistory = data.data.history || [];
-                        renderDescDropdown();
-                    }
-                } catch(e) { alert('Error: ' + e.message); }
+                // Two-click confirm: first click shows warning, second within 4s deletes
+                const msgEl = $('myls_pb_desc_msg');
+                if (msgEl._pendingDelete === slug) {
+                    // Second click — confirmed
+                    msgEl._pendingDelete = null;
+                    const fd = new FormData();
+                    fd.append('action',    'myls_pb_delete_description');
+                    fd.append('_wpnonce',  $('myls_pb_nonce').value);
+                    fd.append('desc_slug', slug);
+                    try {
+                        const res  = await fetch(ajaxurl, { method: 'POST', body: fd });
+                        const data = await res.json();
+                        if (data?.success) {
+                            descHistory = data.data.history || [];
+                            renderDescDropdown();
+                            descMsg('Deleted: ' + label);
+                        } else {
+                            descMsg(data?.data?.message || 'Delete failed.', false);
+                        }
+                    } catch(e) { descMsg('Network error: ' + e.message, false); }
+                } else {
+                    // First click — ask for confirmation
+                    msgEl._pendingDelete = slug;
+                    descMsg('Click delete again to confirm removing "' + label + '"', false);
+                    setTimeout(() => { if (msgEl._pendingDelete === slug) msgEl._pendingDelete = null; }, 4000);
+                }
             });
 
             // Load history on init

@@ -1,0 +1,101 @@
+Create professional, SEO-optimized page content for "{{PAGE_TITLE}}" to be built inside Elementor as native widgets.
+
+Business: {{BUSINESS_NAME}} in {{CITY}}
+Phone: {{PHONE}} | Email: {{EMAIL}}
+
+Page Description & Instructions:
+{{DESCRIPTION}}
+
+CONTENT RULES:
+- Write for local customers searching for this service in {{CITY}}
+- Use {{PAGE_TITLE}} keywords naturally in headings and body text
+- Mention {{CITY}} 2-3 times across the page — do not force it into every section
+- Do NOT fabricate business-specific claims (awards, years, guarantees) unless stated in the description
+- Use concrete, specific language — name techniques, timelines, and outcomes
+- Every sentence must earn its place — no filler
+- Paragraph text goes in "paragraphs" arrays — plain text only, no HTML tags inside paragraph strings
+
+ICON RULES:
+- Use Font Awesome 5 solid icons only (fas prefix)
+- Choose icons that clearly match the concept
+- Useful icons: fas fa-shield-alt, fas fa-paw, fas fa-graduation-cap, fas fa-star,
+  fas fa-check-circle, fas fa-heart, fas fa-bolt, fas fa-users, fas fa-home,
+  fas fa-phone, fas fa-calendar-alt, fas fa-clipboard-list, fas fa-medal,
+  fas fa-thumbs-up, fas fa-dog, fas fa-clock, fas fa-map-marker-alt
+
+OUTPUT RULES:
+- Output ONLY a valid JSON object — nothing else
+- No markdown, no code fences, no backticks, no explanation before or after
+- All strings must be properly JSON-escaped
+- Start directly with { and end with }
+
+OUTPUT THIS EXACT JSON STRUCTURE:
+
+{
+  "hero": {
+    "title": "Primary H1 — service + city, action-oriented",
+    "subtitle": "One compelling benefit statement. Keep under 15 words.",
+    "button_text": "Clear CTA verb phrase",
+    "button_url": "/contact/"
+  },
+  "intro": {
+    "heading": "H2 — value proposition or who this is for",
+    "paragraphs": [
+      "First paragraph: what this service is, who needs it.",
+      "Second paragraph: how it works or what makes this business different in {{CITY}}.",
+      "Third paragraph (optional): outcome or reassurance."
+    ]
+  },
+  "features": {
+    "heading": "H2 — reasons to choose or key benefits",
+    "items": [
+      { "icon": "fas fa-shield-alt", "title": "Feature Title", "description": "One or two sentences. Be specific." },
+      { "icon": "fas fa-paw",        "title": "Feature Title", "description": "One or two sentences. Be specific." },
+      { "icon": "fas fa-star",       "title": "Feature Title", "description": "One or two sentences. Be specific." },
+      { "icon": "fas fa-clock",      "title": "Feature Title", "description": "One or two sentences. Be specific." }
+    ]
+  },
+  "process": {
+    "heading": "H2 — customer journey heading (e.g. How It Works)",
+    "steps": [
+      { "icon": "fas fa-phone",           "title": "Step 1 title", "description": "What happens and what the customer gets." },
+      { "icon": "fas fa-clipboard-list",  "title": "Step 2 title", "description": "What happens and what the customer gets." },
+      { "icon": "fas fa-graduation-cap",  "title": "Step 3 title", "description": "What happens and what the customer gets." },
+      { "icon": "fas fa-check-circle",    "title": "Step 4 title", "description": "The result or outcome for the customer." }
+    ]
+  },
+  "faq": {
+    "heading": "Frequently Asked Questions",
+    "items": [
+      { "question": "Real search intent question?", "answer": "Direct 2-4 sentence answer. First sentence answers immediately." },
+      { "question": "Real search intent question?", "answer": "Direct 2-4 sentence answer. First sentence answers immediately." },
+      { "question": "Real search intent question?", "answer": "Direct 2-4 sentence answer. First sentence answers immediately." },
+      { "question": "Real search intent question?", "answer": "Direct 2-4 sentence answer. First sentence answers immediately." },
+      { "question": "Real search intent question?", "answer": "Direct 2-4 sentence answer. First sentence answers immediately." }
+    ]
+  },
+  "cta": {
+    "heading": "Action-oriented H2 that creates urgency or desire",
+    "subtitle": "One sentence value proposition. Mention {{CITY}} naturally.",
+    "button_text": "Strong CTA verb phrase",
+    "button_url": "/contact/"
+  }
+}
+
+ANTI-DUPLICATION:
+- Do not repeat the same benefit across features items and intro paragraphs
+- Each FAQ must cover a distinct topic
+- Feature items and process steps should not overlap in content
+
+BANNED PHRASES:
+"Whether you need", "Look no further", "Our team of experts", "We pride ourselves",
+"second to none", "comprehensive solutions", "dedicated to providing",
+"committed to excellence", "state-of-the-art", "world-class", "in the heart of"
+
+OPTIONAL KEYS (include only if the SITE CONTEXT block below says images are used):
+If the site uses image widgets, you may include an "image_section" array. Each entry:
+  { "alt": "descriptive alt text", "caption": "optional short caption" }
+This tells the builder to place an image widget (or placeholder) in that position.
+Maximum 2 image_section entries. Only include if SITE CONTEXT explicitly says "Include image slots."
+
+OUTPUT: Respond with ONLY the JSON object. Start with { and end with }. Nothing else.

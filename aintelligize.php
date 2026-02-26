@@ -3,7 +3,7 @@
  * Plugin Name:       AIntelligize
  * Plugin URI:        https://aintelligize.com/
  * Description:       Modular local SEO toolkit with schema, AI tools, bulk operations, and shortcode utilities.
- * Version: 7.0.2
+ * Version: 7.5.12
  * Author:            Dave Barry
  * Author URI:        https://davebarry.io/
  * Text Domain:       aintelligize
@@ -16,7 +16,7 @@ if ( ! defined('ABSPATH') ) exit;
  * Canonical constants & helpers (single source of truth)
  * ───────────────────────────────────────────────────────────────────────── */
 // Keep in sync with plugin header above.
-if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.0.2');
+if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.5.12');
 if ( ! defined('MYLS_MAIN_FILE') )   define('MYLS_MAIN_FILE', __FILE__);
 if ( ! defined('MYLS_PATH') )        define('MYLS_PATH', plugin_dir_path(MYLS_MAIN_FILE));
 if ( ! defined('MYLS_URL') )         define('MYLS_URL',  plugins_url('', MYLS_MAIN_FILE));
@@ -102,6 +102,7 @@ require_once MYLS_PATH . 'inc/metaboxes/myls-faq-citystate.php';
 require_once MYLS_PATH . 'inc/metaboxes/google-maps-metabox.php';
 require_once MYLS_PATH . 'inc/metaboxes/ai-faq-generator.php';
 require_once MYLS_PATH . 'inc/metaboxes/service-tagline.php';
+require_once MYLS_PATH . 'inc/metaboxes/icon-image.php';
 require_once MYLS_PATH . 'inc/metaboxes/html-excerpt.php';
 
 /** Admin AJAX + admin bar */
@@ -177,6 +178,8 @@ require_once MYLS_PATH . 'inc/ajax/ai-html-excerpts.php';
 require_once MYLS_PATH . 'inc/ajax/ai-person-linkedin.php';
 require_once MYLS_PATH . 'inc/ajax/ai-taglines.php';
 require_once MYLS_PATH . 'inc/ajax/ai-page-builder.php';
+require_once MYLS_PATH . 'inc/elementor-site-analyzer.php';
+require_once MYLS_PATH . 'inc/ajax/ai-elementor-builder.php';
 require_once MYLS_PATH . 'inc/ajax/prompt-history.php';
 require_once MYLS_PATH . 'inc/ajax/ai-image-gen.php';
 require_once MYLS_PATH . 'inc/ajax/ai-content-analyzer.php';

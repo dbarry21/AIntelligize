@@ -61,9 +61,53 @@ This section documents all available shortcodes and their usage.
 ### [faq_schema_accordion]
 **File:** `faq-schema-accordion.php`
 
-**Usage:** `[mlseo_faq_schema_accordion]`
+**Usage:** `[faq_schema_accordion]`
 
-**Description:** _TBD - Add a short description of what this shortcode does._
+**Description:** Renders a Bootstrap 5 accordion FAQ section with optional heading, per-instance color theming, and JSON-LD FAQ schema markup. Pulls FAQ items from native MYLS meta (`_myls_faq_items`) with automatic fallback to a legacy ACF `faq_items` repeater. Outputs nothing if no FAQ items are found for the current post.
+
+> **Requires:** Bootstrap 5 bundle JS on the page (automatically enqueued by the shortcode if not already present).
+
+**Attributes:**
+
+| Attribute | Default | Description |
+|---|---|---|
+| `heading` | `"Frequently Asked Questions"` | Plain-text heading rendered as a centered `<h2>`. Set to `""` (explicitly empty) to hide the heading entirely. |
+| `heading_sc` | _(empty)_ | **Recommended.** Run another shortcode to build the heading — avoids WP's nested-bracket parsing issues. Pass the shortcode name and any of its attributes as a plain string (see examples below). Takes priority over `heading` when set. |
+| `btn_bg` | _(inherit)_ | CSS hex/rgb color for the accordion button background (sets `--myls-faq-btn-bg`). |
+| `btn_color` | _(inherit)_ | CSS hex/rgb color for accordion button text (sets `--myls-faq-btn-color`). |
+| `heading_color` | _(inherit)_ | CSS hex/rgb color for the heading `<h2>` (sets `--myls-faq-heading-color`). |
+
+**Heading logic:**
+- `heading` omitted → prints "Frequently Asked Questions"
+- `heading=""` (explicitly blank, no `heading_sc`) → heading is hidden
+- `heading_sc` set → executes that shortcode and uses its output as the heading; falls back to `heading` value if the shortcode returns empty
+
+**Examples:**
+
+```
+[faq_schema_accordion]
+```
+*Default heading "Frequently Asked Questions".*
+
+```
+[faq_schema_accordion heading_sc='page_title suffix=" FAQs"']
+```
+*Heading pulled from the page title shortcode with " FAQs" appended — the most common pattern.*
+
+```
+[faq_schema_accordion heading_sc="city_state"]
+```
+*Heading set to the current city/state.*
+
+```
+[faq_schema_accordion heading="" ]
+```
+*No heading rendered — accordion only.*
+
+```
+[faq_schema_accordion heading_sc='page_title suffix=" FAQs"' btn_bg="#172751" btn_color="#ffffff" heading_color="#172751"]
+```
+*Full example with custom brand colors.*
 
 ---
 

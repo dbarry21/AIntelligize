@@ -1270,7 +1270,9 @@ add_action('wp_ajax_myls_ai_faqs_get_posts_v1', function(){
 
   $out = [];
   foreach ($ids as $pid) {
-    $out[] = ['id'=>(int)$pid, 'title'=> get_the_title($pid)];
+    $faq_items = get_post_meta($pid, '_myls_faq_items', true);
+    $has_faqs  = is_array($faq_items) && count($faq_items) > 0;
+    $out[] = ['id'=>(int)$pid, 'title'=> get_the_title($pid), 'has_faqs' => $has_faqs];
   }
 
   wp_send_json_success(['status'=>'ok','posts'=>$out]);

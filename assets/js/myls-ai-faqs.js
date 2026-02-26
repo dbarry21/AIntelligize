@@ -475,7 +475,7 @@
     (posts || []).forEach((p) => {
       const opt = document.createElement("option");
       opt.value = String(p.id);
-      opt.textContent = `${p.title} (#${p.id})`;
+      opt.textContent = `${p.has_faqs ? '✓ ' : ''}${p.title} (#${p.id})`;
       elPosts.appendChild(opt);
     });
   }

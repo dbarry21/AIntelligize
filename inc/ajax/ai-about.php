@@ -153,7 +153,9 @@ add_action('wp_ajax_myls_ai_about_get_posts_v2', function(){
 
   $out = [];
   foreach ($ids as $pid) {
-    $out[] = ['id'=>(int)$pid, 'title'=> get_the_title($pid)];
+    $about_content = (string) get_post_meta($pid, '_about_the_area', true);
+    $has_content   = trim(wp_strip_all_tags($about_content)) !== '';
+    $out[] = ['id'=>(int)$pid, 'title'=> get_the_title($pid), 'has_content' => $has_content];
   }
 
   wp_send_json_success(['marker'=>'about_v2','status'=>'ok','posts'=>$out]);

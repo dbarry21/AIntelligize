@@ -49,7 +49,7 @@
       const posts = resp.data.posts;
       for (let i=0;i<posts.length;i++){
         const p = posts[i];
-        $('<option>').val(String(p.id)).text((p.title||'(no title)')+' (ID '+p.id+')').appendTo($posts);
+        $('<option>').val(String(p.id)).text((p.has_content ? '✓ ' : '') + (p.title||'(no title)')+' (ID '+p.id+')').appendTo($posts);
       }
       LOG.append('Loaded '+posts.length+' posts for '+$pt.val()+'.', $res[0]);
     }).fail(function(xhr){

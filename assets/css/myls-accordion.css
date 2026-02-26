@@ -11,11 +11,27 @@
   --item-border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-/* Accordion wrapper spacing */
+/* Accordion wrapper */
 .accordion {
   border: var(--item-border);
   border-radius: var(--item-radius);
   box-shadow: var(--item-shadow);
+  /* Remove overflow:hidden — it clips button text near the right edge.
+     Rounded corners are handled per-item below instead. */
+  overflow: visible;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Clip rounded corners per-item instead of on the wrapper */
+.accordion-item:first-of-type {
+  border-top-left-radius: var(--item-radius);
+  border-top-right-radius: var(--item-radius);
+  overflow: hidden;
+}
+.accordion-item:last-of-type {
+  border-bottom-left-radius: var(--item-radius);
+  border-bottom-right-radius: var(--item-radius);
   overflow: hidden;
 }
 
@@ -26,15 +42,24 @@
   font-weight: bold;
   border: none;
   border-radius: 0 !important;
-  transition: background-color 0.2s ease-in-out, transform 0.15s ease-in-out;
+  transition: background-color 0.2s ease-in-out;
   box-shadow: none !important;
+  /* Force text to wrap — Bootstrap sets white-space:nowrap in some builds */
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  /* Fill available width, shrink properly as a flex child */
+  width: 100% !important;
+  min-width: 0 !important;
+  /* Room for the chevron icon on the right */
+  padding-right: 3.5rem !important;
+  text-align: left !important;
 }
 
 /* Hover & focus effects */
 .accordion-button:hover,
 .accordion-button:focus {
   background-color: var(--hover-background) !important;
-  transform: scale(1.01);
   outline: none !important;
   box-shadow: none !important;
 }
@@ -44,7 +69,7 @@
   border-bottom: var(--item-border);
 }
 
-/* Rounded corners for first & last items */
+/* Rounded corners for first & last button (background fill) */
 .accordion-item:first-of-type .accordion-button {
   border-top-left-radius: var(--item-radius) !important;
   border-top-right-radius: var(--item-radius) !important;
@@ -62,8 +87,18 @@
   padding: 1rem 1.25rem;
 }
 
-/* Optional header alignment for SSSEO accordions */
+/* SSSEO accordion header — fix: text span must be able to shrink */
 .ssseo-accordion-header .accordion-button {
-  justify-content: space-between;
-  align-items: center;
+  display: flex !important;
+  align-items: center !important;
+  /* Do NOT use justify-content:space-between — it doesn't constrain text width */
+}
+
+/* The text content inside the button must shrink below its natural width */
+.ssseo-accordion-header .accordion-button > span,
+.ssseo-accordion-header .accordion-button > .accordion-button-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

@@ -78,6 +78,7 @@ myls_register_admin_tab([
 			// Google Static Maps
 			update_option( 'myls_google_static_maps_api_key', sanitize_text_field( $_POST['myls_google_static_maps_api_key'] ?? '' ) );
 
+
 			// OpenAI
 			update_option( 'myls_openai_api_key',             sanitize_text_field( $_POST['myls_openai_api_key']             ?? '' ) );
 

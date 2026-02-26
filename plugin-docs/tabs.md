@@ -41,6 +41,21 @@ AI-powered content generation tools using OpenAI or Anthropic APIs.
 - **Taglines** — AI-generated service taglines with HTML formatting.
 - **About the Area** — Location-specific "About the Area" content for service area pages.
 - **Geo Content** — Bulk location-based content generation.
+- **Page Builder** — AI-generated page content written directly into `post_content`. Supports all public post types, description/instructions field, DALL-E 3 image generation, and nav menu integration.
+- **Elementor Builder** — AI-generated pages built as native Elementor widget trees (Heading, Text Editor, Button, Icon Box, Shortcode). Writes directly to `_elementor_data` post meta.
+
+  **How it works:**
+  1. Before generating, analyzes the active Elementor Kit for container width, global colors, and typography.
+  2. Samples up to 3 existing posts of the same post type to detect widget patterns (icon boxes, image boxes, image slots, section backgrounds, FAQ shortcodes, hero/CTA structure).
+  3. Appends a SITE CONTEXT block to the AI prompt so the output mirrors your existing pages.
+  4. AI returns structured JSON (hero, intro, features, process, faq, cta).
+  5. PHP converts JSON into native Elementor containers with `container_type: flexbox` and child widgets.
+  6. Saves via direct `_elementor_data` meta write (bypasses Elementor document API which strips unregistered settings like `container_type`).
+  7. FAQ items extracted from JSON and saved to `_myls_faq_items` for use by `[faq_schema_accordion]`.
+
+  **Site analyzer detects:** hero sections (dark first container), CTA sections (dark container after pos 3), FAQ shortcodes, image/image-box widget usage, icon box counts, section background color sequences, button alignment.
+
+  **Key file:** `inc/elementor-site-analyzer.php` — `myls_elb_analyze_site( $post_type )`
 
 ---
 
@@ -95,6 +110,33 @@ Enable/disable individual shortcodes and configure global shortcode settings. Se
 **File:** `tab-utilities.php`
 
 Miscellaneous tools including cache clearing, debug info, import/export settings, and database maintenance.
+
+Subtabs are auto-discovered from `admin/tabs/utilities/subtab-*.php`.
+
+**Subtabs:**
+- **Custom CSS** — Live CSS editor with real-time preview. Saves to `wp_options` and enqueues on the frontend.
+- **Empty Anchor Fix** — Automatically adds `aria-label` attributes to links with no visible anchor text. Resolves SEMRush/Ahrefs audit warnings.
+- **FAQ Editor** — Edit MYLS FAQ items per-post with WYSIWYG editor and batch `.docx` export.
+- **FAQ Migration** — Migrate FAQ data from ACF repeater fields to the native MYLS `_myls_faq_items` format.
+- **GBP Photos** — Browse and import Google Business Profile photos into the WordPress Media Library.
+  - Connects via OAuth 2.0 (`business.manage` scope) — same pattern as the GSC OAuth module.
+  - Cascading account + location dropdowns; supports multiple accounts and multiple locations (agency-friendly).
+  - Photo grid with thumbnails, category, date, and Load More pagination (100 photos/page).
+  - Click-to-select photos, Select All / Deselect All, then import to Media Library in bulk.
+  - Duplicate prevention via `_gbp_media_name` post meta — already-imported photos show a green badge.
+  - Live import progress bar and per-photo log.
+  - **Quota note:** The My Business Account Management API has very low default quotas. Accounts load
+    on-demand (button-triggered, not on page load) and results are cached for 30 minutes. A ↺ Refresh Cache
+    button is available. If quota errors occur, a GCP Quotas link is shown with fix instructions.
+- **llms.txt** — Controls the `/llms.txt` and `/llms-full.txt` AI discovery endpoints.
+- **Prompt Reset** — Reset any or all AI prompt templates back to factory defaults.
+
+**Credentials needed for GBP Photos:**
+- Google Cloud Console OAuth 2.0 Client ID + Client Secret
+- My Business Account Management API enabled
+- My Business Business Information API enabled
+- OAuth scope: `https://www.googleapis.com/auth/business.manage`
+- Redirect URI: `https://YOURSITE.com/wp-admin/admin-post.php?action=myls_gbp_oauth_cb`
 
 ---
 

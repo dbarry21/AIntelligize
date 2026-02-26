@@ -1,5 +1,943 @@
 # AIntelligize — Changelog
 
+## 7.5.5 — 2026-02-25
+
+### Fixed
+- **GBP Photos — Option 2 rewritten as Business Name Search** — The previous Place ID Lookup
+  was sending `placeId` in the POST body to `googleLocations:search`, which does not accept
+  that field (API error: "Unknown name placeId: Cannot find field"). The endpoint only accepts
+  a free-text `query` field.
+- **Removed duplicate AJAX handler** — Two `myls_gbp_lookup_place_id` handlers were registered
+  (from overlapping edits), causing the first broken handler to always win.
+
+### Changed
+- Option 2 now accepts a **business name + city** (e.g. "Acme Plumbing Tampa FL") and calls
+  `googleLocations:search` with `{ query: "...", pageSize: 5 }`.
+- Returns up to 5 matches displayed as a pick-list. Managed locations show a green
+  "✓ managed" badge and a "Use This" button. Unmanaged locations show a red badge and no
+  button (can't resolve Location ID without manager access).
+- AJAX action renamed from `myls_gbp_lookup_place_id` to `myls_gbp_lookup_by_name`.
+
+**Files changed:** `modules/oauth/gbp.php`, `admin/tabs/utilities/subtab-gbp-photos.php`, `aintelligize.php`
+
+---
+
+
+## 7.5.4 — 2026-02-25
+
+### Added
+- **GBP Photos — Place ID Lookup (Option 2)** — New location resolution method using the
+  `googleLocations:search` endpoint on the Business Information API. Accepts a standard
+  Google Place ID (e.g. `ChIJN1t_tDeuEmsRUsoyG83frY4`) and resolves it to the GBP resource
+  name (`accounts/X/locations/Y`) without touching the quota-limited Account Management API.
+  - If the Place ID belongs to a location managed by the authenticated Google account, the
+    resource name is returned and saved automatically — no Account ID needed.
+  - Clear error messages if: location not found, account is not a manager of the listing,
+    or the resource name was not returned (unclaimed/unverified location).
+  - Enter key supported. Saves and reloads on success.
+
+### Changed
+- **Option numbering updated** — Store Code is now Option 3, Paste IDs Manually is Option 4.
+- **Store Code and Place ID handlers share** a `saveLookupResult()` helper — less code duplication.
+- Store code error message updated to reference Option 4 (was Option 2).
+
+**Files changed:** `modules/oauth/gbp.php`, `admin/tabs/utilities/subtab-gbp-photos.php`, `aintelligize.php`
+
+---
+
+
+## 7.5.3 — 2026-02-25
+
+### Added
+- **GBP Photos — Store Code lookup (Option 2)** — New third path for selecting a location
+  that requires no Account ID and makes zero calls to the quota-limited Account Management API.
+  - Enter the store code you assigned to your GBP location (found in Business Profile Manager →
+    location → Info → Store code) and click **Find Location**.
+  - Uses the `accounts/-` wildcard on the Business Information API to search across all accounts
+    the authenticated user can access — a single API call to a less-restricted endpoint.
+  - On success: resolves both the Location ID and Account ID from the returned resource name,
+    auto-saves, and reloads the page.
+  - If the `accounts/-` wildcard is not permitted on the project, a specific error is shown
+    explaining the limitation and pointing to Options 1 or 3 instead.
+  - Enter key supported in the store code input field.
+  - Location label saved with a `[store: CODE]` suffix for traceability.
+- **Redesigned location picker** — The three connection methods are now in clearly labelled,
+  bordered cards (Option 1 blue / Option 2 purple / Option 3 red) replacing the previous
+  single cramped row.
+
+**Files changed:** `modules/oauth/gbp.php`, `admin/tabs/utilities/subtab-gbp-photos.php`, `aintelligize.php`
+
+---
+
+
+## 7.5.2 — 2026-02-25
+
+### Added
+- **GBP Photos — Manual Account ID / Location ID override** — Two text inputs added next to
+  the Load Accounts button allow bypassing the quota-limited Account Management API entirely.
+  Paste your `accounts/123456789` Account ID and `accounts/123456789/locations/ABCDEF`
+  Location ID directly, then click **Use These IDs** to save and proceed straight to
+  fetching photos — zero API calls to the restricted endpoints. Pre-populated from any
+  previously saved selection. The **Fetch Photos** button uses the manual Location ID input
+  as a live override if filled, falling back to the saved location. Intended as a workaround
+  while awaiting a GCP quota increase.
+
+**Files changed:** `admin/tabs/utilities/subtab-gbp-photos.php`, `aintelligize.php`
+
+---
+
+
+## 7.5.1 — 2026-02-25
+
+### Fixed
+- **GBP Photos — Quota exceeded error on Account dropdown** — The My Business Account Management API
+  has very low default quotas for new Google Cloud projects (sometimes as low as 1 QPM). Accounts were
+  previously fetched automatically on every page load, exhausting the quota immediately.
+  - Accounts are now loaded **on-demand via a "Load Accounts" button**, never on page load.
+  - Both accounts and locations are **cached as WordPress transients for 30 minutes** to protect quota.
+  - Added a **↺ Refresh Cache** button to manually bust transients when fresh data is needed.
+  - Quota errors now surface a **specific actionable message** with a direct link to GCP → Quotas.
+  - Added `myls_gbp_clear_cache` AJAX action and `myls_gbp_bust_cache()` helper.
+  - Permanent **⚠ API Quota Note** banner added in the Account/Location section.
+  - **⚡ Cached** badge appears when accounts/locations are served from transient cache.
+
+**Files changed:** `modules/oauth/gbp.php`, `admin/tabs/utilities/subtab-gbp-photos.php`, `aintelligize.php`
+
+---
+
+## 7.5.0 — 2026-02-25
+
+### Added
+- **Utilities → GBP Photos** — New subtab to browse and import Google Business Profile photos into
+  the WordPress Media Library via OAuth 2.0.
+  - Full OAuth 2.0 flow (`business.manage` scope), same pattern as existing GSC OAuth module.
+  - Cascading account/location dropdowns supporting multiple accounts and multiple locations per account.
+  - Photo grid with thumbnails, category labels, creation dates, and Load More pagination.
+  - Selective import: click-to-select cards, Select All / Deselect All, duplicate prevention via
+    `_gbp_media_name` post meta, live progress bar and import log.
+  - Auto-discovered by the Utilities tab system — no changes to `aintelligize.php` required.
+
+**Files added:** `modules/oauth/gbp.php`, `admin/tabs/utilities/subtab-gbp-photos.php`
+
+---
+
+
+## 7.4.1 — 2026-02-24
+
+### Fixed
+- **Photo image style was identical to Photorealistic** — root cause: DALL-E 3 defaults to `style: "vivid"` (hyper-realistic/dramatic) regardless of the prompt. Added the DALL-E API `style` parameter to `myls_pb_dall_e_generate()`. Photo now passes `style: "natural"` (authentic, muted, real camera look); all other styles pass `style: "vivid"`. Applied to hero, featured image, template image widgets, and standalone image generation.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `inc/ajax/ai-image-gen.php`
+
+---
+
+## 7.4.0 — 2026-02-24
+
+### Added
+- **Progress bar** — animated gradient progress bar appears below the Create button while the page is generating. Shows 5 stages with step indicators: API → Images → Content → Elementor → Done. Adapts timing based on whether images are being generated. Fades out automatically on success, stays red on error.
+
+**Files changed:** `admin/tabs/ai/subtab-elementor.php`
+
+---
+
+## 7.3.9 — 2026-02-24
+
+### Changed
+- **Knowledge Graph uses Google Places API key** — no separate key needed. The Places API key already stored in API Integration is reused for Knowledge Graph Search API calls (same Google Cloud key works for both).
+- Removed the standalone Knowledge Graph API key field and card from API Integration.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `admin/tabs/api-integration.php`
+
+---
+
+## 7.3.8 — 2026-02-24
+
+### Fixed
+- **Photo image style not working**: Featured Image and Hero were ignoring the selected "Photo" style due to a hardcoded `$feat_photo_style` override. Now all image types correctly use `$style_suffix` from the selected Image Style dropdown.
+
+### Added
+- **Google Knowledge Graph grounding** — add your KG API key in API Integration. When set, Knowledge Graph entity facts are injected into both the main page content prompt AND template AI fill prompts alongside Wikipedia. KG first, Wikipedia as supplement. Falls back silently if key not configured.
+- **Knowledge Graph API key field** in API Integration tab with a Test button.
+- **`🔍 Knowledge Graph context fetched`** log line in Results terminal when active.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `admin/tabs/api-integration.php`
+
+---
+
+## 7.3.7 — 2026-02-24
+
+### Added
+- **Tokens in Description / Instructions field** — `{{PAGE_TITLE}}`, `{{YOAST_TITLE}}`, `{{CITY}}`, `{{BUSINESS_NAME}}`, `{{PHONE}}`, `{{EMAIL}}`, `{{SITE_NAME}}`, `{{SITE_URL}}`, `{{POST_TYPE}}` are now resolved in the description before it is passed to AI prompts, image generation, and Wikipedia lookups. Token hints displayed under the field label.
+
+**Files changed:** `admin/tabs/ai/subtab-elementor.php`, `inc/ajax/ai-elementor-builder.php`
+
+---
+
+## 7.3.6 — 2026-02-24
+
+### Fixed
+- **Template image placeholders used wrong style**: The template image filling block had its own `$tpl_style_map` that was missing the `photo` key and defaulting to `modern-flat`. Now includes `photo` and defaults to `photo`.
+- **Template images now use correct size**: Photo and Photorealistic styles generate at `1792x1024` (landscape); all other styles use `1024x1024` (square).
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`
+
+---
+
+## 7.3.5 — 2026-02-24
+
+### Added
+- **`{{YOAST_TITLE}}` token** in AI Prompt Template — resolves to the Yoast SEO Title / Focus Keyword field value. Falls back to page title if the field is empty. Token now visible in the token reference row above the prompt textarea.
+
+**Files changed:** `admin/tabs/ai/subtab-elementor.php`, `inc/ajax/ai-elementor-builder.php`
+
+---
+
+## 7.3.4 — 2026-02-24
+
+### Added
+- **"Photo" Image Style** — new first option in Image Style dropdown. Uses a real-photography prompt: natural lighting, sharp focus, authentic scene, no illustrations. Default style for all new sessions.
+- **Auto-switch to Photo** — when only "Featured Image" is checked and Hero is unchecked, Image Style automatically switches to Photo. Restores previous style if Hero is re-checked.
+
+**Files changed:** `admin/tabs/ai/subtab-elementor.php`, `inc/ajax/ai-elementor-builder.php`, `inc/ajax/ai-image-gen.php`
+
+---
+
+## 7.3.3 — 2026-02-24
+
+### Fixed
+- **Featured Image without Hero**: When only "Featured Image" is checked (no Hero), the generated image now correctly gets set as the post's featured thumbnail. Previously `set_post_thumbnail` only fired for `type === hero` — the featured image was generated and saved to Media Library but never attached to the post. Priority order: Hero sets thumbnail first; Feature image is used as fallback if no hero was generated.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`
+
+---
+
+## 7.3.2 — 2026-02-24
+
+### Changed — AI Images Card Cleanup
+- **Removed** Feature image count dropdown — Featured Image is now always a single image
+- **Removed** "Insert hero into page" checkbox
+- **Featured Image** now generates at `1792x1024` (wide/hero proportions) with a forced photorealistic prompt — professional photography style regardless of Image Style selection
+- **Image Style** dropdown now defaults to Photorealistic and spans full width
+- **Set as Featured Image** checkbox retained (works for both Hero and Featured Image)
+
+**Files changed:** `admin/tabs/ai/subtab-elementor.php`, `inc/ajax/ai-elementor-builder.php`, `inc/ajax/ai-image-gen.php`
+
+---
+
+## 7.3.1 — 2026-02-24
+
+### Fixed
+- **Silent image failure**: All failure paths in DALL-E image generation now produce visible log lines in the Results terminal. Previously: empty API key, missing helper function, and failed Media Library sideload all failed silently with zero output.
+- **Added specific error messages** for: missing OpenAI key (with note that DALL-E requires OpenAI even when using Anthropic for text), helper function not loaded, DALL-E API error, and Media Library upload failure (with troubleshooting steps).
+
+### Added
+- **Test DALL-E Connection button** in the AI Images card — runs a 3-step diagnostic: verifies API key exists, calls DALL-E API, and uploads result to Media Library. Shows exactly which step fails with actionable fix instructions.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `inc/ajax/ai-image-gen.php`, `admin/tabs/ai/subtab-elementor.php`
+
+---
+
+## 7.3.0 — 2026-02-24
+
+### Fixed
+- **`$log_lines` bug in Elementor Builder**: Template processing lines (Wikipedia fetch, AI content fill, appended container counts) were wiped by the `$log_lines = []` reset that runs after post creation. Separated template logs into `$tpl_log_lines` and merged them into the final output — all log lines now appear in the Results terminal.
+
+### Added
+- **Template Image Widget Auto-Fill**: When "Integrate Images into page content" is checked and a template is appended, the plugin now scans the final Elementor element tree for `image` widgets with no real image (empty URL, `id=0`, or placehold.co URL) and generates a DALL-E image for each (capped at 5 per run to control costs). Images are saved to the Media Library, attachment parent is updated after post creation, and they appear in the Generated Images preview.
+- **New helpers in `inc/ajax/ai-image-gen.php`**: `myls_elb_find_empty_image_widgets( array )` and `myls_elb_inject_image_into_widget( array, id, attach_id, url, alt )` — recursively scan and inject into the Elementor element tree.
+- **JS: Template-aware `integrateImages` flag**: The "Integrate Images" trigger now also fires when a template is selected but hero/feature checkboxes are not checked — enabling template image filling even without generating hero or feature images.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `inc/ajax/ai-image-gen.php`, `admin/tabs/ai/subtab-elementor.php`
+
+---
+
+## 7.2.9 — 2026-02-24
+
+### Added — Yoast SEO Title / Focus Keyword input
+
+New text input above Generated Sections. Saved to:
+- `_yoast_wpseo_focuskw` (Yoast focus keyword)
+- `_yoast_wpseo_title` → `{keyword} %%page%% %%sep%% %%sitename%%` (when set) or `{title} %%sep%% %%sitename%%` (when blank)
+
+Also used as the Wikipedia lookup topic and injected into AI prompts for more targeted content.
+
+### Improved — Append Elementor Templates: up to 3 slots
+
+Single dropdown replaced with three labeled dropdowns (Template 1 / 2 / 3). All three
+load the same template list from a single AJAX call. Set any slot to "— None —" to skip.
+
+Each selected template:
+1. Gets IDs regenerated via `myls_elb_regen_ids()` to prevent collisions
+2. Has its `AI Content Here` placeholders filled with unique content using a different
+   angle per slot:
+   - Slot 1 → benefits and value proposition
+   - Slot 2 → process, methodology and what to expect
+   - Slot 3 → local relevance, trust factors and why choose us
+3. Is appended in order after all generated sections
+4. Logs: `📎 Template N appended: "Name" (X container(s))`
+
+### Improved — AI content uniqueness via Wikipedia + Wikidata
+
+Before filling any `AI Content Here` placeholder, the plugin fetches factual context:
+
+1. **Wikipedia REST API** (`/api/rest_v1/page/summary/{topic}`) — uses SEO keyword or
+   page title as the lookup topic. Returns up to 1200 chars of the article extract.
+   Skips disambiguation pages and stubs under 100 chars.
+2. **Wikidata fallback** — if Wikipedia returns nothing useful, queries Wikidata
+   `wbsearchentities` for the topic label + description.
+
+The fetched context is injected into the AI prompt with explicit instruction:
+`"synthesize from this, do NOT copy — rewrite in your own words"`.
+
+This grounds content in real facts, forces original phrasing, and produces genuinely
+more useful content vs generic filler. Wikipedia fetch is done once and reused across
+all 3 template slots to keep latency low.
+
+Log entry: `🌐 Wikipedia context fetched for: "Dog Training Tampa FL"`
+
+**New helper:** `myls_elb_fetch_wikipedia_context( string $topic ): string`
+
+**Files changed:** `admin/tabs/ai/subtab-elementor.php`, `inc/ajax/ai-elementor-builder.php`
+
+---
+
+## 7.2.8 — 2026-02-24
+
+### Added — Elementor Builder: AI content fills "AI Content Here" placeholder in appended templates
+
+When a template is appended and any of its `text-editor` widgets contain the text
+`AI Content Here` (case-insensitive, strip_tags checked so it works even if the
+editor has wrapped it in `<p>` tags), the plugin automatically:
+
+1. Counts matching placeholders via `myls_elb_count_ai_placeholders()`
+2. Calls `myls_ai_chat()` with a prompt asking for ~400 words of professional HTML
+   content relevant to the page title and description
+3. Replaces every matching widget's `editor` value with the generated HTML via
+   `myls_elb_fill_ai_placeholders()` — the same content fills all placeholders
+   (typically there is only one per template)
+4. Logs: `✍️ AI content generated (~400 words) and inserted into N placeholder(s)`
+
+The generated content uses `<p>`, `<ul>`, `<li>`, `<strong>` tags, no headings
+(since the template typically has its own heading above the text editor).
+Sanitized with `wp_kses_post()` before storing. If AI call fails, placeholders
+are left as-is with a warning in the log.
+
+**New helpers:**
+- `myls_elb_count_ai_placeholders( array $elements ): int`
+- `myls_elb_fill_ai_placeholders( array $elements, string $html ): array`
+
+Both recurse the full Elementor element tree so they work regardless of nesting depth.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`
+
+---
+
+## 7.2.7 — 2026-02-24
+
+### Added — Elementor Builder: Append Elementor Template
+
+New **"Append Elementor Template"** card below Generated Sections. Loads all published
+templates from `Elementor → Templates` (the `elementor_library` post type) into a
+dropdown. Select any template and its containers will be appended verbatim at the
+bottom of the generated page after all AI-generated sections.
+
+**How it works:**
+1. On page load, JS calls `myls_elb_get_templates` AJAX action which queries all
+   published `elementor_library` posts ordered A–Z and returns their ID, title, and
+   `_elementor_template_type` meta (shown in brackets next to the title).
+2. Dropdown shows `— None —` by default. Selecting a template shows a blue info note.
+3. On page creation, if `append_template_id > 0`, the handler reads the template's
+   `_elementor_data` JSON, passes all its containers through `myls_elb_regen_ids()`
+   to give each element a fresh unique ID (prevents ID collisions), then merges them
+   onto the end of the generated containers array before saving.
+4. The results log reports: `📎 Template appended: "Name" (N container(s))`
+
+**New helper:** `myls_elb_regen_ids( array $elements ): array` — recursively walks
+an Elementor element tree and replaces every `id` field with a fresh `myls_elb_uid()`
+value. Safe to call on any depth of nested containers and widgets.
+
+**New AJAX action:** `myls_elb_get_templates` — returns all published Elementor library
+templates with their type label for the dropdown.
+
+**Files changed:** `admin/tabs/ai/subtab-elementor.php`, `inc/ajax/ai-elementor-builder.php`
+
+---
+
+## 7.2.6 — 2026-02-24
+
+### Improved — Elementor Builder: per-section include/exclude checkboxes
+
+All 6 generated sections now have individual checkboxes in the Generated Sections card,
+all checked by default. Uncheck any section to skip it entirely from the generated page.
+
+| Checkbox ID | Section |
+|---|---|
+| `myls_elb_include_hero` | Hero Banner (+ theme-header note when unchecked) |
+| `myls_elb_include_intro` | Service Intro |
+| `myls_elb_include_features` | Feature Cards |
+| `myls_elb_include_process` | How It Works |
+| `myls_elb_include_faq` | FAQ Accordion |
+| `myls_elb_include_cta` | CTA Block |
+
+Flags are passed to `myls_elb_parse_and_build()` as a `$section_flags` array
+(replaces the previous single `bool $include_hero` parameter). All flags default
+to `true` so API/code calls without the param still receive all sections.
+
+**Files changed:** `admin/tabs/ai/subtab-elementor.php`, `inc/ajax/ai-elementor-builder.php`
+
+---
+
+## 7.2.5 — 2026-02-24
+
+### Fixed — Elementor Builder: AI Images section not functioning at all
+
+**Root cause:** The post-creation image generation button calls `myls_pb_generate_images`
+(the shared image AJAX action). That handler verifies the nonce against `'myls_pb_create'`
+(the Page Builder nonce action). The Elementor Builder subtab creates its nonce with action
+`'myls_elb_create'`. Every image request from the Elementor tab failed silently with
+"Bad nonce" (HTTP 400) — images never generated.
+
+**Fix:** Updated `ai-image-gen.php` to accept either nonce action:
+```php
+if ( ! wp_verify_nonce($nonce, 'myls_pb_create') && ! wp_verify_nonce($nonce, 'myls_elb_create') )
+```
+
+**Files changed:** `inc/ajax/ai-image-gen.php`
+
+---
+
+### Added — Elementor Builder: Hero Banner toggle (skip for Hello Elementor / theme headers)
+
+Some themes (Hello Elementor, Astra, GeneratePress, etc.) provide their own page header
+or title area at the top of every page. In those cases the AI-generated hero section
+would double up with the theme header.
+
+**New "Hero Banner" checkbox** in the Generated Sections card (checked by default).
+Uncheck to skip the hero container entirely — the page will start at the Service Intro
+section. A yellow note appears when unchecked: "Hero skipped — your theme header will
+be used instead."
+
+The `include_hero` param defaults to `true` server-side so existing integrations are
+unaffected. `myls_elb_parse_and_build()` gains a `bool $include_hero = true` parameter.
+
+**Files changed:** `admin/tabs/ai/subtab-elementor.php`, `inc/ajax/ai-elementor-builder.php`
+
+---
+
+## 7.2.4 — 2026-02-24
+
+### Fixed — Elementor Builder: Advanced → Width dropdown not showing "Custom"
+
+**Root cause:** `_element_width` was set to `'custom'` but Elementor's actual select option
+value for "Custom" is `'initial'`. The select options are:
+- `''` → Default
+- `'inherit'` → Full Width (100%)
+- `'auto'` → Inline (auto)
+- `'initial'` → Custom  ← correct value
+
+The 30% custom width was being stored but the dropdown above it remained on "Default"
+because `'custom'` matched no option. Fixed all three widget functions.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`
+
+---
+
+## 7.2.3 — 2026-02-24
+
+### Fixed — Elementor Builder: icon boxes stacking vertically instead of flowing in a row
+
+**Root cause:** The inner row container had `flex_direction: row`, `flex_wrap: wrap`, and
+`flex_justify_content: center` — but the individual icon box widgets had no explicit width.
+In Elementor's flex containers, widgets without a width setting default to stretching across
+the full container width (like block elements), so they stacked vertically regardless of
+the row direction.
+
+**Fix:** Added `_element_width: 'custom'` and `_element_custom_width: 30%` to all three
+box widget types used in the features/process rows:
+- `myls_elb_icon_box_widget()` — 30% width
+- `myls_elb_image_box_widget()` — 30% width
+- `myls_elb_image_placeholder_box_widget()` — 30% width
+
+With 30% width, 3 boxes fit comfortably per row with the 20px gap between them. When the
+AI generates 4 items, 3 appear on row 1 and 1 orphan on row 2 — which is automatically
+centered because the parent row container has `flex_justify_content: center`.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`
+
+---
+
+## 7.2.2 — 2026-02-24
+
+### Fixed — Elementor Builder: Container Layout dropdown still blank (wrong value "flexbox" vs "flex")
+
+**Root cause:** Elementor 3.x stores `container_type` as `"flex"` for flexbox containers,
+not `"flexbox"`. The plugin was writing `"flexbox"` which doesn't match any option in
+Elementor's Container Layout select control — so the dropdown rendered blank even though
+the data was technically present.
+
+Confirmed by inspecting live containers on a real page (Puppy Kindergarten): all containers
+have `container_type: "flex"`. Generated containers had `container_type: "flexbox"` — a
+value that exists in no Elementor option set.
+
+**Fix:** Changed all three `container_type` assignments in `myls_elb_section()` and the
+inner row builders from `'flex'` → already `'flex'`. Specifically:
+- Line 55 (`myls_elb_section()` default) — `'flexbox'` → `'flex'`
+- Line 479 (features inner row) — `'flexbox'` → `'flex'`
+- Line 519 (process inner row) — `'flexbox'` → `'flex'`
+
+Container Layout now shows "Flexbox" correctly in the Elementor panel on all generated containers.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`
+
+---
+
+## 7.2.1 — 2026-02-24
+
+### Fixed — Elementor Builder: Container Layout always blank after generation
+
+**Root cause:** The `container_type => 'flexbox'` setting was being silently stripped every
+time a page was created. When Elementor's `$document->save()` API is called it runs all
+element settings through its registered-controls sanitization pipeline. Because `container_type`
+is not a formally registered control at save-time, Elementor discards it. Opening any generated
+container in the Elementor panel showed "Layout: (blank)" — manually setting it to Flexbox
+re-added the key, which is why that manual fix worked.
+
+**Fix:** Removed the `$document->save()` call entirely. The builder now always writes directly
+to `_elementor_data` post meta via `update_post_meta( $post_id, '_elementor_data', wp_slash( $elementor_json ) )`.
+Direct meta write preserves the exact JSON as generated — including `container_type => 'flexbox'`
+on every container. The real installed Elementor version is used for `_elementor_version` to
+prevent migration triggers, and `_elementor_css`, `_elementor_element_cache`, and
+`_elementor_page_assets` are cleared so Elementor regenerates its CSS cache on first page load.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`
+
+---
+
+### Improved — Elementor Builder: richer site pattern detection
+
+`inc/elementor-site-analyzer.php` — `myls_elb_aggregate_patterns()` now captures:
+
+- **Hero detection** — dark background on the first top-level container marks `has_hero: true`.
+  The AI prompt is told to include a hero section.
+- **CTA detection** — dark background on a container after position 3 marks `has_cta: true`.
+  The AI prompt is told to include a CTA section near the end.
+- **FAQ detection** — any shortcode containing "faq" sets `has_faq: true`. The AI prompt is
+  told to always include a faq section with 5 items.
+- **Background color sequence** — the ordered list of background colors from the first sampled
+  page is captured as `section_bg_pattern`. The AI prompt is given the sequence so it can
+  alternate light/dark sections to match the site's existing pattern.
+- **Button alignment** — most common button alignment across sampled pages is passed to the
+  AI prompt.
+
+New helper: `myls_elb_is_dark_color( string $hex ): bool` — calculates relative luminance
+(sRGB) and returns true when luminance < 0.35. Used to identify hero and CTA sections by their
+background color.
+
+`myls_elb_build_prompt_context_block()` now emits additional context lines:
+`HERO`, `CTA`, `FAQ`, `SECTION BACKGROUNDS (in order)`, and `BUTTON ALIGNMENT`.
+
+Results panel log now shows detected sections (hero / cta / faq), avg icon box count, and
+section background colors.
+
+**Files changed:** `inc/elementor-site-analyzer.php`
+
+---
+
+## 7.2.0 — 2026-02-24
+
+### New Feature — Elementor Builder: Site Analysis & Structural Consistency
+
+#### Overview
+Before generating a new page, the Elementor Builder now reads two things from the live site:
+1. **Elementor Kit settings** — container width, global colors, typography
+2. **Up to 3 existing posts** of the same post type — walks their full widget tree to extract patterns
+
+Generated pages now match the structural style of existing pages on the site.
+
+---
+
+#### New file: `inc/elementor-site-analyzer.php`
+
+**`myls_elb_get_kit_id()`**
+Reads `elementor_active_kit` option to find the active Elementor Kit post ID.
+Falls back to querying `elementor_library` posts with `_elementor_template_type = kit`.
+
+**`myls_elb_read_kit_settings( int $kit_id = 0 ): array`**
+Reads `_elementor_page_settings` from the kit post and extracts:
+- `container_width` (px) — the site's boxed container dimension
+- `colors` — global color palette entries with id, title, and value
+- `typography` — font families, sizes, weights
+- `button_bg_color`, `button_text_color`, `button_border_radius`
+
+**`myls_elb_walk_elements( array $elements, int $depth = 0 ): array`**
+Recursively walks an `_elementor_data` widget tree and returns a flat list of
+element summaries. Each entry includes: elType, widgetType, depth, lean settings
+(text preview, icon, image presence, bg color, child widget list), and child count.
+Does not store full HTML blobs — only what's needed for pattern analysis.
+
+**`myls_elb_sample_pages( string $post_type, int $limit = 3, int $skip_id = 0 ): array`**
+Fetches up to 3 published posts of the given post type that have `_elementor_edit_mode = builder`.
+Returns ordered by `modified DESC` so the most recently edited pages are sampled.
+Each entry includes post_id, title, url, and the walked elements array.
+
+**`myls_elb_aggregate_patterns( array $sample_pages ): array`**
+Reduces all sampled page widget lists into a unified pattern summary:
+- `widget_freq` — widgetType → count, sorted by frequency
+- `has_images` / `has_image_boxes` — whether image widgets are used
+- `image_depths` — nesting depths where images appear
+- `top_level_sections` — average section count per page
+- `section_bg_colors` — unique background colors used on sections
+- `uses_shortcodes` — shortcode strings found
+- `common_btn_align` — most common button alignment
+- `avg_icon_box_count` — average icon boxes per page
+
+**`myls_elb_build_prompt_context_block( array $kit, array $patterns, array $sample_pages ): string`**
+Converts the kit + pattern data into a human-readable block appended to the AI prompt:
+- Container width instruction
+- Global color names and values
+- Primary font family
+- Widget frequency list (top 8)
+- Image usage note (include slots if images found, omit if not)
+- Icon box count guidance
+- Section count target
+- Sampled page titles for reference
+
+**`myls_elb_analyze_site( string $post_type, int $skip_id = 0 ): array`**
+Main entry point. Calls all of the above and returns:
+`{ kit, sample_pages, patterns, prompt_block, log }`
+The `log` array contains human-readable lines shown in the results panel so you can
+see exactly what was detected before generation.
+
+---
+
+#### Changes to `inc/ajax/ai-elementor-builder.php`
+
+**Site analysis wired in:**
+- `myls_elb_analyze_site()` runs immediately after post type validation
+- `$site_context['prompt_block']` is appended to the AI prompt
+- `$kit` and `$site_patterns` are passed into `myls_elb_parse_and_build()`
+- Site analysis log lines appear at the top of the results panel
+
+**Container width propagation:**
+- All section builders now accept `int $container_width = 1140`
+- `build_intro`, `build_features`, `build_process`, `build_faq` all use kit width
+  in their `boxed_width` container setting instead of the hardcoded 1200px
+
+**Image consistency:**
+- `build_features()` gains `bool $prefer_image_box = false` param
+- When the site pattern shows `has_image_boxes = true` and no generated image
+  is available, falls back to `myls_elb_image_placeholder_box_widget()` instead
+  of icon-box — matching the site's existing widget type
+- Feature count overridden by `avg_icon_box_count` from patterns when user
+  hasn't customised it (default 3 → matched to site average)
+
+**New widget functions:**
+- `myls_elb_image_placeholder_box_widget( $title, $desc )` — image-box widget
+  with a visible grey placeholder (placehold.co) so the slot is clearly visible
+  in Elementor and ready for the user to swap in a real image
+- `myls_elb_image_or_placeholder_widget( $img_data, $alt )` — returns a real
+  image widget if generated data is available, otherwise the same placeholder
+- `myls_elb_build_image_section( $d, $container_width, $image )` — standalone
+  image section builder used when AI returns an `image_section` key
+
+**AI prompt template updated:**
+- Added documentation for optional `image_section` array key
+- AI is instructed to include image slots only when SITE CONTEXT block says images are used
+
+---
+
+
+## 7.1.4 — 2026-02-24
+
+### Fixed — Icon box orphan centering + button color inheriting black instead of brand color
+
+**Diagnosed via live browser inspection of the generated page.**
+
+#### Icon box row centering
+
+**Root cause:** Elementor was rendering inner containers as `display: grid` (CSS Grid)
+even though our settings targeted flex. The `flex_justify_content: center` setting was
+completely ignored on a grid container. A 4-item features section produced 3 items in row
+1 and the orphaned 4th item stuck left in row 2.
+
+**Why it happened:** The container JSON had no explicit `container_type` key. In
+Elementor 3.8+, when `container_type` is absent, Elementor's frontend defaults to grid
+layout for inner containers with multiple children.
+
+**Fix:**
+- Added `'container_type' => 'flexbox'` to the default `myls_elb_section()` settings,
+  so every generated container explicitly uses flex.
+- Added `'container_type' => 'flexbox'` explicitly to both the features and process inner
+  row containers.
+- Changed process inner container from `flex-start` to `center` justify — orphaned steps
+  now center just like features.
+
+With `display: flex`, `flex-wrap: wrap`, `justify-content: center`, each row (including
+the last partial row) distributes its items centered, regardless of count.
+
+#### Button color (black instead of brand orange)
+
+**Root cause:** Elementor's global kit on this site defines:
+- `--e-global-color-primary`: `#BF4820` (brand dark orange)
+- `--e-global-color-secondary`: `#FF7648` (brand orange)
+- `--e-global-color-accent`: `#000000` (black)
+
+When a Button widget has no explicit `background_color` and no `__globals__` reference,
+Elementor generates a CSS rule using `--e-global-color-accent` (black) as the default.
+The site's existing orange buttons work because they explicitly reference
+`--e-global-color-secondary` via Elementor's global color system.
+
+**Fix:** Added `__globals__` to the Button widget settings:
+```php
+'__globals__' => [
+    'background_color' => 'globals/colors?id=primary',
+],
+```
+This tells Elementor to render the button using `--e-global-color-primary` — the site's
+brand primary color from the kit. The button now matches the site's color scheme on
+any site, using whatever that site has set as its Elementor global primary color.
+
+---
+
+
+## 7.1.3 — 2026-02-24
+
+### Fixed — Elementor Builder prompt template still showing/using old HTML instructions
+
+**Root cause:** The user-editable prompt textarea is populated from the `myls_elb_prompt_template`
+DB option. That option was saved before v7.1.0 and still contained the old HTML-output
+instructions (`HTML RULES`, `Output raw HTML`, `elb-hero` sections, etc.). Updating the
+prompt file on disk had no effect — the saved DB value always wins.
+
+**Three-layer fix:**
+
+1. **Subtab render (PHP)** — on every page load, the saved option is checked against a list
+   of HTML-pipeline fingerprints. If matched, the option is cleared and the textarea shows
+   the current JSON-output default. A yellow notice banner is shown explaining the auto-reset.
+
+2. **AJAX handler (PHP)** — if a POST arrives with a stale HTML prompt (same fingerprint check),
+   the handler silently substitutes the current default before calling the AI and clears the
+   saved option. The results log shows a 🔄 notice explaining the substitution.
+
+3. **"↺ Reset to Default" button (JS)** — added next to "Save to DB" in the prompt card.
+   Clears the saved option and reloads the page so the textarea repopulates from the file
+   default. Useful for any future prompt divergence.
+
+**Other UI changes:**
+- Save prompt now shows inline feedback via `descMsg()` instead of `alert()`
+- Test Tab notice updated to accurately describe the native widget approach
+
+---
+
+
+## 7.1.2 — 2026-02-24
+
+### Fixed — Elementor Builder still generating single HTML block
+
+**Root cause:** The `system` parameter passed to `myls_ai_chat()` was overriding the
+user prompt entirely. It contained explicit instructions to output HTML with `<section>`
+tags and Bootstrap classes — which is exactly what the AI followed, ignoring the
+JSON instructions in the prompt file.
+
+The AI always obeys the system message over the user prompt when they conflict.
+Updating the prompt file in v7.1.0 had zero effect because the system message said:
+`"Write clean, structured HTML... Always wrap each major content section in a <section> tag"`
+
+**Fix:** The system message now reads:
+`"You output ONLY valid JSON — never HTML, never markdown, never code fences."`
+
+With matching instructions in both the system message and the user prompt, the AI
+will now return the JSON structure that `myls_elb_parse_and_build()` expects, and
+native Elementor widgets (Heading, Text Editor, Button, Icon Box, Shortcode) will
+be built correctly.
+
+---
+
+
+## 7.1.1 — 2026-02-24
+
+### Fixed — Elementor Builder: images not placed in page or appearing correctly
+
+**Root cause:** The image injection code was written for the old HTML-output pipeline.
+It appended `<img>` tag instructions to the AI prompt, but the AI now outputs structured
+JSON — so those instructions had no effect. Images were generated and saved to the media
+library (that part worked), then silently discarded when building Elementor widgets.
+
+**Hero image** — now set as the container `background_image` with `background_size: cover`
+and a semi-transparent dark overlay (`rgba(26,35,50,0.72)`). This is the correct
+Elementor-native approach: the image fills the section and heading/text remain readable.
+
+**Feature images** — when generated images are available, `icon-box` widgets are replaced
+with `image-box` widgets (Elementor's Image Box: image + title + description). When no
+images were generated, icon-box widgets continue to be used as before.
+
+**New widget functions added:**
+- `myls_elb_image_widget()` — standalone Image widget
+- `myls_elb_image_box_widget()` — Image Box widget (image + title + description)
+
+**`myls_elb_parse_and_build()`** now accepts `$generated_images` as a second parameter
+and routes hero/feature images to the appropriate section builders.
+
+**Old `$img_block` prompt injection removed** — it was dead code targeting an HTML pipeline
+that no longer exists.
+
+**Log line** now reports exactly where images were placed:
+`📸 2 image(s) integrated: hero → container background, 1 feature(s) → image-box widgets`
+
+---
+
+
+## 7.1.0 — 2026-02-24
+
+### Changed — Elementor Builder: native widget architecture
+
+The Elementor Builder subtab now generates fully native Elementor widget trees
+instead of raw HTML code widgets. Every section is directly editable in the
+Elementor visual editor without opening any code panels.
+
+**Widget mapping:**
+
+| Section  | Elementor widgets used |
+|----------|------------------------|
+| Hero     | Heading (h1) + Text Editor + Button |
+| Intro    | Heading (h2) + Text Editor |
+| Features | Heading (h2) + inner flex row of Icon Box widgets |
+| Process  | Heading (h2) + inner flex row of Icon Box widgets (numbered) |
+| FAQ      | Heading (h2) + Shortcode `[faq_schema_accordion heading=""]` |
+| CTA      | Heading (h2) + Text Editor + Button |
+
+**Button & style defaults:** Button widget uses Elementor's global defaults — no hardcoded colors. Icon Box icons use the `view: stacked` + rounded circle style with a cycling color palette.
+
+**FAQ flow:** AI-generated FAQ items are extracted from the JSON and saved to `_myls_faq_items` post meta. The `[faq_schema_accordion]` shortcode reads from that meta automatically — FAQs appear with full schema markup and Bootstrap accordion, and are editable via the plugin's custom fields panel.
+
+**AI prompt rewritten:** The prompt now requests a structured JSON object instead of HTML. Each section is a named key (`hero`, `intro`, `features`, `process`, `faq`, `cta`) with typed fields. This makes parsing deterministic — no more DOMDocument HTML splitting. If the AI returns malformed JSON, the output falls back to a single HTML widget.
+
+**New PHP functions:**
+- `myls_elb_heading_widget()` — Heading widget
+- `myls_elb_text_editor_widget()` — Text Editor widget (TinyMCE-editable inline)
+- `myls_elb_button_widget()` — Button widget with global style defaults
+- `myls_elb_icon_box_widget()` — Icon Box widget (stacked, rounded, color cycled)
+- `myls_elb_shortcode_widget()` — Shortcode widget
+- `myls_elb_icon_color()` — Color palette helper
+- `myls_elb_build_hero/intro/features/process/faq/cta()` — per-section builders
+- `myls_elb_parse_and_build()` — main entry: parses AI JSON → Elementor data array + FAQ items
+
+**Backward compat:** `myls_elb_split_sections()` and `myls_elb_build_elementor_data()` are kept as deprecated stubs that delegate to `myls_elb_parse_and_build()`.
+
+---
+
+
+## 7.0.9 — 2026-02-24
+
+### Fixed
+- **Elementor Builder subtab — description history save (and all other buttons) not working.** A literal newline character was embedded inside a JavaScript string in the debug inspector block: `lines.join('` + actual newline + `')`. This is a JS syntax error. Because it was inside the same IIFE as every other listener (load, save, delete, create page), the **entire script block failed to parse** and zero event listeners were attached — explaining why save appeared to do nothing. Fixed by replacing the literal newline with the `\n` escape sequence. Confirmed clean with `node --check` after fix.
+
+---
+
+
+## 7.0.8 — 2026-02-24
+
+### Fixed
+- **`/llm-info` returning 404.** The rewrite rule was registered on `init` but `flush_rewrite_rules()` was never called, so WordPress's rewrite database never learned the route existed. A versioned auto-flush (same pattern as `llms-txt.php`) is now added to `llm-info.php`. On first load after the update, `flush_rewrite_rules(false)` runs once and `/llm-info` becomes accessible immediately — no manual Permalinks save required.
+
+### Added
+- **Utilities → llms.txt sidebar** now shows all three endpoint URLs as clickable links:
+  - `/llms.txt` — lightweight index
+  - `/llms-full.txt` — comprehensive content
+  - `/llm-info` — HTML page for AI assistants (was previously invisible in the UI)
+- **"Flush Rewrite Rules" button** in the sidebar. One click calls `flush_rewrite_rules(false)` from within the plugin — no need to navigate to Settings → Permalinks.
+
+---
+
+
+## 7.0.7 — 2026-02-24
+
+### Fixed
+- **Description history buttons (Load / Save / Delete) not functioning in AI Page Builder and Elementor Builder subtabs.**
+
+  Root cause: Both subtabs were using `window.prompt()` for the save name dialog and `window.confirm()` for the delete dialog. Chrome (and other modern browsers) silently block these native dialogs on WordPress admin pages, so `prompt()` returned `null` immediately → the `if (!name) return` guard fired → nothing happened. Errors from `loadDescHistory()` were also swallowed with `catch(e) { /* silent */ }` making diagnosis impossible.
+
+  **Fixes applied to both `subtab-page-builder.php` and `subtab-elementor.php`:**
+  - **Save button** — now reveals an inline row (text input + Save/Cancel buttons) instead of calling `prompt()`. Pre-fills with the page title. Enter key confirms, Escape cancels.
+  - **Delete button** — two-click confirm pattern using the inline message div instead of `confirm()`. First click shows a warning message; second click within 4 seconds executes the delete.
+  - **Load button** — unchanged logic but now shows an inline error message instead of `alert()` if no description is selected.
+  - **`loadDescHistory()`** — errors now surface in the message div instead of being silently swallowed.
+  - All success/error feedback shown as a green/red inline message that auto-dismisses after 3 seconds.
+
+---
+
+
+## 7.0.6 — 2026-02-24
+
+### Fixed
+- **AI → Elementor Builder — blank page on creation.** Three root causes corrected:
+
+  1. **`wp_slash()` missing (primary cause)** — `update_post_meta()` calls `stripslashes()` internally before storing values. Without `wp_slash()` pre-applied, every `\"` in the JSON string was stripped, producing invalid JSON that Elementor silently discarded → blank page. Fixed: `update_post_meta( $post_id, '_elementor_data', wp_slash( $elementor_json ) )`.
+
+  2. **Version hardcoded to `3.0.0`** — Elementor checks `_elementor_version` against the running version and attempts data migration if it looks old. Writing `3.0.0` while Elementor 3.24+ is installed triggered internal migration logic that could corrupt the structure. Fixed: reads `ELEMENTOR_VERSION` constant at runtime.
+
+  3. **No cache invalidation after direct meta write** — Elementor caches rendered CSS and element trees per-post. A direct `update_post_meta` call bypasses the cache invalidation that the editor normally triggers. Fixed: deletes `_elementor_css` and `_elementor_element_cache` post-meta, then calls `files_manager->clear_cache()` if available.
+
+- **Elementor Document API path added** — When `\Elementor\Plugin` is active, `documents->get($post_id)->save(['elements' => $array])` is now attempted first. This is the official save path — it handles slashing, versioning, and cache invalidation automatically. Direct meta write is retained as a fallback for when Elementor is not yet active.
+
+### Added
+- **Debug Inspector panel** in the Elementor Builder subtab. After creating a page, click "Inspect Elementor Data" to see: `_elementor_edit_mode`, `_elementor_version`, `_elementor_template_type`, JSON stored/valid/length, container count, widget count, and a raw JSON preview. Post ID auto-fills after creation. Essential for diagnosing save issues.
+- `wp_ajax_myls_elb_debug_post` AJAX action backing the inspector.
+
+---
+
+
+## 7.0.5 — 2026-02-24
+
+### Fixed
+- **AI → Elementor Builder** — Elementor containers were not being created when the Flexbox Container experiment/feature is active (Elementor 3.6+). The old `section → column → widget` structure was replaced with the modern `container → widget` structure (`elType: 'container'`). Key changes:
+  - `myls_elb_section()` now emits `elType: 'container'` with `content_width: 'full'`, `flex_direction: 'column'`, `flex_align_items: 'stretch'` — no intermediate column element.
+  - `myls_elb_build_elementor_data()` uses `content_width` and `width` for full-stretch containers instead of the deprecated `stretch_section` setting.
+  - `_elementor_data` JSON is now fully compatible with the Flexbox Container model.
+
+### Changed
+- UI label updated from "Generated Sections" → "Generated Containers" throughout the subtab and results badge.
+
+---
+
+
+## 7.0.4 — 2026-02-24
+
+### Added
+- **AI → Elementor Builder (new subtab)** — Parallel test tab alongside the native Page Builder. Generates the same AI content but writes it directly into Elementor's `_elementor_data` JSON rather than `post_content`.
+- `admin/tabs/ai/subtab-elementor.php` — Full UI: post type selector, description history (save/load/delete), business variable fields, image generation settings (DALL-E 3), prompt template editor, nav detection, results log, and "Edit in Elementor" deep link.
+- `inc/ajax/ai-elementor-builder.php` — All AJAX actions: `myls_elb_create_page`, `myls_elb_save_prompt`, `myls_elb_get_nav_posts`, `myls_elb_save_description`, `myls_elb_list_descriptions`, `myls_elb_delete_description`.
+- `assets/prompts/elementor-builder.txt` — Elementor-specific prompt template. Instructs the AI to wrap each content block in a `<section class="elb-*">` tag so the PHP layer can split them into discrete Elementor sections.
+- Helper functions in the AJAX handler: `myls_elb_section()`, `myls_elb_html_widget()`, `myls_elb_split_sections()`, `myls_elb_build_elementor_data()`, `myls_elb_uid()` — build valid Elementor JSON from AI output with correct section/column/widget hierarchy.
+
+### Changed
+- `aintelligize.php` — `require_once` added for `inc/ajax/ai-elementor-builder.php`.
+
+### Notes
+- Each AI `<section>` maps to one Elementor section → column → HTML widget, all fully editable in the canvas.
+- Hero/CTA sections automatically get a dark background (`#1a2332`) on the Elementor wrapper; Features/FAQ sections get light grey (`#f8f9fa`).
+- Image generation re-uses existing `myls_pb_dall_e_generate()` and `myls_pb_upload_image_from_url()` helpers.
+- Post-creation image generation re-uses the `myls_pb_generate_images` AJAX action from the native page builder.
+- Elementor active/version status shown in a badge at top-left of the setup panel.
+
+---
+
+
+## 7.0.3 — 2026-02-24
+
+### Added
+- **AI → FAQs Builder** — post list now shows a `✓` prefix on any post that already has MYLS FAQ items saved (`_myls_faq_items`), matching the existing behaviour in the Taglines generator.
+- **AI → About the Area** — post list now shows a `✓` prefix on any post that already has About the Area content saved (`_about_the_area`).
+
+### Changed
+- `inc/ajax/ai-faqs.php` — `myls_ai_faqs_get_posts_v1` now returns `has_faqs` (bool) alongside each post record.
+- `inc/ajax/ai-about.php` — `myls_ai_about_get_posts_v2` now returns `has_content` (bool) alongside each post record.
+- `assets/js/myls-ai-faqs.js` — `renderPosts()` prepends `✓ ` to option label when `has_faqs` is true.
+- `assets/js/myls-ai-about.js` — option builder prepends `✓ ` to label when `has_content` is true.
+
+---
+
+
 ## 7.0.2 — 2026-02-22
 
 ### New Shortcode: [google_reviews_slider]

@@ -15,21 +15,22 @@ add_action('wp_ajax_myls_pb_generate_images', function () {
     if ( ! current_user_can('manage_options') ) {
         wp_send_json_error(['message' => 'Forbidden'], 403);
     }
-    if ( ! wp_verify_nonce($_POST['_wpnonce'] ?? '', 'myls_pb_create') ) {
+    $_nonce = $_POST['_wpnonce'] ?? '';
+    if ( ! wp_verify_nonce($_nonce, 'myls_pb_create') && ! wp_verify_nonce($_nonce, 'myls_elb_create') ) {
         wp_send_json_error(['message' => 'Bad nonce'], 400);
     }
 
     $post_id     = (int) ($_POST['post_id'] ?? 0);
     $page_title  = sanitize_text_field($_POST['page_title'] ?? '');
     $description = wp_kses_post($_POST['description'] ?? '');
-    $image_style = sanitize_text_field($_POST['image_style'] ?? 'modern-flat');
+    $image_style = sanitize_text_field($_POST['image_style'] ?? 'photo');
     $set_featured = ! empty($_POST['set_featured']);
     $insert_hero  = ! empty($_POST['insert_hero']);
 
     // What images to generate
     $gen_hero     = ! empty($_POST['gen_hero']);
     $gen_feature  = ! empty($_POST['gen_feature']);
-    $feature_count = max(0, min(6, (int) ($_POST['feature_count'] ?? 0)));
+    $feature_count = 1;  // Featured Image is always a single wide image
 
     if ( ! $page_title && ! $description ) {
         wp_send_json_error(['message' => 'Need a page title or description to generate images.'], 400);
@@ -45,13 +46,15 @@ add_action('wp_ajax_myls_pb_generate_images', function () {
 
     // ── Style presets ──────────────────────────────────────────────────
     $style_map = [
+        'photo'         => 'Professional photograph, real camera shot, natural lighting, high resolution, sharp focus, authentic scene, no illustrations, no digital art',
         'modern-flat'   => 'Modern flat design illustration, clean lines, soft gradients, professional color palette, minimalist',
         'photorealistic'=> 'Professional stock photography style, high quality, well-lit, clean background',
         'isometric'     => 'Isometric 3D illustration, colorful, tech-forward, clean white background',
         'watercolor'    => 'Soft watercolor style illustration, artistic, professional, warm tones',
         'gradient-abstract' => 'Abstract gradient art, flowing shapes, modern tech aesthetic, vivid colors',
     ];
-    $style_suffix = $style_map[$image_style] ?? $style_map['modern-flat'];
+    $style_suffix = $style_map[$image_style] ?? $style_map['photo'];
+    $dalle_style  = ( $image_style === 'photo' ) ? 'natural' : 'vivid';
 
     // ── Generate hero image ────────────────────────────────────────────
     if ( $gen_hero ) {
@@ -63,7 +66,7 @@ add_action('wp_ajax_myls_pb_generate_images', function () {
         }
         $hero_prompt .= "Style: {$style_suffix}. Landscape orientation, 1792x1024, no text or words in the image.";
 
-        $result = myls_pb_dall_e_generate($api_key, $hero_prompt, '1792x1024');
+        $result = myls_pb_dall_e_generate($api_key, $hero_prompt, '1792x1024', $dalle_style);
         if ( $result['ok'] ) {
             $attach_id = myls_pb_upload_image_from_url(
                 $result['url'],
@@ -93,28 +96,24 @@ add_action('wp_ajax_myls_pb_generate_images', function () {
 
     // ── Generate feature/section images ────────────────────────────────
     if ( $gen_feature && $feature_count > 0 ) {
-        $log[] = "🎨 Generating {$feature_count} feature image(s)…";
-
-        // Ask AI to suggest image subjects based on the description
-        $subjects = myls_pb_suggest_image_subjects($page_title, $description, $feature_count);
+        $log[] = '🎨 Generating Featured Image (' . $image_style . ', 1792x1024)…';
+        $subjects = myls_pb_suggest_image_subjects($page_title, $description, 1);
 
         for ($i = 0; $i < $feature_count; $i++) {
-            $subject = $subjects[$i] ?? "Feature " . ($i + 1) . " of {$page_title}";
-            $feat_prompt = "Create a square icon/illustration representing: {$subject}. ";
-            $feat_prompt .= "For a page about: {$page_title}. ";
-            $feat_prompt .= "Style: {$style_suffix}. Square format, 1024x1024, no text or words in the image.";
+            $subject = $subjects[0] ?? $page_title;
+            $feat_prompt = "Create a wide image for a webpage about: {$page_title}. Subject: {$subject}. Style: {$style_suffix}. Landscape orientation, 1792x1024, no text or words in the image.";
 
-            $result = myls_pb_dall_e_generate($api_key, $feat_prompt, '1024x1024');
+            $result = myls_pb_dall_e_generate($api_key, $feat_prompt, '1792x1024', $dalle_style);
             if ( $result['ok'] ) {
                 $attach_id = myls_pb_upload_image_from_url(
                     $result['url'],
-                    sanitize_title($page_title) . '-feature-' . ($i + 1),
-                    $page_title . ' - ' . $subject,
+                    sanitize_title($page_title) . '-featured',
+                    $page_title . ' - Featured Image',
                     $post_id
                 );
                 if ( $attach_id ) {
                     $images[] = ['type' => 'feature', 'id' => $attach_id, 'url' => wp_get_attachment_url($attach_id), 'subject' => $subject];
-                    $log[] = "   ✅ Feature " . ($i + 1) . ": \"{$subject}\" (ID: {$attach_id})";
+                    $log[] = "   ✅ Featured Image saved to Media Library (ID: {$attach_id})";
                 } else {
                     $log[] = "   ❌ Feature " . ($i + 1) . ": upload failed";
                 }
@@ -144,13 +143,16 @@ add_action('wp_ajax_myls_pb_generate_images', function () {
 /**
  * Call DALL-E 3 API to generate a single image.
  */
-function myls_pb_dall_e_generate(string $api_key, string $prompt, string $size = '1024x1024'): array {
+function myls_pb_dall_e_generate(string $api_key, string $prompt, string $size = '1024x1024', string $dalle_style = 'vivid'): array {
+    // DALL-E 3 style param: 'vivid' = hyper-realistic/dramatic, 'natural' = authentic/muted.
+    // Photo style uses 'natural' so it looks like a real camera shot, not an AI render.
     $body = [
         'model'   => 'dall-e-3',
         'prompt'  => $prompt,
         'n'       => 1,
         'size'    => $size,
         'quality' => 'standard',
+        'style'   => $dalle_style,
     ];
 
     $resp = wp_remote_post('https://api.openai.com/v1/images/generations', [
@@ -275,3 +277,137 @@ function myls_pb_suggest_image_subjects(string $page_title, string $description,
 
     return array_slice($lines, 0, $count);
 }
+
+/* =========================================================================
+ * ELEMENTOR TEMPLATE IMAGE HELPERS
+ * Scan Elementor data for empty image widgets and inject DALL-E images.
+ * ========================================================================= */
+
+/**
+ * Recursively find image widgets with no real image set.
+ *
+ * "Empty" means: attachment ID is 0, URL is blank, or URL points to a
+ * placeholder service (placehold.co). These are the slots we want to fill.
+ *
+ * @param  array $elements  Elementor element tree (decoded JSON).
+ * @return array            List of [ 'id' => string, 'alt_hint' => string ]
+ */
+function myls_elb_find_empty_image_widgets( array $elements ): array {
+    $found = [];
+    foreach ( $elements as $el ) {
+        if ( ( $el['elType'] ?? '' ) === 'widget' && ( $el['widgetType'] ?? '' ) === 'image' ) {
+            $img_id  = (int)    ( $el['settings']['image']['id']  ?? 0 );
+            $img_url = (string) ( $el['settings']['image']['url'] ?? '' );
+            $is_placeholder = empty( $img_url )
+                || str_contains( $img_url, 'placehold.co' )
+                || str_contains( $img_url, 'placeholder' );
+            if ( $img_id === 0 || $is_placeholder ) {
+                $found[] = [
+                    'id'       => (string) $el['id'],
+                    'alt_hint' => (string) ( $el['settings']['image']['alt'] ?? '' ),
+                ];
+            }
+        }
+        // Recurse into nested containers / inner containers
+        if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+            $found = array_merge( $found, myls_elb_find_empty_image_widgets( $el['elements'] ) );
+        }
+    }
+    return $found;
+}
+
+/**
+ * Recursively inject image data into a specific widget by its element ID.
+ *
+ * @param  array  $elements   Elementor element tree.
+ * @param  string $widget_id  The target element ID.
+ * @param  int    $attach_id  WordPress attachment ID.
+ * @param  string $url        Full URL to the image.
+ * @param  string $alt        Alt text.
+ * @return array              Updated element tree.
+ */
+function myls_elb_inject_image_into_widget( array $elements, string $widget_id, int $attach_id, string $url, string $alt ): array {
+    foreach ( $elements as &$el ) {
+        if ( (string) $el['id'] === $widget_id ) {
+            $el['settings']['image']      = [ 'url' => $url, 'id' => $attach_id, 'alt' => $alt ];
+            $el['settings']['image_size'] = 'full';
+        }
+        if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+            $el['elements'] = myls_elb_inject_image_into_widget( $el['elements'], $widget_id, $attach_id, $url, $alt );
+        }
+    }
+    unset( $el );
+    return $elements;
+}
+
+/* =========================================================================
+ * AJAX: Test DALL-E connection
+ * Quick sanity check: verifies API key is set, calls DALL-E with a tiny
+ * 1024x1024 prompt, downloads and uploads to Media Library.
+ * Returns a clear success/error message so you know exactly what's failing.
+ * ========================================================================= */
+add_action( 'wp_ajax_myls_elb_test_dalle', function () {
+    if ( ! current_user_can('manage_options') ) {
+        wp_send_json_error( ['message' => 'Forbidden'], 403 );
+    }
+    if ( ! wp_verify_nonce( $_POST['_wpnonce'] ?? '', 'myls_elb_create' ) ) {
+        wp_send_json_error( ['message' => 'Bad nonce'], 400 );
+    }
+
+    $log = [];
+
+    // 1. Check API key
+    $api_key = function_exists('myls_openai_get_api_key') ? myls_openai_get_api_key() : '';
+    if ( empty( $api_key ) ) {
+        wp_send_json_error( [
+            'message' => '❌ OpenAI API key not configured.',
+            'log'     => [
+                '❌ No OpenAI API key found.',
+                '   Checked options: myls_openai_api_key, ssseo_openai_api_key, openai_api_key',
+                '   → Go to API Integration settings and paste your OpenAI key (starts with sk-).',
+                '   Note: DALL-E always requires an OpenAI key, even if you use Anthropic for text AI.',
+            ],
+        ] );
+    }
+
+    $log[] = '🔑 API key found: ' . substr( $api_key, 0, 7 ) . '…' . substr( $api_key, -4 );
+
+    // 2. Call DALL-E
+    $log[] = '🎨 Calling DALL-E 3 API (1024x1024 test image)…';
+    $result = myls_pb_dall_e_generate( $api_key, 'A simple blue circle on a white background. Minimalist, no text.', '1024x1024' );
+
+    if ( ! $result['ok'] ) {
+        $log[] = '❌ DALL-E API error: ' . $result['error'];
+        wp_send_json_error( [ 'message' => 'DALL-E API call failed.', 'log' => $log ] );
+    }
+
+    $log[] = '✅ DALL-E returned image URL.';
+    $log[] = '📥 Downloading and uploading to Media Library…';
+
+    // 3. Upload to Media Library
+    $attach_id = myls_pb_upload_image_from_url( $result['url'], 'dalle-test-image', 'DALL-E Test Image', 0 );
+
+    if ( ! $attach_id ) {
+        $log[] = '❌ Media Library upload failed.';
+        $log[] = '   The DALL-E API call succeeded (image was generated) but WordPress could not download or sideload it.';
+        $log[] = '   Common causes:';
+        $log[] = '     • Server cannot make outbound HTTPS requests (firewall/proxy blocking downloads)';
+        $log[] = '     • wp-content/uploads/ directory is not writable';
+        $log[] = '     • PHP memory limit too low for image processing';
+        $log[] = '   → Check your PHP error_log for the exact error from media_handle_sideload().';
+        wp_send_json_error( [ 'message' => 'Media Library upload failed.', 'log' => $log ] );
+    }
+
+    $img_url = wp_get_attachment_url( $attach_id );
+    $log[] = "✅ Test image saved to Media Library (ID: {$attach_id})";
+    $log[] = "   URL: {$img_url}";
+    $log[] = '';
+    $log[] = '🎉 DALL-E is fully working! Images will generate correctly.';
+
+    wp_send_json_success( [
+        'message'   => 'DALL-E connection test passed.',
+        'attach_id' => $attach_id,
+        'img_url'   => $img_url,
+        'log'       => $log,
+    ] );
+} );

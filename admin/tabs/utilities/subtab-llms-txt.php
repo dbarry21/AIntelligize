@@ -24,6 +24,13 @@ return [
     // -------------------------------------------------
     // Save
     // -------------------------------------------------
+    // Handle manual rewrite flush request
+    if ( isset($_POST['myls_llms_flush_rewrites']) ) {
+      check_admin_referer('myls_llms_flush');
+      flush_rewrite_rules( false );
+      echo '<div class="notice notice-success"><p><strong>Rewrite rules flushed.</strong> Both <code>/llms.txt</code> and <code>/llm-info</code> should now be accessible.</p></div>';
+    }
+
     $saved = false;
     if ( isset($_POST['myls_llms_save']) ) {
       check_admin_referer('myls_llms_save');
@@ -156,19 +163,36 @@ return [
       <div class="col-12 col-md-4">
         <div class="cardish">
           <h3 style="margin-top:0;">Quick checks</h3>
-          <p><strong>Endpoint:</strong><br />
+
+          <p style="margin-bottom:6px;"><strong>llms.txt</strong><br />
             <a href="<?php echo esc_url($endpoint_url); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($endpoint_url); ?></a>
           </p>
 
-          <ul style="margin:0; padding-left:1.1rem;">
-            <li>If you see 404, flush rewrites: <em>Settings → Permalinks → Save Changes</em>.</li>
-            <li>Keep limits reasonable (10–25 is usually enough).</li>
-            <li>FAQs link to stable anchors like <code>#faq-1</code> on the page.</li>
-          </ul>
+          <p style="margin-bottom:6px;"><strong>llms-full.txt</strong><br />
+            <a href="<?php echo esc_url(home_url('/llms-full.txt')); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html(home_url('/llms-full.txt')); ?></a>
+          </p>
+
+          <p style="margin-bottom:12px;"><strong>llm-info <span style="font-size:11px;color:#666;">(HTML page for AI assistants)</span></strong><br />
+            <a href="<?php echo esc_url(home_url('/llm-info')); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html(home_url('/llm-info')); ?></a>
+          </p>
 
           <hr />
 
-          <p class="muted" style="margin:0;">Tip: If a page has more than one FAQ accordion, anchors may repeat. Best practice is one FAQ accordion per page.</p>
+          <p style="margin-bottom:8px;">If any URL returns 404, flush rewrite rules:</p>
+          <form method="post" action="">
+            <?php wp_nonce_field('myls_llms_flush'); ?>
+            <button type="submit" name="myls_llms_flush_rewrites" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-arrow-repeat"></i> Flush Rewrite Rules
+            </button>
+          </form>
+
+          <hr />
+
+          <ul style="margin:0; padding-left:1.1rem; font-size:13px;">
+            <li>Keep limits reasonable (10–25 is usually enough).</li>
+            <li>FAQs link to stable anchors like <code>#faq-1</code>.</li>
+            <li>One FAQ accordion per page avoids duplicate anchors.</li>
+          </ul>
         </div>
       </div>
     </div>

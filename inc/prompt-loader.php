@@ -22,6 +22,7 @@
  *   faqs-builder      – FAQ generation (long/short variants)
  *   taglines          – Service tagline generation
  *   page-builder      – AI page builder content generation
+ *   elementor-builder – Elementor page builder (section-per-block JSON output)
  *
  * @since 6.2.0
  */
@@ -77,6 +78,7 @@ if ( ! function_exists('myls_list_prompt_keys') ) {
             'faqs-builder'     => 'FAQs Builder',
             'taglines'         => 'Service Taglines',
             'page-builder'     => 'AI Page Builder',
+            'elementor-builder'=> 'Elementor Page Builder',
             'llms-txt'         => 'llms.txt Generator — {{CITY_NAME}}, {{STATE}}, {{COUNTY}}, {{BUSINESS_NAME}}',
         ];
     }

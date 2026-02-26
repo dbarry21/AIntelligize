@@ -192,7 +192,10 @@ if ( ! function_exists('ssseo_service_grid_shortcode_v2') ) {
         $post_id   = get_the_ID();
         $title     = get_the_title();
         $permalink = get_permalink();
-        $thumb_url = get_the_post_thumbnail_url( $post_id, $a['image_size'] );
+        // Icon Image → fallback to Featured Image
+        $thumb_url = function_exists( 'myls_get_icon_image_url' )
+            ? myls_get_icon_image_url( $post_id, $a['image_size'] )
+            : get_the_post_thumbnail_url( $post_id, $a['image_size'] );
 
         // Determine column class per-item
         // Default: responsive sizing based on columns attribute

@@ -20,49 +20,150 @@ if ( ! defined('ABSPATH') ) exit;
 if ( ! function_exists('mlseo_docs_md_to_html') ) {
 	function mlseo_docs_md_to_html( string $md ) : string {
 		$md = str_replace(["\r\n", "\r"], "\n", $md);
-
 		$lines = explode("\n", $md);
-		$out = [];
-		$in_ul = false;
 
-		foreach ( $lines as $line ) {
+		$out      = [];
+		$in_ul    = false;
+		$in_fence = false;
+		$fence_buf = [];
+		$in_table  = false;
+		$table_buf = [];
+
+		/**
+		 * Flush an open <ul> if one is pending.
+		 */
+		$flush_ul = function() use (&$out, &$in_ul) {
+			if ($in_ul) { $out[] = '</ul>'; $in_ul = false; }
+		};
+
+		/**
+		 * Flush a collected markdown table into an HTML <table>.
+		 */
+		$flush_table = function() use (&$out, &$in_table, &$table_buf) {
+			if (!$in_table || empty($table_buf)) { $in_table = false; $table_buf = []; return; }
+			$html = '<table style="border-collapse:collapse;width:100%;margin:1em 0;">';
+			foreach ($table_buf as $i => $raw_row) {
+				// separator row (|---|---|) — skip
+				if (preg_match('/^\s*\|?[\s\-|:]+\|?\s*$/', $raw_row)) continue;
+				$cells = array_map('trim', explode('|', trim($raw_row, " \t|")));
+				$tag   = $i === 0 ? 'th' : 'td';
+				$html .= '<tr>';
+				foreach ($cells as $cell) {
+					$cell  = esc_html($cell);
+					$cell  = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $cell);
+					$cell  = preg_replace('/`([^`]+)`/', '<code>$1</code>', $cell);
+					$style = $i === 0
+						? 'background:#f6f7f7;font-weight:600;border:1px solid #cfcfcf;padding:6px 10px;text-align:left;'
+						: 'border:1px solid #e2e4e7;padding:6px 10px;vertical-align:top;';
+					$html .= "<{$tag} style=\"{$style}\">{$cell}</{$tag}>";
+				}
+				$html .= '</tr>';
+			}
+			$html .= '</table>';
+			$out[]     = $html;
+			$in_table  = false;
+			$table_buf = [];
+		};
+
+		/**
+		 * Apply inline formatting to a plain text paragraph line.
+		 * Operates on already-esc_html'd content to keep it safe.
+		 */
+		$inline = function(string $raw) : string {
+			$t = esc_html($raw);
+			// Bold
+			$t = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $t);
+			// Italic
+			$t = preg_replace('/\*(.+?)\*/', '<em>$1</em>', $t);
+			// Inline code
+			$t = preg_replace('/`([^`]+)`/', '<code>$1</code>', $t);
+			return $t;
+		};
+
+		foreach ($lines as $line) {
 			$raw = rtrim($line);
 
-			// Headings
-			if ( preg_match('/^(#{1,6})\s+(.*)$/', $raw, $m) ) {
-				if ( $in_ul ) { $out[] = '</ul>'; $in_ul = false; }
+			// ── Fenced code block ──────────────────────────────────────
+			if (preg_match('/^```/', $raw)) {
+				if (!$in_fence) {
+					($flush_ul)(); ($flush_table)();
+					$in_fence  = true;
+					$fence_buf = [];
+				} else {
+					$code = '<pre style="background:#f4f5f6;border:1px solid #ddd;padding:10px 14px;border-radius:6px;overflow-x:auto;"><code>'
+						. esc_html(implode("\n", $fence_buf))
+						. '</code></pre>';
+					$out[]    = $code;
+					$in_fence = false;
+				}
+				continue;
+			}
+			if ($in_fence) { $fence_buf[] = $raw; continue; }
+
+			// ── Table row ──────────────────────────────────────────────
+			if (strpos($raw, '|') !== false && preg_match('/^\s*\|/', $raw)) {
+				($flush_ul)();
+				$in_table    = true;
+				$table_buf[] = $raw;
+				continue;
+			} elseif ($in_table) {
+				($flush_table)();
+			}
+
+			// ── Blockquote ─────────────────────────────────────────────
+			if (preg_match('/^>\s*(.*)$/', $raw, $m)) {
+				($flush_ul)();
+				$out[] = '<blockquote style="border-left:4px solid #2271b1;margin:0.8em 0;padding:6px 14px;background:#f0f4fb;border-radius:4px;">'
+					. ($inline)(trim($m[1]))
+					. '</blockquote>';
+				continue;
+			}
+
+			// ── Headings ───────────────────────────────────────────────
+			if (preg_match('/^(#{1,6})\s+(.*)$/', $raw, $m)) {
+				($flush_ul)();
 				$level = strlen($m[1]);
 				$text  = esc_html(trim($m[2]));
-				$out[] = "<h{$level}>{$text}</h{$level}>";
+				$mt    = $level <= 2 ? 'margin-top:1.4em;' : 'margin-top:1em;';
+				$out[] = "<h{$level} style=\"{$mt}\">{$text}</h{$level}>";
 				continue;
 			}
 
-			// List items
-			if ( preg_match('/^\s*[-*]\s+(.*)$/', $raw, $m) ) {
-				if ( ! $in_ul ) { $out[] = '<ul>'; $in_ul = true; }
-				$out[] = '<li>' . esc_html(trim($m[1])) . '</li>';
+			// ── Horizontal rule ────────────────────────────────────────
+			if (preg_match('/^---+$/', trim($raw))) {
+				($flush_ul)();
+				$out[] = '<hr style="border:none;border-top:1px solid #ddd;margin:1.2em 0;">';
 				continue;
 			}
 
-			// Empty line
-			if ( trim($raw) === '' ) {
-				if ( $in_ul ) { $out[] = '</ul>'; $in_ul = false; }
+			// ── List item ──────────────────────────────────────────────
+			if (preg_match('/^\s*[-*]\s+(.*)$/', $raw, $m)) {
+				if (!$in_ul) { $out[] = '<ul>'; $in_ul = true; }
+				$out[] = '<li>' . ($inline)(trim($m[1])) . '</li>';
 				continue;
 			}
 
-			// Inline code `...`
-			$text = esc_html($raw);
-			$text = preg_replace('/`([^`]+)`/', '<code>$1</code>', $text);
+			// ── Empty line ─────────────────────────────────────────────
+			if (trim($raw) === '') {
+				($flush_ul)();
+				continue;
+			}
 
-			$out[] = '<p>' . $text . '</p>';
+			// ── Paragraph ──────────────────────────────────────────────
+			($flush_ul)();
+			$out[] = '<p>' . ($inline)($raw) . '</p>';
 		}
 
-		if ( $in_ul ) $out[] = '</ul>';
+		// Close any open blocks at EOF
+		($flush_ul)();
+		($flush_table)();
+		if ($in_fence && !empty($fence_buf)) {
+			$out[] = '<pre style="background:#f4f5f6;border:1px solid #ddd;padding:10px 14px;border-radius:6px;"><code>'
+				. esc_html(implode("\n", $fence_buf))
+				. '</code></pre>';
+		}
 
-		$html = implode("\n", $out);
-
-		// Allow only safe HTML.
-		return wp_kses_post($html);
+		return wp_kses_post(implode("\n", $out));
 	}
 }
 

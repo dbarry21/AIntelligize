@@ -117,6 +117,10 @@ return [
       .myls-pagination{display:flex;gap:6px;align-items:center;margin-top:10px}
       .myls-post-title{font-weight:600;font-size:13px;margin-bottom:2px}
       #myls_col_post { width:250px; max-width:275px; }
+      #myls_col_copy { width:40px; text-align:center; }
+      .myls-cell-copy { text-align:center; vertical-align:middle; }
+      .myls-copy-title-btn { cursor:pointer; font-size:14px; line-height:1; }
+      .myls-copy-flash { background:#d4edda !important; transition:background 0.3s; }
 
     </style>
 
@@ -160,13 +164,14 @@ return [
         <thead>
           <tr>
             <th id="myls_col_post">Post</th>
+            <th id="myls_col_copy" title="Copy Post Title → Focus Keyword" style="width:40px;text-align:center;">⬇</th>
             <th id="myls_col_title">Yoast Title</th>
             <th id="myls_col_desc">Yoast Description</th>
             <th id="myls_col_focus">Focus Keyword</th>
           </tr>
         </thead>
         <tbody id="myls_meta_rows">
-          <tr><td colspan="4">Loading…</td></tr>
+          <tr><td colspan="5">Loading…</td></tr>
         </tbody>
       </table>
       <div class="myls-pagination">
@@ -196,15 +201,31 @@ return [
       function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
       function rowHtml(x){return `<tr data-id="${x.id}">
         <td><div class="myls-post-title">${esc(x.post_title)}</div><div class="myls-table-meta">ID:${x.id}</div></td>
+        <td class="myls-cell-copy" style="text-align:center;vertical-align:middle;">
+          <button type="button" class="myls-copy-title-btn button button-small" title="Copy Post Title to Focus Keyword" data-title="${esc(x.post_title)}" style="min-width:30px;padding:2px 6px;">⬇</button>
+        </td>
         <td class="myls-cell-title"><input class="myls-yoast-title" value="${esc(x.yoast_title)}"></td>
         <td class="myls-cell-desc"><textarea class="myls-yoast-desc">${esc(x.yoast_desc)}</textarea></td>
         <td class="myls-cell-focus"><input class="myls-yoast-focus" value="${esc(x.yoast_focus)}"></td></tr>`;}
-      function render(d){maxPages=d.max_pages||1;page=d.page||1;rows.innerHTML=(d.rows&&d.rows.length)?d.rows.map(rowHtml).join(''):'<tr><td colspan="4">No items.</td></tr>';info.textContent=`Page ${page} of ${maxPages}`;count.textContent=`${d.found} items`;setCols();}
+      function render(d){maxPages=d.max_pages||1;page=d.page||1;rows.innerHTML=(d.rows&&d.rows.length)?d.rows.map(rowHtml).join(''):'<tr><td colspan="5">No items.</td></tr>';info.textContent=`Page ${page} of ${maxPages}`;count.textContent=`${d.found} items`;setCols();bindCopyBtns();}
 
       async function post(p){const fd=new FormData();for(const[k,v]of Object.entries(p)){if(Array.isArray(v))v.forEach((row,i)=>{for(const[f,val]of Object.entries(row)){fd.append(`items[${i}][${f}]`,val);}});else fd.append(k,v);}const r=await fetch(BOOT.ajaxUrl,{method:'POST',body:fd});const t=await r.text();try{return JSON.parse(t);}catch(e){throw new Error(t||'Bad JSON');}}
-      async function fetchPage(p){rows.innerHTML='<tr><td colspan="4">Loading…</td></tr>';try{const r=await post({action:'myls_meta_editor_fetch',nonce:BOOT.nonce,pt:pt.value,search:search.value,page,String:p,per_page:String(BOOT.perPage)});if(!r.success)throw new Error(r.data);render(r.data);}catch(e){rows.innerHTML=`<tr><td colspan="4"><b>Error:</b>${e.message}</td></tr>`;}}
+      async function fetchPage(p){rows.innerHTML='<tr><td colspan="5">Loading…</td></tr>';try{const r=await post({action:'myls_meta_editor_fetch',nonce:BOOT.nonce,pt:pt.value,search:search.value,page:String(p),per_page:String(BOOT.perPage)});if(!r.success)throw new Error(r.data);render(r.data);}catch(e){rows.innerHTML=`<tr><td colspan="5"><b>Error:</b>${e.message}</td></tr>`;}}
       async function saveAll(){const items=[];$$('#myls_meta_rows tr').forEach(tr=>{const id=parseInt(tr.dataset.id,10);const row={id};if(visible.has('title'))row.yoast_title=tr.querySelector('.myls-yoast-title').value;if(visible.has('desc'))row.yoast_desc=tr.querySelector('.myls-yoast-desc').value;if(visible.has('focus'))row.yoast_focus=tr.querySelector('.myls-yoast-focus').value;items.push(row);});status.textContent='Saving…';try{const r=await post({action:'myls_meta_editor_save',nonce:BOOT.nonce,items});if(!r.success)throw new Error(r.data);status.textContent=`Saved ${r.data.saved} items.`;}catch(e){status.textContent=e.message;}}
       $$('.myls_field_toggle').forEach(cb=>cb.addEventListener('change',()=>{if(cb.checked)visible.add(cb.value);else visible.delete(cb.value);setCols();}));
+
+      function bindCopyBtns(){
+        $$('.myls-copy-title-btn').forEach(btn=>btn.addEventListener('click',function(){
+          const tr=this.closest('tr');
+          const title=this.dataset.title;
+          const focusInput=tr.querySelector('.myls-yoast-focus');
+          if(focusInput){
+            focusInput.value=title;
+            focusInput.classList.add('myls-copy-flash');
+            setTimeout(()=>focusInput.classList.remove('myls-copy-flash'),700);
+          }
+        }));
+      }
       search.addEventListener('input',()=>{if(typingTimer)clearTimeout(typingTimer);typingTimer=setTimeout(()=>fetchPage(1),350);});
       pt.addEventListener('change',()=>fetchPage(1));prev.addEventListener('click',e=>{e.preventDefault();if(page>1)fetchPage(page-1);});next.addEventListener('click',e=>{e.preventDefault();if(page<maxPages)fetchPage(page+1);});save.addEventListener('click',e=>{e.preventDefault();saveAll();});
 
