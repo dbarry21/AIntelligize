@@ -1,6 +1,26 @@
 # AIntelligize — Changelog
 
-## 7.7.1 — 2026-03-01
+## 7.7.2 — 2026-03-01
+
+### Fixed
+- **LocalBusiness Schema — Aggregate Rating inputs restored** — `rating` (star rating,
+  1.0–5.0) and `review_count` (total Google reviews) fields were missing from both the
+  location form UI and the save handler in `admin/tabs/schema/subtab-localbusiness.php`.
+  These fields are read by `inc/schema/helpers.php` (for schema markup output) and
+  `inc/prompt-loader.php` (for AI prompt tokens like "890+ 4.9-Star Google Reviews").
+
+### Added
+- Live preview badge in the location form — when both `rating` and `review_count` are
+  populated, a yellow ★ badge renders inline showing e.g. `★ 4.9 · 890+ reviews`.
+
+### Changed
+- Save handler now validates `rating` with `is_numeric()` and rounds to 1 decimal place;
+  `review_count` is cast via `absint()`.
+
+**Files changed:** `admin/tabs/schema/subtab-localbusiness.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+---
 
 ### Added
 - **`MYLS_PDF` — Pure-PHP PDF Writer** (`inc/lib/myls-pdf.php`) — Self-contained PDF

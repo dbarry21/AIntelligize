@@ -327,6 +327,42 @@ $spec = [
                     <label class="form-label">Longitude</label>
                     <input type="text" name="myls_locations[<?php echo $i;?>][lng]" value="<?php echo esc_attr($loc['lng']); ?>">
                   </div>
+
+                  <!-- AggregateRating — used in schema output and AI prompt tokens -->
+                  <div class="myls-col col-12">
+                    <hr class="myls-hr" style="margin:8px 0;">
+                    <label class="form-label fw-semibold">
+                      <i class="bi bi-star-fill text-warning"></i>
+                      Google Reviews / Aggregate Rating
+                      <small class="text-muted fw-normal ms-1">— used in schema markup and AI prompt context</small>
+                    </label>
+                  </div>
+                  <div class="myls-col col-3">
+                    <label class="form-label">Star Rating</label>
+                    <input type="number" step="0.1" min="1" max="5"
+                           name="myls_locations[<?php echo $i;?>][rating]"
+                           value="<?php echo esc_attr($loc['rating'] ?? ''); ?>"
+                           placeholder="4.9">
+                    <small class="text-muted">1.0 – 5.0</small>
+                  </div>
+                  <div class="myls-col col-3">
+                    <label class="form-label">Review Count</label>
+                    <input type="number" min="0" step="1"
+                           name="myls_locations[<?php echo $i;?>][review_count]"
+                           value="<?php echo esc_attr($loc['review_count'] ?? ''); ?>"
+                           placeholder="890">
+                    <small class="text-muted">Total Google reviews</small>
+                  </div>
+                  <div class="myls-col col-6 d-flex align-items-end pb-1">
+                    <?php if ( !empty($loc['rating']) && !empty($loc['review_count']) ) : ?>
+                      <span class="badge bg-warning text-dark fs-6">
+                        &#9733; <?php echo esc_html($loc['rating']); ?> &nbsp;·&nbsp;
+                        <?php echo esc_html(number_format((int)$loc['review_count'])); ?>+ reviews
+                      </span>
+                    <?php else : ?>
+                      <span class="text-muted" style="font-size:12px;">Enter rating + count to see preview</span>
+                    <?php endif; ?>
+                  </div>
                 </div>
 
                 <hr class="myls-hr">
@@ -640,9 +676,11 @@ $spec = [
         'state'      => $state,
         'zip'        => sanitize_text_field($loc['zip'] ?? ''),
         'country'    => $country,
-        'lat'        => sanitize_text_field($loc['lat'] ?? ''),
-        'lng'        => sanitize_text_field($loc['lng'] ?? ''),
-        'pages'      => array_map('absint', (array)($loc['pages'] ?? [])),
+        'lat'          => sanitize_text_field($loc['lat'] ?? ''),
+        'lng'          => sanitize_text_field($loc['lng'] ?? ''),
+        'rating'       => is_numeric($loc['rating'] ?? '') ? round((float)($loc['rating']), 1) : '',
+        'review_count' => isset($loc['review_count']) && $loc['review_count'] !== '' ? absint($loc['review_count']) : '',
+        'pages'        => array_map('absint', (array)($loc['pages'] ?? [])),
         'hours'      => [],
       ];
 

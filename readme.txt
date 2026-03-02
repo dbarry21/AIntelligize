@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.7.1
+Stable tag: 7.7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,10 @@ FAQ Quick Editor now supports multi-post batch save and WYSIWYG answers.
 Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
+
+= 7.7.2 =
+* Fixed: Aggregate Rating inputs (Star Rating + Review Count) restored to LocalBusiness location form — fields were missing from both the UI and save handler. Read by schema helpers and AI prompt tokens.
+* Added: Live preview badge in location form showing star rating and review count when both fields are populated.
 
 = 7.7.1 =
 * Added: MYLS_PDF — pure-PHP PDF writer (inc/lib/myls-pdf.php) with zero dependencies, Helvetica built-in fonts, RGB colors, rectangles, auto page breaks, page numbering.
