@@ -6,6 +6,7 @@ PAGE DATA:
 - Excerpt: {excerpt}
 - Category: {primary_category}
 - URL: {permalink}
+- Business Credentials: {credentials}
 
 LENGTH RULES:
 - MINIMUM 90 characters — titles shorter than 90 characters are too short and waste keyword opportunity
@@ -25,7 +26,7 @@ F) Location-Led + Service Focus → "Tampa Bay's Full-Service Fence Contractor S
 CONTENT RULES:
 - If the page is a city-specific service page, lead with the SERVICE, not the city name
 - Include the city/state naturally — once only, never repeat the same location twice
-- Use factual qualifiers when available (licensed, insured, locally owned, years in business)
+- When {credentials} is not empty, you MAY use one credential verbatim as a qualifier (e.g. "Veteran-Owned", "PWNA Certified", "Licensed & Insured"). Otherwise use factual qualifiers when available
 - Title case formatting
 
 ANTI-DUPLICATION (CRITICAL FOR BATCH RUNS):

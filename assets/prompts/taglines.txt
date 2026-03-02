@@ -4,28 +4,46 @@ INPUTS:
 - Service: {{TITLE}}
 - Context: {{CONTENT}}
 - Location: {{CITY_STATE}}
+- Business Credentials: {{CREDENTIALS}}
 
-STRUCTURAL PATTERNS — rotate across these for each tagline:
-A) Benefit + Trust Signal + Location: "Storm-Proof Fencing | Licensed & Insured | Serving Tampa Bay"
-B) Service + Differentiator + CTA: "Emergency AC Repair | 24/7 Same-Day Response | Free Estimates"
-C) Outcome + Credential + Area: "Fences Built to Last | 15+ Years Experience | Pasco County"
-D) Problem/Need + Solution + Trust: "Fence Damage? | Fast Repair, Lasting Results | Fully Insured"
+ABOUT {{CREDENTIALS}}:
+This field is pre-populated from the business's Organization and LocalBusiness schema.
+It may include any combination of: awards, certifications, memberships, review ratings,
+years in service, or notable designations (e.g. "Veteran-Owned", "890+ 5-Star Reviews",
+"Licensed & Insured", "PWNA Member", "Angi Super Service Award").
+- Use 1-2 of these VERBATIM as the trust signal in each tagline.
+- Prefer the most specific and verifiable credential available.
+- If {{CREDENTIALS}} is empty, fall back to: "Licensed & Insured".
+
+STRUCTURAL PATTERNS — use a DIFFERENT pattern for each tagline:
+A) Benefit + Trust Signal + Location:
+   "Sealed Pavers That Last | Licensed & Insured | Serving Tampa Bay"
+B) Service + Differentiator + CTA:
+   "Soft Wash House Cleaning | Eco-Friendly Products | Free Estimates"
+C) Outcome + Credential + Area:
+   "Driveways Restored to Like-New | Veteran-Owned & Certified | Apollo Beach"
+D) Problem/Need + Solution + Trust:
+   "Rust Stains on Your Concrete? | Safe Removal, Guaranteed Results | Fully Insured"
 
 REQUIREMENTS:
-1. Generate 3–4 taglines as an HTML unordered list
-2. Each tagline: 60–120 characters
-3. Start with the PRIMARY CUSTOMER BENEFIT or specific service — not the company name
-4. Include ONE trust signal per tagline (licensed, certified, guaranteed, insured, experienced, warranty)
-5. Include ONE differentiator per tagline (24/7, same-day, emergency, free estimates, no-obligation, locally owned)
+1. Generate 3-4 taglines as an HTML unordered list
+2. Each tagline: 60-120 characters
+3. Open with the PRIMARY CUSTOMER BENEFIT or specific service — NOT the company name
+4. Include ONE trust signal per tagline — draw from {{CREDENTIALS}} first,
+   then fallback list: (licensed, certified, guaranteed, insured, veteran-owned,
+   award-winning, warranty, accredited)
+5. Include ONE differentiator per tagline: (eco-friendly, free estimates,
+   no-obligation, locally owned, veteran-owned, family-owned, same-day, fast-drying,
+   satisfaction guaranteed)
 6. Use location naturally when relevant — not forced into every tagline
-7. Separate key points with PIPE character ( | ) — no bullets, no dashes, no special characters
-8. Each tagline in the set must use a DIFFERENT structural pattern
+7. Separate key points with PIPE character ( | ) — no bullets, no dashes
+8. Each tagline in the set must use a DIFFERENT structural pattern (A/B/C/D)
 9. Each tagline must open with a DIFFERENT word
 
 BANNED PHRASES:
 "Quality you can trust", "Serving with pride", "Your local experts",
 "Excellence in every", "Where quality meets", "We pride ourselves",
-"second to none", "premier", "world-class", "top-notch"
+"second to none", "world-class", "top-notch", "best in class"
 
 OUTPUT FORMAT:
 - Return CLEAN HTML ONLY — no markdown, no backticks, no code fences

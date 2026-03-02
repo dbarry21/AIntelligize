@@ -8,14 +8,16 @@ INPUTS:
 - Contact URL: {{CONTACT_URL}}
 - Allow external links: {{ALLOW_LINKS}}
 - Variant: {{VARIANT}}
+- Business Credentials: {{CREDENTIALS}}
 
 RULES:
 1. Detect the service vertical from the page content (home services, legal, medical, financial, etc.) and adapt tone accordingly.
-2. Use {{PAGE_TEXT}} as the primary source. You may supplement with general public knowledge about the service category, but NEVER fabricate business-specific claims (pricing, guarantees, licenses, awards, years in business) unless explicitly stated in {{PAGE_TEXT}}.
-3. Mention {{CITY_STATE}} naturally where relevant (climate, regulations, seasonal patterns, local context). Do not force it into every answer.
-4. The Contact link MUST appear in EVERY FAQ answer as the final paragraph. Never omit it. Use this exact format:
+2. Use {{PAGE_TEXT}} as the primary source. You may supplement with general public knowledge about the service category, but NEVER fabricate business-specific claims (pricing, guarantees, licenses, awards, years in business) unless explicitly stated in {{PAGE_TEXT}} OR present in {{CREDENTIALS}}.
+3. When {{CREDENTIALS}} is not empty, you MAY reference those specific credentials verbatim in relevant FAQ answers (e.g. "Are you licensed and insured?", "Are you a member of any professional associations?", "Do you have any awards or certifications?"). Do not fabricate credentials not listed in {{CREDENTIALS}}.
+4. Mention {{CITY_STATE}} naturally where relevant (climate, regulations, seasonal patterns, local context). Do not force it into every answer.
+5. The Contact link MUST appear in EVERY FAQ answer as the final paragraph. Never omit it. Use this exact format:
    <p><em>Helpful next step:</em> [action sentence] <a href="{{CONTACT_URL}}">Contact us</a> [closing phrase].</p>
-5. Each FAQ is a COMPLETE, SELF-CONTAINED block. The closing <p> with the Contact link is the LAST element of that FAQ — nothing else follows before the next <h3>.
+6. Each FAQ is a COMPLETE, SELF-CONTAINED block. The closing <p> with the Contact link is the LAST element of that FAQ — nothing else follows before the next <h3>.
 
 VARIANT RULES:
 

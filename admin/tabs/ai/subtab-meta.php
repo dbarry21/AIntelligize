@@ -83,7 +83,17 @@ return [
 			<div class="myls-right" style="border:1px solid #000;padding:16px;border-radius:1em;">
 				<h4 class="mb-2">AI Actions</h4>
 				<p class="mb-3" style="color:#555;">
-					Prompt placeholders: <code>{post_title}</code>, <code>{site_name}</code>, <code>{excerpt}</code>, <code>{primary_category}</code>, <code>{permalink}</code>.
+					Prompt placeholders: <code>{post_title}</code>, <code>{site_name}</code>, <code>{excerpt}</code>, <code>{primary_category}</code>, <code>{permalink}</code>, <code>{credentials}</code>.
+					<?php
+					if ( function_exists('myls_build_tagline_credentials') ) {
+					    $cred = myls_build_tagline_credentials();
+					    if ( $cred !== '' ) {
+					        echo '<br/><strong>{credentials}:</strong> <code>' . esc_html($cred) . '</code>';
+					    } else {
+					        echo '<br/><strong>{credentials} is empty</strong> — add awards, certs, or memberships in <a href="admin.php?page=aintelligize&tab=schema">Schema → Organization</a>.';
+					    }
+					}
+					?>
 				</p>
 
 				<div class="card mb-3" style="border:1px solid #ddd;">

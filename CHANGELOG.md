@@ -1,5 +1,168 @@
 # AIntelligize — Changelog
 
+## 7.7.1 — 2026-03-01
+
+### Added
+- **`MYLS_PDF` — Pure-PHP PDF Writer** (`inc/lib/myls-pdf.php`) — Self-contained PDF
+  generation class with zero dependencies. Produces valid PDF 1.4 binary output using
+  PHP built-ins and built-in PDF fonts (Helvetica, Helvetica-Bold, Courier — no embedding
+  required). Supports: RGB fill/text/draw colors, filled rectangles, horizontal lines,
+  auto-wrapping MultiCell, automatic page breaks, page numbering via `{NB}` alias.
+
+- **`MYLS_AI_Deep_Report`** (`inc/pdf/ai-deep-report.php`) — Professional report layout
+  class built on `MYLS_PDF`. Generates a multi-page PDF with:
+  - **Cover page** — dark hero band, purple accent stripe, site name, timestamp, analyzed
+    pages table with word count/keyword chips, "What's Inside" callout box
+  - **Per-post analysis pages** — dark header bar with post title + page counter chip,
+    metadata strip (words, keyword, location, schema status), color-coded section blocks
+    (green = Writing, purple = AI Citation, amber = Competitor Gaps, red = Rewrites)
+  - **Running footer** — page numbers (`Page N of M`), separator line, report label
+
+- **AI Deep Analysis — card-based terminal UI** — Replaced the plain `<pre>` terminal
+  dump with a rich card renderer. Each analyzed post gets a structured card showing:
+  - Dark header with post number chip, title, and URL
+  - Metadata strip: word count, focus keyword, location, schema detection status
+  - Color-coded section blocks per AI analysis dimension, with label pill and body text
+
+- **AI Deep Analysis — Download PDF Report button** — Purple button appears after analysis
+  completes. POSTs the collected JS-side results to `wp_ajax_myls_ca_deep_pdf_v1` using
+  a hidden form submit (ensures the browser intercepts the binary response as a file
+  download). Filename: `ai-deep-analysis-YYYYMMDD-HHmmss.pdf`.
+
+- **AI Deep Analysis — Raw Log panel** — Collapsible `Show Raw Log` button below the
+  cards gives access to the terminal-formatted log for the existing Print Log button.
+
+- **New AJAX action** `wp_ajax_myls_ca_deep_pdf_v1` — Accepts JSON results array,
+  sanitizes fields, instantiates `MYLS_AI_Deep_Report`, streams binary PDF with correct
+  `Content-Disposition: attachment` headers.
+
+**Files added:** `inc/lib/myls-pdf.php`, `inc/pdf/ai-deep-report.php`
+**Files changed:** `admin/tabs/ai/subtab-content-analyzer.php`,
+`inc/ajax/ai-content-analyzer.php`, `assets/js/myls-ai-content-analyzer.js`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+---
+
+### Added
+- **Content Analyzer — AI Deep Analysis button** — Purple `⭐ AI Deep Analysis` button added
+  to the Content Analyzer tab alongside the existing instant Analyze/Stop buttons. Sends
+  selected posts through a full AI-powered analysis pipeline covering four dimensions:
+
+  1. **Writing Quality & Tone** — clarity, engagement, brand voice, sentence variety, passive
+     voice, jargon, and emotional resonance. Flags specific weak phrases from the content.
+  2. **AI Citation Readiness** — likelihood of the page being cited by AI assistants
+     (ChatGPT, Perplexity, Gemini). Evaluates schema presence, E-E-A-T signals, FAQ coverage,
+     factual specificity, and structured data. Returns a High/Medium/Low score with rationale.
+  3. **Competitor Gap Opportunities** — 3–5 content angles or trust signals competitors
+     typically exploit that the page is missing (local proof points, process transparency,
+     pain-point targeting, comparison content).
+  4. **Priority Rewrite Recommendations** — 3–5 high-ROI specific changes with enough
+     detail to act on immediately: what to change, why it matters, what the improved version
+     should accomplish.
+
+- **Dedicated AI Results terminal** — AI Deep Analysis outputs to its own
+  `#myls_ca_deep_results` terminal below the instant analysis terminal. Includes its own
+  PDF export button. The two terminals are visually distinct and operate independently.
+
+- **New AJAX action** — `wp_ajax_myls_content_analyze_ai_deep_v1` in
+  `inc/ajax/ai-content-analyzer.php`. Gathers page content, metadata (Yoast title/desc,
+  focus keyword, city/state, tagline, FAQs, About the Area, schema detection) and sends
+  a structured prompt to `myls_ai_chat()`. Caps content at 3,000 chars to manage tokens.
+
+- **Header badges updated** — Card header now shows both `Instant Analysis` (blue) and
+  `AI Deep Analysis` (purple) badges to reflect both capabilities.
+
+### Fixed
+- Restored AI Deep Analysis functionality that was missing from recent builds (7.5.26–7.5.30)
+  due to the feature being dropped between zip snapshots.
+
+### Changed (from previous two releases)
+- **7.5.29** — `[service_area_list]` `get_related_children` attribute
+- **7.5.30** — `[service_area_list]` `heading` and `icon` attributes
+  *(both included in this build)*
+
+**Files changed:** `admin/tabs/ai/subtab-content-analyzer.php`,
+`inc/ajax/ai-content-analyzer.php`, `assets/js/myls-ai-content-analyzer.js`,
+`admin/docs/shortcode-data.php`, `modules/shortcodes/service-area-lists.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+---
+
+### Added
+- **`[service_area_list]` — `heading` attribute** — Override the section heading rendered
+  above the list. When omitted, the shortcode auto-selects `"Related Service Areas"` (in
+  `get_related_children` mode) or `"Other Service Areas"` (default mode). Set `heading=""`
+  (empty string) to **suppress the `<h3>` entirely**.
+
+  ```
+  [service_area_list heading="Also Available In"]
+  [service_area_list get_related_children="true" heading="We Also Serve"]
+  [service_area_list heading=""]
+  ```
+
+- **`[service_area_list]` — `icon` attribute** — Show or hide the Font Awesome
+  `fa-map-marker` icon before each list item. Accepts `true/false` or `1/0`.
+  Default: `true` (preserves existing behaviour).
+
+  ```
+  [service_area_list icon="0"]
+  [service_area_list get_related_children="true" icon="false"]
+  ```
+
+- **Shortcode docs updated** — `shortcode-data.php` now documents all four attributes,
+  six examples, and five tips for `service_area_list`.
+
+### Changed
+- Icon HTML extracted into `$icon_html` variable — removes duplicate markup across draft
+  and published render paths.
+
+**Files changed:** `modules/shortcodes/service-area-lists.php`, `admin/docs/shortcode-data.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+---
+
+## 7.5.29 — 2026-03-01
+
+### Added
+- **`[service_area_list]` — `get_related_children` attribute** — New boolean attribute
+  (`true`/`false` or `1`/`0`, default `false`) that switches the shortcode from its default
+  "all parent service areas" mode into a **related-children** mode.
+
+  When enabled, the shortcode reads the current page's post title and queries for any
+  `service_area` post whose title **starts with that title** (case-insensitive prefix match).
+  This lets you place a single shortcode on a parent service page and have it automatically
+  discover and list all matching location variants as you publish them — no taxonomy, no
+  parent/child hierarchy required.
+
+  **Example:** on a "Pressure Washing" page the shortcode will surface:
+  - "Pressure Washing in Clearwater"
+  - "Pressure Washing in Tampa"
+  - "Pressure Washing in St. Pete"
+
+  Combines with the existing `show_drafts` attribute so you can preview upcoming children
+  before they go live.
+
+  ```
+  [service_area_list get_related_children="true"]
+  [service_area_list get_related_children="1"]
+  [service_area_list get_related_children="true" show_drafts="true"]
+  ```
+
+- **Shortcode interactive docs updated** — `shortcode-data.php` entry for `service_area_list`
+  now documents both attributes (`show_drafts`, `get_related_children`), four usage examples,
+  and four tips covering prefix-match behaviour, CSS hooks, and self-exclusion logic.
+
+### Changed
+- Section heading is context-aware: **"Related Service Areas"** in `get_related_children`
+  mode vs **"Other Service Areas"** in default mode (existing behaviour preserved).
+- Corrected `<H3>` → `<h3>` capitalisation in HTML output.
+- All no-results paths unified — both modes return `<p>No service areas found.</p>`.
+
+**Files changed:** `modules/shortcodes/service-area-lists.php`, `admin/docs/shortcode-data.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+---
+
 ## 7.5.5 — 2026-02-25
 
 ### Fixed

@@ -46,6 +46,7 @@ if ( ! function_exists('myls_ai_context_for_post') ) {
 			'excerpt'          => $excerpt,
 			'primary_category' => $primary_category,
 			'permalink'        => get_permalink($post_id),
+			'credentials'      => function_exists('myls_build_tagline_credentials') ? myls_build_tagline_credentials() : '',
 		];
 	}
 }

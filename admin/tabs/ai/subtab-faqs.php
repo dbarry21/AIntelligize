@@ -163,7 +163,18 @@ return [
           <code>{{ALLOW_LINKS}}</code>,
           <code>{{VARIANT}}</code>,
           <code>{{CITY_STATE}}</code>,
-          <code>{{CONTACT_URL}}</code>
+          <code>{{CONTACT_URL}}</code>,
+          <code>{{CREDENTIALS}}</code>
+          <?php
+          if ( function_exists('myls_build_tagline_credentials') ) {
+              $cred = myls_build_tagline_credentials();
+              if ( $cred !== '' ) {
+                  echo '<br/><span class="description"><strong>{{CREDENTIALS}}:</strong> <code>' . esc_html($cred) . '</code></span>';
+              } else {
+                  echo '<br/><span class="description"><strong>{{CREDENTIALS}} is empty</strong> — add awards, certs, or memberships in <a href="admin.php?page=aintelligize&tab=schema">Schema → Organization</a>.</span>';
+              }
+          }
+          ?>
         </p>
       </div>
 

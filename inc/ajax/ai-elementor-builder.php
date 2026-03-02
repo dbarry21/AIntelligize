@@ -14,6 +14,9 @@
  *   myls_elb_save_description   – Save description to history
  *   myls_elb_list_descriptions  – List saved descriptions
  *   myls_elb_delete_description – Delete a saved description
+ *   myls_elb_save_setup         – Save full Page Setup state as a named template
+ *   myls_elb_list_setups        – List saved Page Setup templates
+ *   myls_elb_delete_setup       – Delete a saved Page Setup template
  */
 if ( ! defined('ABSPATH') ) exit;
 
@@ -148,7 +151,7 @@ function myls_elb_button_widget( string $text, string $url = '/contact/', string
  * @param string $desc      Description (plain text).
  * @param string $icon_color Background fill color for the stacked icon.
  */
-function myls_elb_icon_box_widget( string $fa_icon, string $title, string $desc, string $icon_color = '#2c7be5' ): array {
+function myls_elb_icon_box_widget( string $fa_icon, string $title, string $desc, string $icon_color = '#2c7be5', int $card_width = 30 ): array {
     // Parse "fas fa-shield-alt" → library + value
     $parts   = explode( ' ', trim( $fa_icon ), 2 );
     $prefix  = $parts[0] ?? 'fas';
@@ -175,10 +178,8 @@ function myls_elb_icon_box_widget( string $fa_icon, string $title, string $desc,
                 'unit' => 'px', 'top' => '50', 'right' => '50',
                 'bottom' => '50', 'left' => '50', 'isLinked' => true,
             ],
-            // Flex-row sizing: ~30% so 3 fit per row; justify-content:center on the
-            // parent row container will automatically center any orphan on the last row.
             '_element_width'        => 'initial',
-            '_element_custom_width' => [ 'unit' => '%', 'size' => 30 ],
+            '_element_custom_width' => [ 'unit' => '%', 'size' => $card_width ],
         ],
         'elements' => [],
     ];
@@ -217,7 +218,7 @@ function myls_elb_image_widget( int $attach_id, string $url, string $alt = '', s
  * @param string $title      Box heading.
  * @param string $desc       Description.
  */
-function myls_elb_image_box_widget( int $attach_id, string $url, string $alt, string $title, string $desc ): array {
+function myls_elb_image_box_widget( int $attach_id, string $url, string $alt, string $title, string $desc, int $card_width = 30 ): array {
     return [
         'id'         => myls_elb_uid(),
         'elType'     => 'widget',
@@ -230,7 +231,7 @@ function myls_elb_image_box_widget( int $attach_id, string $url, string $alt, st
             'title_size'       => 'h3',
             'position'         => 'top',
             '_element_width'        => 'initial',
-            '_element_custom_width' => [ 'unit' => '%', 'size' => 30 ],
+            '_element_custom_width' => [ 'unit' => '%', 'size' => $card_width ],
         ],
         'elements' => [],
     ];
@@ -248,7 +249,7 @@ function myls_elb_image_box_widget( int $attach_id, string $url, string $alt, st
  * @param string $title  Box heading.
  * @param string $desc   Description.
  */
-function myls_elb_image_placeholder_box_widget( string $title, string $desc ): array {
+function myls_elb_image_placeholder_box_widget( string $title, string $desc, int $card_width = 30 ): array {
     // Neutral grey placeholder — visible in Elementor without needing a media file
     $placeholder_url = 'https://placehold.co/400x300/e8e8e8/aaaaaa?text=Add+Image';
     return [
@@ -267,7 +268,7 @@ function myls_elb_image_placeholder_box_widget( string $title, string $desc ): a
             'title_size'       => 'h3',
             'position'         => 'top',
             '_element_width'        => 'initial',
-            '_element_custom_width' => [ 'unit' => '%', 'size' => 30 ],
+            '_element_custom_width' => [ 'unit' => '%', 'size' => $card_width ],
         ],
         'elements' => [],
     ];
@@ -450,7 +451,7 @@ function myls_elb_build_intro( array $d, int $container_width = 1140 ): array {
  *     [Inner Container: flex-row, wrap, center]
  *       Icon Box × N
  */
-function myls_elb_build_features( array $d, array $feature_images = [], bool $prefer_image_box = false, int $container_width = 1140 ): array {
+function myls_elb_build_features( array $d, array $feature_images = [], bool $prefer_image_box = false, int $container_width = 1140, int $card_width = 30 ): array {
     $items    = (array) ( $d['items'] ?? [] );
     $boxes    = [];
 
@@ -464,13 +465,15 @@ function myls_elb_build_features( array $d, array $feature_images = [], bool $pr
                 $img['url'],
                 $item['title'] ?? $img['alt'] ?? '',
                 $item['title'] ?? '',
-                $item['description'] ?? ''
+                $item['description'] ?? '',
+                $card_width
             );
         } elseif ( $prefer_image_box ) {
             // Site uses image-box widgets — add placeholder so user can drop image in
             $boxes[] = myls_elb_image_placeholder_box_widget(
                 $item['title']       ?? '',
-                $item['description'] ?? ''
+                $item['description'] ?? '',
+                $card_width
             );
         } else {
             // Default: Icon Box
@@ -478,7 +481,8 @@ function myls_elb_build_features( array $d, array $feature_images = [], bool $pr
                 $item['icon']        ?? 'fas fa-star',
                 $item['title']       ?? '',
                 $item['description'] ?? '',
-                myls_elb_icon_color( $idx )
+                myls_elb_icon_color( $idx ),
+                $card_width
             );
         }
     }
@@ -488,7 +492,6 @@ function myls_elb_build_features( array $d, array $feature_images = [], bool $pr
         'flex_direction'       => 'row',
         'flex_wrap'            => 'wrap',
         'flex_justify_content' => 'center',
-        'gap'                  => [ 'unit' => 'px', 'size' => 20, 'isLinked' => true ],
         'content_width'        => 'full',
         'padding'              => [ 'unit' => 'px', 'top' => '0', 'right' => '0', 'bottom' => '0', 'left' => '0', 'isLinked' => false ],
     ], true );
@@ -528,7 +531,6 @@ function myls_elb_build_process( array $d, int $container_width = 1140 ): array 
         'flex_direction'       => 'row',
         'flex_wrap'            => 'wrap',
         'flex_justify_content' => 'center',
-        'gap'                  => [ 'unit' => 'px', 'size' => 20, 'isLinked' => true ],
         'content_width'        => 'full',
         'padding'              => [ 'unit' => 'px', 'top' => '0', 'right' => '0', 'bottom' => '0', 'left' => '0', 'isLinked' => false ],
     ], true );
@@ -648,13 +650,15 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
     foreach ( $generated_images as $img ) {
         if ( $img['type'] === 'hero' ) {
             $hero_image = $img;
-        } elseif ( $img['type'] === 'feature' ) {
+        } elseif ( $img['type'] === 'feature_card' ) {
+            // Per-card images — indexed to map 1:1 with feature card slots
             $feature_images[] = $img;
         }
     }
 
     // Derive container width from kit (fallback 1140)
     $container_width = (int) ( $kit['container_width'] ?? 1140 );
+    $card_width      = (int) ( $section_flags['card_width'] ?? 30 );
 
     // Section visibility flags (default all true for backward compat)
     $show_hero     = $section_flags['hero']     ?? true;
@@ -676,10 +680,11 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
         $section_count++;
     }
 
-    // FEATURES
+    // FEATURES — use image-box widgets if card images were generated,
+    // or fall back to site pattern detection.
     if ( $show_features && ! empty( $data['features'] ) ) {
-        $use_image_boxes = $site_patterns['has_image_boxes'] ?? false;
-        $elements[] = myls_elb_build_features( (array) $data['features'], $feature_images, $use_image_boxes, $container_width );
+        $use_image_boxes = ! empty( $feature_images ) || ( $site_patterns['has_image_boxes'] ?? false );
+        $elements[] = myls_elb_build_features( (array) $data['features'], $feature_images, $use_image_boxes, $container_width, $card_width );
         $section_count++;
     }
 
@@ -804,8 +809,10 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
     $integrate_images = ! empty( $_POST['integrate_images'] );
     $image_style      = sanitize_text_field( $_POST['image_style'] ?? 'photo' );
     $gen_hero_img     = ! empty( $_POST['gen_hero'] );
-    $gen_feature_imgs = ! empty( $_POST['gen_feature'] );
-    $feature_count    = 1;  // Featured Image is always 1 wide photorealistic image
+    $gen_feature_imgs  = ! empty( $_POST['gen_feature'] );
+    $gen_feature_cards = ! empty( $_POST['gen_feature_cards'] );
+    $card_width        = max( 10, min( 100, (int) ( $_POST['card_width'] ?? 30 ) ) );
+    $feature_count     = 1;  // Featured Image is always 1 wide photorealistic image
     $set_featured     = ! empty( $_POST['set_featured'] );
 
     if ( empty( $page_title ) ) {
@@ -978,8 +985,59 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
                 }
             }
 
-            if ( ! $gen_hero_img && ! $gen_feature_imgs ) {
-                $image_log[] = 'ℹ️ No hero or feature images requested — only template image widgets will be scanned.';
+            // ── Feature Card Images (one per card, 1024x1024 square) ──────
+            // Generates 4 images — one per feature card — stored as type
+            // 'feature_card' so myls_elb_parse_and_build() can map them by
+            // index into image-box widgets instead of icon-box widgets.
+            if ( $gen_feature_cards ) {
+                $card_count  = 4; // matches default prompt template item count
+                $image_log[] = "🎨 Generating {$card_count} Feature Card Images (square, 1024x1024)…";
+
+                // Generate distinct visual subjects for each card slot
+                $card_subjects = function_exists('myls_pb_suggest_image_subjects')
+                    ? myls_pb_suggest_image_subjects( $page_title, $description, $card_count )
+                    : array_fill( 0, $card_count, $page_title );
+
+                // Feature cards look better square — use 1024x1024
+                $card_img_size  = '1024x1024';
+                $card_dalle_style = $dalle_style;
+
+                for ( $c = 0; $c < $card_count; $c++ ) {
+                    $card_subject  = $card_subjects[ $c ] ?? $page_title;
+                    $card_num      = $c + 1;
+                    $card_prompt   = "Create a professional square image for a service feature card about: {$page_title}. "
+                                   . "Card {$card_num} of {$card_count}. Subject: {$card_subject}. "
+                                   . "Style: {$style_suffix}. Square format 1024x1024. No text or words in the image.";
+
+                    $card_result = myls_pb_dall_e_generate( $api_key, $card_prompt, $card_img_size, $card_dalle_style );
+
+                    if ( $card_result['ok'] ) {
+                        $card_attach_id = myls_pb_upload_image_from_url(
+                            $card_result['url'],
+                            sanitize_title( $page_title ) . '-card-' . $card_num,
+                            $page_title . ' - Feature Card ' . $card_num,
+                            0
+                        );
+                        if ( $card_attach_id ) {
+                            $generated_images[] = [
+                                'type'    => 'feature_card',
+                                'id'      => $card_attach_id,
+                                'url'     => wp_get_attachment_url( $card_attach_id ),
+                                'alt'     => $page_title . ' - Feature Card ' . $card_num,
+                                'subject' => $card_subject,
+                            ];
+                            $image_log[] = "   ✅ Feature Card {$card_num} saved to Media Library (ID: {$card_attach_id})";
+                        } else {
+                            $image_log[] = "   ❌ Feature Card {$card_num}: DALL-E succeeded but Media Library upload failed.";
+                        }
+                    } else {
+                        $image_log[] = "   ❌ Feature Card {$card_num}: " . ( $card_result['error'] ?? 'DALL-E error' );
+                    }
+                }
+            }
+
+            if ( ! $gen_hero_img && ! $gen_feature_imgs && ! $gen_feature_cards ) {
+                $image_log[] = 'ℹ️ No images requested — only template image widgets will be scanned.';
             }
         }
     }
@@ -1069,12 +1127,13 @@ Rules:
 
     // ── Parse JSON + build native Elementor widgets ──────────────────────
     $section_flags  = [
-        'hero'     => $include_hero,
-        'intro'    => $include_intro,
-        'features' => $include_features,
-        'process'  => $include_process,
-        'faq'      => $include_faq,
-        'cta'      => $include_cta,
+        'hero'       => $include_hero,
+        'intro'      => $include_intro,
+        'features'   => $include_features,
+        'process'    => $include_process,
+        'faq'        => $include_faq,
+        'cta'        => $include_cta,
+        'card_width' => $card_width,
     ];
     $build_result   = myls_elb_parse_and_build( $html, $generated_images, $kit, $site_patterns, $section_flags );
     $elementor_json = $build_result['json'];
@@ -1115,12 +1174,12 @@ Rules:
             // Regen IDs so no collision between templates or with generated sections
             $tpl_elements = myls_elb_regen_ids( $tpl_elements );
 
-            // ── Replace "AI Content Here" placeholders ──────────────────
-            $ai_placeholder_count = myls_elb_count_ai_placeholders( $tpl_elements );
-            if ( $ai_placeholder_count > 0 ) {
+            // ── Fill AI-Content / AI-H2 / AI-H3 placeholders ────────────
+            $ph_counts = myls_elb_get_placeholder_counts( $tpl_elements );
+            if ( $ph_counts['total'] > 0 ) {
                 $focus = $seo_keyword ?: $page_title;
 
-                // Build a unique angle per slot so content differs across templates
+                // Unique angle per template slot so content differs across appended templates
                 $slot_angles = [
                     1 => 'benefits and value proposition',
                     2 => 'process, methodology and what to expect',
@@ -1128,30 +1187,68 @@ Rules:
                 ];
                 $angle = $slot_angles[ $tpl_slot_index ] ?? 'key information and details';
 
-                $ai_fill_prompt  = "Write approximately 400 words of professional, engaging HTML content about \"{$focus}\" focusing specifically on: {$angle}.\n";
-                $ai_fill_prompt .= "Page title: {$page_title}.\n";
+                // ── Build structured prompt ──────────────────────────────
+                $ai_fill_prompt  = "You are filling placeholder widgets in an Elementor template about \"{$focus}\".\n";
+                $ai_fill_prompt .= "Page title: {$page_title}. Angle for this section: {$angle}.\n";
                 if ( $description ) {
                     $ai_fill_prompt .= 'Page description: ' . mb_substr( wp_strip_all_tags( $description ), 0, 400 ) . "\n";
                 }
                 if ( $kg_context ) {
-                    $ai_fill_prompt .= "\nKnowledge Graph facts (use as factual grounding, rewrite in your own words):\n" . $kg_context . "\n";
+                    $ai_fill_prompt .= "\nKnowledge Graph facts (rewrite in your own words):\n" . $kg_context . "\n";
                 }
                 if ( $wiki_context ) {
-                    $ai_fill_prompt .= "\nWikipedia reference (synthesize from this, do NOT copy — rewrite in your own words):\n" . $wiki_context . "\n";
+                    $ai_fill_prompt .= "\nWikipedia reference (synthesize, do NOT copy):\n" . $wiki_context . "\n";
                 }
-                $ai_fill_prompt .= "\nOutput ONLY HTML body content — use <p>, <ul>, <li>, <strong> tags. No headings. No markdown. No code fences. Approx 400 words. Make it original, specific, and valuable to readers.";
 
-                $ai_fill_html = function_exists('myls_ai_chat') ? myls_ai_chat( $ai_fill_prompt, [
-                    'max_tokens'  => 900,
+                // Tell AI exactly how many items are needed per type
+                $ai_fill_prompt .= "\nReturn a JSON object with exactly these keys:\n";
+                $ai_fill_prompt .= "  content_blocks: array of {$ph_counts['content']} HTML string(s). Each block must follow this exact structure:\n";
+                $ai_fill_prompt .= "    1. <h3> — angle-based heading (5-9 words) that naturally includes the focus keyword \"{$focus}\"\n";
+                $ai_fill_prompt .= "    2. <p>  — intro paragraph (2-3 sentences) setting context for the angle\n";
+                $ai_fill_prompt .= "    3. <ul> — 3-4 <li> items, each starting with <strong>key point</strong> — supporting detail\n";
+                $ai_fill_prompt .= "    4. <p>  — closing paragraph (1-2 sentences) summarising value or with a subtle CTA\n";
+                $ai_fill_prompt .= "    Total ~300 words per block. Tags allowed: <h3> <p> <ul> <li> <strong>. No other tags.\n";
+                $ai_fill_prompt .= "  h2_headings:    array of {$ph_counts['h2']} short H2 heading string(s) — plain text, no HTML, 5-10 words each\n";
+                $ai_fill_prompt .= "  h3_headings:    array of {$ph_counts['h3']} short H3 heading string(s) — plain text, no HTML, 4-8 words each\n";
+                $ai_fill_prompt .= "Output ONLY the JSON object. No markdown. No code fences. Start with { and end with }.";
+
+                $ai_fill_raw = function_exists('myls_ai_chat') ? myls_ai_chat( $ai_fill_prompt, [
+                    'max_tokens'  => 1600,
                     'temperature' => 0.75,
-                    'system'      => 'You write original, professional HTML content for service pages. Synthesize from reference material but write everything in your own words. Output only HTML body content, no headings, no code fences, no markdown.',
+                    'system'      => 'You are a content writer for Elementor WordPress pages. Output ONLY valid JSON — no markdown, no code fences, no extra text. Start with { and end with }. HTML inside JSON string values must use only allowed tags: h3, p, ul, li, strong.',
                 ] ) : '';
 
-                if ( $ai_fill_html ) {
-                    $tpl_elements    = myls_elb_fill_ai_placeholders( $tpl_elements, wp_kses_post( $ai_fill_html ) );
-                    $tpl_log_lines[] = "✍️ Template {$tpl_slot_index}: AI content (angle: {$angle}) inserted into {$ai_placeholder_count} placeholder(s).";
-                } else {
-                    $tpl_log_lines[] = "⚠️ Template {$tpl_slot_index}: Could not generate AI content — placeholder(s) left as-is.";
+                // ── Parse JSON response ──────────────────────────────────
+                $fill_ok = false;
+                if ( $ai_fill_raw ) {
+                    $ai_fill_clean = trim( $ai_fill_raw );
+                    $ai_fill_clean = preg_replace( '/^```(?:json)?\s*/i', '', $ai_fill_clean );
+                    $ai_fill_clean = preg_replace( '/\s*```$/',           '', $ai_fill_clean );
+                    $ai_fill_data  = json_decode( trim( $ai_fill_clean ), true );
+
+                    if ( json_last_error() === JSON_ERROR_NONE && is_array( $ai_fill_data ) ) {
+                        $content_blocks = array_map( 'wp_kses_post',        (array) ( $ai_fill_data['content_blocks'] ?? [] ) );
+                        $h2_headings    = array_map( 'sanitize_text_field', (array) ( $ai_fill_data['h2_headings']    ?? [] ) );
+                        $h3_headings    = array_map( 'sanitize_text_field', (array) ( $ai_fill_data['h3_headings']    ?? [] ) );
+
+                        $cursors      = [];
+                        $tpl_elements = myls_elb_fill_all_placeholders(
+                            $tpl_elements, $content_blocks, $h2_headings, $h3_headings, $cursors
+                        );
+
+                        $filled_parts = [];
+                        if ( $ph_counts['content'] ) $filled_parts[] = "{$ph_counts['content']} content block(s)";
+                        if ( $ph_counts['h2'] )      $filled_parts[] = "{$ph_counts['h2']} H2 heading(s)";
+                        if ( $ph_counts['h3'] )      $filled_parts[] = "{$ph_counts['h3']} H3 heading(s)";
+                        $tpl_log_lines[] = "✍️ Template {$tpl_slot_index}: AI filled " . implode( ', ', $filled_parts ) . " (angle: {$angle}).";
+                        $fill_ok = true;
+                    } else {
+                        $tpl_log_lines[] = "⚠️ Template {$tpl_slot_index}: AI returned invalid JSON for placeholders — widgets left as-is. Parse error: " . json_last_error_msg();
+                    }
+                }
+
+                if ( ! $fill_ok && ! $ai_fill_raw ) {
+                    $tpl_log_lines[] = "⚠️ Template {$tpl_slot_index}: AI call returned empty — placeholder(s) left as-is.";
                 }
             }
 
@@ -1341,6 +1438,14 @@ Rules:
     update_post_meta( $post_id, '_elementor_version',       $real_elementor_version );
     update_post_meta( $post_id, '_elementor_template_type', 'wp-page' );
 
+    // Do NOT set _wp_page_template or _elementor_page_settings.
+    // Working service pages (e.g. paver-sealing-tampa) have neither meta set and
+    // render correctly with Theme Builder. Any value we write here causes either
+    // a double header or the mobile nav drawer firing open on page load.
+    // Explicitly delete both in case a previous version of this plugin wrote them.
+    delete_post_meta( $post_id, '_wp_page_template' );
+    delete_post_meta( $post_id, '_elementor_page_settings' );
+
     // Clear all per-post Elementor caches so the next load regenerates cleanly.
     delete_post_meta( $post_id, '_elementor_css' );
     delete_post_meta( $post_id, '_elementor_element_cache' );
@@ -1435,10 +1540,12 @@ Rules:
         $log_lines = array_merge( $log_lines, $image_log );
         $hero_count         = count( array_filter( $generated_images, fn($i) => $i['type'] === 'hero' ) );
         $feature_count_done = count( array_filter( $generated_images, fn($i) => $i['type'] === 'feature' ) );
+        $feature_card_count = count( array_filter( $generated_images, fn($i) => $i['type'] === 'feature_card' ) );
         $tpl_img_count      = count( array_filter( $generated_images, fn($i) => $i['type'] === 'template' ) );
         $img_notes = [];
         if ( $hero_count )         $img_notes[] = "hero → container background";
-        if ( $feature_count_done ) $img_notes[] = "{$feature_count_done} feature(s) → image-box widgets";
+        if ( $feature_count_done ) $img_notes[] = "1 featured → post thumbnail";
+        if ( $feature_card_count ) $img_notes[] = "{$feature_card_count} card(s) → image-box widgets";
         if ( $tpl_img_count )      $img_notes[] = "{$tpl_img_count} template image(s) → image widgets";
         $log_lines[] = "   📸 " . count( $generated_images ) . " image(s) integrated: " . implode( ', ', $img_notes );
     }
@@ -1575,6 +1682,89 @@ function myls_elb_format_history( array $history ): array {
 }
 
 /* -------------------------------------------------------------------------
+ * AJAX: Page Setup Templates — save/list/delete full left-panel state
+ * Stores: post_type, title, description, seo_keyword, status, menu,
+ *         section toggles, image checkboxes, image_style, set_featured
+ * Option key: myls_elb_setup_history  (array keyed by slug, max 50)
+ * ------------------------------------------------------------------------- */
+add_action( 'wp_ajax_myls_elb_save_setup', function () {
+    if ( ! current_user_can('manage_options') ) wp_send_json_error( ['message' => 'Forbidden'], 403 );
+    if ( ! wp_verify_nonce( $_POST['_wpnonce'] ?? '', 'myls_elb_create' ) ) wp_send_json_error( ['message' => 'Bad nonce'], 400 );
+
+    $name      = sanitize_text_field( $_POST['setup_name'] ?? '' );
+    $setup_raw = wp_unslash( $_POST['setup_data'] ?? '' );
+    if ( empty( $name ) )      wp_send_json_error( ['message' => 'Name is required.'], 400 );
+    if ( empty( $setup_raw ) ) wp_send_json_error( ['message' => 'Setup data is empty.'], 400 );
+
+    $setup = json_decode( $setup_raw, true );
+    if ( ! is_array( $setup ) ) wp_send_json_error( ['message' => 'Invalid setup data.'], 400 );
+
+    // Sanitize each field
+    $clean = [
+        'post_type'         => sanitize_key(   $setup['post_type']    ?? 'page' ),
+        'title'             => sanitize_text_field( $setup['title']    ?? '' ),
+        'description'       => wp_kses_post(   $setup['description']   ?? '' ),
+        'seo_keyword'       => sanitize_text_field( $setup['seo_keyword'] ?? '' ),
+        'status'            => in_array( $setup['status'] ?? '', ['draft','publish','pending'] ) ? $setup['status'] : 'draft',
+        'add_to_menu'       => (bool) ( $setup['add_to_menu']       ?? true ),
+        'include_hero'      => (bool) ( $setup['include_hero']      ?? true ),
+        'include_intro'     => (bool) ( $setup['include_intro']     ?? true ),
+        'include_features'  => (bool) ( $setup['include_features']  ?? true ),
+        'include_process'   => (bool) ( $setup['include_process']   ?? true ),
+        'include_faq'       => (bool) ( $setup['include_faq']       ?? true ),
+        'include_cta'       => (bool) ( $setup['include_cta']       ?? true ),
+        'gen_hero'          => (bool) ( $setup['gen_hero']          ?? true ),
+        'gen_feature'       => (bool) ( $setup['gen_feature']       ?? false ),
+        'gen_feature_cards' => (bool) ( $setup['gen_feature_cards'] ?? false ),
+        'card_width'        => max( 10, min( 100, (int) ( $setup['card_width'] ?? 30 ) ) ),
+        'image_style'       => sanitize_key( $setup['image_style']  ?? 'photo' ),
+        'set_featured'      => (bool) ( $setup['set_featured']      ?? true ),
+    ];
+
+    $history = get_option( 'myls_elb_setup_history', [] );
+    if ( ! is_array( $history ) ) $history = [];
+    $slug            = sanitize_title( $name );
+    $history[ $slug ] = [ 'name' => $name, 'setup' => $clean, 'updated' => current_time('mysql') ];
+    if ( count( $history ) > 50 ) $history = array_slice( $history, -50, 50, true );
+    update_option( 'myls_elb_setup_history', $history );
+    wp_send_json_success( [ 'message' => "Setup \"{$name}\" saved.", 'history' => myls_elb_format_setups( $history ) ] );
+} );
+
+add_action( 'wp_ajax_myls_elb_list_setups', function () {
+    if ( ! current_user_can('manage_options') ) wp_send_json_error( [], 403 );
+    $history = get_option( 'myls_elb_setup_history', [] );
+    if ( ! is_array( $history ) ) $history = [];
+    wp_send_json_success( [ 'history' => myls_elb_format_setups( $history ) ] );
+} );
+
+add_action( 'wp_ajax_myls_elb_delete_setup', function () {
+    if ( ! current_user_can('manage_options') ) wp_send_json_error( ['message' => 'Forbidden'], 403 );
+    if ( ! wp_verify_nonce( $_POST['_wpnonce'] ?? '', 'myls_elb_create' ) ) wp_send_json_error( ['message' => 'Bad nonce'], 400 );
+    $slug = sanitize_title( $_POST['setup_slug'] ?? '' );
+    if ( empty( $slug ) ) wp_send_json_error( ['message' => 'Invalid entry.'], 400 );
+    $history = get_option( 'myls_elb_setup_history', [] );
+    if ( ! is_array( $history ) ) $history = [];
+    $name = $history[ $slug ]['name'] ?? $slug;
+    unset( $history[ $slug ] );
+    update_option( 'myls_elb_setup_history', $history );
+    wp_send_json_success( [ 'message' => "Deleted \"{$name}\".", 'history' => myls_elb_format_setups( $history ) ] );
+} );
+
+function myls_elb_format_setups( array $history ): array {
+    $out = [];
+    foreach ( $history as $slug => $entry ) {
+        $out[] = [
+            'slug'    => $slug,
+            'name'    => $entry['name']    ?? $slug,
+            'setup'   => $entry['setup']   ?? [],
+            'updated' => $entry['updated'] ?? '',
+        ];
+    }
+    usort( $out, fn( $a, $b ) => strcmp( $b['updated'], $a['updated'] ) );
+    return $out;
+}
+
+/* -------------------------------------------------------------------------
  * AJAX: Debug — inspect _elementor_data stored on any post
  * Usage: wp_ajax call with action=myls_elb_debug_post&post_id=123&_wpnonce=...
  * Returns the raw stored JSON + a decoded preview so you can see exactly
@@ -1598,6 +1788,7 @@ add_action( 'wp_ajax_myls_elb_debug_post', function () {
     $edit_mode     = get_post_meta( $post_id, '_elementor_edit_mode',     true );
     $el_version    = get_post_meta( $post_id, '_elementor_version',       true );
     $tmpl_type     = get_post_meta( $post_id, '_elementor_template_type', true );
+    $page_settings = get_post_meta( $post_id, '_elementor_page_settings', true );
     $css_exists    = (bool) get_post_meta( $post_id, '_elementor_css',    true );
 
     $decoded       = json_decode( $raw_json, true );
@@ -1623,6 +1814,7 @@ add_action( 'wp_ajax_myls_elb_debug_post', function () {
         'edit_mode'        => $edit_mode,
         'elementor_version'=> $el_version,
         'template_type'    => $tmpl_type,
+        'page_settings'    => $page_settings ?: '(not set)',
         'css_cache_exists' => $css_exists,
         'json_stored'      => ! empty( $raw_json ),
         'json_valid'       => $json_valid,
@@ -1692,44 +1884,138 @@ function myls_elb_fetch_wikipedia_context( string $topic ): string {
 }
 
 /* -------------------------------------------------------------------------
- * Helper: Count text-editor widgets containing the "AI Content Here" placeholder
+ * Helper: Walk element tree and return counts for each placeholder type.
+ *
+ * Placeholder markers (case-insensitive, checked against stripped text):
+ *   AI-Content  →  text-editor widget  (settings.editor)
+ *   AI-H2       →  heading widget      (settings.title, forces tag h2)
+ *   AI-H3       →  heading widget      (settings.title, forces tag h3)
+ *
+ * Returns:
+ *   [ 'content' => int, 'h2' => int, 'h3' => int, 'total' => int ]
  * -------------------------------------------------------------------------*/
-function myls_elb_count_ai_placeholders( array $elements ): int {
-    $count = 0;
+function myls_elb_get_placeholder_counts( array $elements ): array {
+    $counts = [ 'content' => 0, 'h2' => 0, 'h3' => 0 ];
+
     foreach ( $elements as $el ) {
-        if ( ( $el['elType'] ?? '' ) === 'widget'
-            && ( $el['widgetType'] ?? '' ) === 'text-editor' ) {
-            $val = $el['settings']['editor'] ?? '';
-            if ( stripos( strip_tags( $val ), 'AI Content Here' ) !== false ) {
-                $count++;
+        $el_type     = $el['elType']     ?? '';
+        $widget_type = $el['widgetType'] ?? '';
+
+        if ( $el_type === 'widget' ) {
+            if ( $widget_type === 'text-editor' ) {
+                $val = strip_tags( $el['settings']['editor'] ?? '' );
+                if ( stripos( $val, 'AI-Content' ) !== false ) {
+                    $counts['content']++;
+                }
+            } elseif ( $widget_type === 'heading' ) {
+                $title = strip_tags( $el['settings']['title'] ?? '' );
+                if ( stripos( $title, 'AI-H2' ) !== false ) {
+                    $counts['h2']++;
+                } elseif ( stripos( $title, 'AI-H3' ) !== false ) {
+                    $counts['h3']++;
+                }
             }
         }
+
         if ( ! empty( $el['elements'] ) ) {
-            $count += myls_elb_count_ai_placeholders( $el['elements'] );
+            $child = myls_elb_get_placeholder_counts( $el['elements'] );
+            $counts['content'] += $child['content'];
+            $counts['h2']      += $child['h2'];
+            $counts['h3']      += $child['h3'];
         }
     }
-    return $count;
+
+    $counts['total'] = $counts['content'] + $counts['h2'] + $counts['h3'];
+    return $counts;
 }
 
 /* -------------------------------------------------------------------------
- * Helper: Recursively replace "AI Content Here" in text-editor widgets
- *
- * Each matching widget gets the same generated HTML (one AI call serves all
- * placeholders in the template — typically there is only one).
+ * Helper: Count all placeholder widgets (any type) — used for the "any?" gate.
  * -------------------------------------------------------------------------*/
-function myls_elb_fill_ai_placeholders( array $elements, string $html ): array {
+function myls_elb_count_ai_placeholders( array $elements ): int {
+    return myls_elb_get_placeholder_counts( $elements )['total'];
+}
+
+/* -------------------------------------------------------------------------
+ * Helper: Recursively fill all placeholder types with indexed content.
+ *
+ * Each placeholder slot gets its own unique string from the supplied arrays
+ * (slot 1 ≠ slot 2).  If an array runs out of items that widget is left
+ * unchanged so nothing is accidentally blanked.
+ *
+ * @param array $elements        Elementor element tree.
+ * @param array $content_blocks  HTML strings for AI-Content slots  (0-indexed).
+ * @param array $h2_headings     Plain-text strings for AI-H2 slots (0-indexed).
+ * @param array $h3_headings     Plain-text strings for AI-H3 slots (0-indexed).
+ * @param array &$cursors        Internal per-type counters — pass [] on first call.
+ * @return array                 Updated element tree.
+ * -------------------------------------------------------------------------*/
+function myls_elb_fill_all_placeholders(
+    array $elements,
+    array $content_blocks,
+    array $h2_headings,
+    array $h3_headings,
+    array &$cursors = []
+): array {
+    // Initialise per-type cursors on first call
+    if ( empty( $cursors ) ) {
+        $cursors = [ 'content' => 0, 'h2' => 0, 'h3' => 0 ];
+    }
+
     foreach ( $elements as &$el ) {
-        if ( ( $el['elType'] ?? '' ) === 'widget'
-            && ( $el['widgetType'] ?? '' ) === 'text-editor' ) {
-            $val = $el['settings']['editor'] ?? '';
-            if ( stripos( strip_tags( $val ), 'AI Content Here' ) !== false ) {
-                $el['settings']['editor'] = $html;
+        $el_type     = $el['elType']     ?? '';
+        $widget_type = $el['widgetType'] ?? '';
+
+        if ( $el_type === 'widget' ) {
+
+            // ── AI-Content → text-editor ──────────────────────────────
+            if ( $widget_type === 'text-editor' ) {
+                $val = strip_tags( $el['settings']['editor'] ?? '' );
+                if ( stripos( $val, 'AI-Content' ) !== false ) {
+                    $idx = $cursors['content'];
+                    if ( isset( $content_blocks[ $idx ] ) ) {
+                        $el['settings']['editor'] = $content_blocks[ $idx ];
+                    }
+                    $cursors['content']++;
+                }
+            }
+
+            // ── AI-H2 / AI-H3 → heading ───────────────────────────────
+            elseif ( $widget_type === 'heading' ) {
+                $title = strip_tags( $el['settings']['title'] ?? '' );
+
+                if ( stripos( $title, 'AI-H2' ) !== false ) {
+                    $idx = $cursors['h2'];
+                    if ( isset( $h2_headings[ $idx ] ) ) {
+                        $el['settings']['title']       = $h2_headings[ $idx ];
+                        $el['settings']['header_size'] = 'h2';
+                    }
+                    $cursors['h2']++;
+
+                } elseif ( stripos( $title, 'AI-H3' ) !== false ) {
+                    $idx = $cursors['h3'];
+                    if ( isset( $h3_headings[ $idx ] ) ) {
+                        $el['settings']['title']       = $h3_headings[ $idx ];
+                        $el['settings']['header_size'] = 'h3';
+                    }
+                    $cursors['h3']++;
+                }
             }
         }
+
+        // Recurse into child elements — pass cursors by reference so indices
+        // stay sequential across the entire element tree.
         if ( ! empty( $el['elements'] ) ) {
-            $el['elements'] = myls_elb_fill_ai_placeholders( $el['elements'], $html );
+            $el['elements'] = myls_elb_fill_all_placeholders(
+                $el['elements'],
+                $content_blocks,
+                $h2_headings,
+                $h3_headings,
+                $cursors
+            );
         }
     }
+    unset( $el ); // break reference
     return $elements;
 }
 

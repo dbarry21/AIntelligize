@@ -85,8 +85,27 @@ return [
           <code>{{TITLE}}</code>,
           <code>{{CONTENT}}</code>,
           <code>{{CITY_STATE}}</code>,
-          <code>{{BUSINESS_TYPE}}</code>
+          <code>{{BUSINESS_TYPE}}</code>,
+          <code>{{CREDENTIALS}}</code>
         </p>
+        <?php
+        // Show a live preview of what {{CREDENTIALS}} will resolve to
+        if ( function_exists('myls_build_tagline_credentials') ) {
+            $cred_preview = myls_build_tagline_credentials();
+            if ( $cred_preview !== '' ) {
+                echo '<div class="notice notice-info inline" style="margin:6px 0 0;padding:6px 12px;">'
+                   . '<strong>{{CREDENTIALS}} will resolve to:</strong><br>'
+                   . '<code style="word-break:break-word;">' . esc_html($cred_preview) . '</code>'
+                   . '</div>';
+            } else {
+                echo '<div class="notice notice-warning inline" style="margin:6px 0 0;padding:6px 12px;">'
+                   . '<strong>{{CREDENTIALS}} is empty.</strong> '
+                   . 'Add awards, certifications, or memberships in the <a href="admin.php?page=aintelligize&tab=schema">Schema tab → Organization</a>. '
+                   . 'Fallback "Licensed &amp; Insured" will be used.'
+                   . '</div>';
+            }
+        }
+        ?>
       </div>
 
       <div class="row">
@@ -124,8 +143,9 @@ return [
         <ul class="mb-0" style="padding-left: 20px;">
           <li>Generates 3-4 tagline options as HTML list</li>
           <li>Start with customer benefit, not company name</li>
-          <li>Include trust signals (licensed, certified)</li>
-          <li>Add differentiators (24/7, same-day, emergency)</li>
+          <li><strong>{{CREDENTIALS}}</strong> auto-pulls awards, certs &amp; memberships from your Schema settings</li>
+          <li>Trust signals rotate from your real credentials (e.g. "PWNA Member", "Angi Award 2024")</li>
+          <li>Add differentiators (free estimates, eco-friendly, veteran-owned)</li>
           <li>Use pipe ( | ) to separate key points</li>
           <li>Keep each tagline under 120 characters</li>
         </ul>

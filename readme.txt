@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.4.1
+Stable tag: 7.7.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,120 @@ FAQ Quick Editor now supports multi-post batch save and WYSIWYG answers.
 Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
+
+= 7.7.1 =
+* Added: MYLS_PDF — pure-PHP PDF writer (inc/lib/myls-pdf.php) with zero dependencies, Helvetica built-in fonts, RGB colors, rectangles, auto page breaks, page numbering.
+* Added: MYLS_AI_Deep_Report — professional report class with cover page, dark hero band, per-post color-coded section cards, and running footer with page numbers.
+* Added: AI Deep Analysis card-based UI — replaces plain terminal with rich cards per post (meta strip, section blocks with color labels for Writing/Citation/Gaps/Rewrites).
+* Added: Download PDF Report button — appears after analysis completes, POSTs results to PHP, streams binary PDF download.
+* Added: Collapsible raw log panel below cards for Print Log access.
+* Added: AJAX action myls_ca_deep_pdf_v1.
+
+= 7.7.0 =
+* Added: AI Deep Analysis button in Content Analyzer tab — sends selected posts to AI for writing quality critique, AI citation readiness scoring, competitor gap identification, and priority rewrite recommendations. Outputs to dedicated AI Results terminal with PDF export.
+* Added: New AJAX action myls_content_analyze_ai_deep_v1 with structured prompt covering E-E-A-T, schema detection, and local SEO gap analysis.
+* Added: [service_area_list] heading attribute — override or suppress the section heading.
+* Added: [service_area_list] icon attribute — show/hide Font Awesome map-marker per list item.
+* Added: [service_area_list] get_related_children attribute — auto-filter children by title prefix.
+* Changed: Content Analyzer header badges updated to show both Instant Analysis and AI Deep Analysis.
+
+= 7.5.30 =
+* Added: `heading` attribute for `[service_area_list]` — override the section heading or suppress it entirely with heading="". Auto-defaults to "Related Service Areas" or "Other Service Areas" based on mode.
+* Added: `icon` attribute for `[service_area_list]` — show/hide the Font Awesome map-marker icon per list item. Accepts true/false or 1/0. Default: true.
+* Docs: Updated shortcode-data.php with all four attributes, six examples, and five tips.
+
+= 7.5.29 =
+* Added: `get_related_children` attribute for `[service_area_list]` shortcode — when true, lists service_area posts whose title starts with the current page's title (e.g. "Pressure Washing in Clearwater" listed on "Pressure Washing"). Accepts true/false or 1/0. Combines with existing show_drafts attribute.
+* Changed: Section heading is now context-aware — "Related Service Areas" in get_related_children mode, "Other Service Areas" in default mode.
+* Fixed: Corrected <H3> capitalisation to <h3> in shortcode HTML output.
+* Docs: Updated shortcode-data.php interactive docs with new attribute, four examples, and tips.
+
+= 7.5.28 =
+* Fixed: Fatal PHP error "Unexpected token '<'" on page create — $card_width was read from $_POST in the AJAX handler but never passed into myls_elb_parse_and_build(), causing an undefined variable fatal inside that function; fixed by adding card_width to the $section_flags array passed to parse_and_build, and reading it from $section_flags['card_width'] inside that function
+
+
+* Fixed: Mobile nav drawer firing open on page load — root cause was _wp_page_template and _elementor_page_settings being set by the plugin; working service pages (paver-sealing-tampa etc) have neither meta set and render correctly with Theme Builder; now explicitly deletes both metas on create/regenerate so previously broken pages are also cleaned up on next regeneration
+
+
+* Fixed: Header double-render — now writes BOTH _wp_page_template = 'elementor-full-width.php' AND _elementor_page_settings['template'] = 'elementor_full_width'; Elementor writes both when you set Full Width manually in the editor; _wp_page_template is what WordPress uses to load the actual PHP template file — without it WP falls back to the theme default and fires the theme header alongside the Theme Builder header
+
+
+* Fixed: Header/menu double-render — set _elementor_page_settings template to 'elementor_full_width'; this suppresses the theme's native header/footer output and lets Elementor Theme Builder's assigned header/footer conditions take sole control, which is the correct template for sites using Theme Builder on service post types
+
+
+* Fixed: Removed gap property from inner flex-row containers in build_features and build_process — gap: 20px was causing card widths to exceed their row budget and break wrapping unexpectedly; spacing can be controlled via card width % and padding instead
+* Investigated: Double header/menu on service pages confirmed NOT caused by plugin — paver-sealing and other pre-existing service pages have the same double nav; root cause is Elementor Theme Builder conditions overlapping on the service post type (two header templates both matching service pages); fix requires adjusting conditions in Elementor → Theme Builder → Header template
+
+
+* Added: Feature Cards Width (%) number input in Generated Sections — controls _element_custom_width on icon-box, image-box, and placeholder-box widgets; defaults to 30%; clamped 10–100; persists in Page Setup Templates
+* Fixed: myls_elb_icon_box_widget, myls_elb_image_box_widget, myls_elb_image_placeholder_box_widget all now accept $card_width param instead of hardcoded 30
+* Wired: card_width POST param read in AJAX handler, passed through myls_elb_build_features to all three widget functions
+
+
+* Fixed: Header/menu layout conflict on generated pages — removed all _elementor_page_settings writes; Elementor Theme Builder applies headers/footers automatically via WordPress template_include filter based on post type conditions and does not need this meta set; every value we tried ('default', 'elementor_theme') interfered with that native routing; now explicitly deletes the meta so Elementor's own detection runs cleanly
+* Note: Any existing pages affected by v7.5.17–7.5.21 can be fixed by going to Elementor → Edit → Settings → Page Layout and saving once, or by using the Debug Inspector to verify _elementor_page_settings is cleared
+
+
+* Fixed: Business Variables in Elementor Builder now pull from Schema settings (myls_org_name, myls_org_tel, myls_org_email, myls_org_locality, myls_org_region, myls_lb_locations[0]) instead of old Site Builder (myls_sb_settings); falls back gracefully if schema fields are empty
+* Updated: Business Variables label now links directly to Schema settings tab
+* Added: Page Setup Templates — save/load/delete the full left-panel state (post type, title, description, SEO keyword, status, menu toggle, all section toggles, image checkboxes, image style, set featured); stored in myls_elb_setup_history (max 50 entries)
+* Added: AJAX handlers myls_elb_save_setup, myls_elb_list_setups, myls_elb_delete_setup
+* Added: Two-click delete confirm for Page Setup Templates (matching description history pattern)
+
+
+* Fixed: Double header/nav conflict on generated pages when Elementor Theme Builder is active — `template: default` caused both the regular theme header AND the Theme Builder's assigned header to render simultaneously on service post type pages
+* Changed: `_elementor_page_settings` template value from `default` to `elementor_theme` — this suppresses the theme's native header/footer and lets Elementor Theme Builder's assigned header/footer templates take full control, which is the correct behavior for sites using Theme Builder
+
+
+* Fixed: 8 repeated "Module not found" PHP error_log entries on every page load — modules/cpt/ was missing service-taxonomies.php, service-columns.php, service-metaboxes.php, service-templates.php, service-area-taxonomies.php, service-area-columns.php, service-area-metaboxes.php, service-area-templates.php
+* Added: All 8 missing CPT module stubs created as safe no-op files matching the product/video module pattern — module loader now resolves cleanly for service and service_area CPTs
+
+
+* Fixed: Critical Elementor error "sanitize_settings(): Argument #1 must be of type array, string given" when opening Edit with Elementor or Preview — caused by storing _elementor_page_settings as a wp_json_encode() string; Elementor expects a PHP array which WordPress serializes automatically via update_post_meta
+
+
+* Fixed: Elementor-created pages now correctly use the theme header and footer — missing `_elementor_page_settings` meta was causing Elementor to default to full-canvas layout, overlapping the nav
+* Added: `_elementor_page_settings` written on page creation with `template: default` and `page_layout: default` — equivalent to manually choosing "Default Template" in Elementor's Page Settings panel
+* Updated: Debug Inspector now shows `_elementor_page_settings` value so you can verify layout on any post
+
+
+* Added: "Feature Card Images" checkbox in Elementor Builder AI Images panel — generates 4 square (1024x1024) DALL-E images, one per feature card slot
+* Added: `gen_feature_cards` POST param read in AJAX handler; generates images stored as type `feature_card`
+* Fixed: Feature card images now correctly wire into `myls_elb_build_features()` via `$feature_images[]` indexed array — previously `$feature_images` was always empty because only `type === 'feature'` (post thumbnail) was collected, meaning image-box widgets were never actually created
+* Updated: `myls_elb_parse_and_build()` — `feature_card` type images populate `$feature_images`; `$use_image_boxes` auto-set to true when any feature card images are present
+* Updated: Image log summary — correctly distinguishes "1 featured → post thumbnail" from "N card(s) → image-box widgets"
+* Updated: `wantsImages()` JS helper includes `gen_feature_cards` checkbox
+* Updated: Progress log image count includes feature cards (4) in total
+
+
+* Refactor: Replaced single "AI Content Here" placeholder with three typed placeholders — AI-Content (text-editor), AI-H2 (heading), AI-H3 (heading)
+* Added: myls_elb_get_placeholder_counts() — single tree walk returning [ content, h2, h3, total ] counts for targeted fill logic
+* Updated: myls_elb_count_ai_placeholders() — now wraps get_placeholder_counts()['total'] for backward compatibility
+* Replaced: myls_elb_fill_ai_placeholders() with myls_elb_fill_all_placeholders() — recursive indexed fill; each slot gets unique content via per-type cursors maintained across the full element tree
+* Updated: Template placeholder AI prompt — single structured JSON call requesting content_blocks[], h2_headings[], h3_headings[] sized exactly to match placeholder counts in the template
+* Updated: AI-Content block structure — angle-based H3 heading with focus keyword, intro paragraph, 3-4 bullet list items, closing paragraph; ~300 words per block
+* Fixed: MYLS_VERSION constant was behind plugin header version (7.5.12 vs 7.5.14) — both now aligned at 7.5.15
+* Updated: max_tokens for template fill AI call bumped from 1400 to 1600 to accommodate structured multi-block responses
+
+
+* Refactor: Moved myls_build_tagline_credentials() from ai-taglines.php to inc/schema/helpers.php (shared, loads early for all prompt types)
+* Added: {{CREDENTIALS}} token to faqs-builder.txt prompt — AI can now reference real awards, certs, memberships verbatim in FAQ answers; fabrication guard updated (credentials from schema are now trusted data)
+* Added: {credentials} token to meta-description.txt — used as the WHY differentiator when available (pulls Veteran-Owned, certifications, awards over generic fallbacks)
+* Added: {credentials} token to meta-title.txt — available as a qualifier in title patterns (e.g. "Veteran-Owned", "PWNA Certified")
+* Added: credentials key to myls_ai_context_for_post() in ai.php — automatically feeds all single-brace meta/excerpt prompts without per-handler changes
+* Added: {{CREDENTIALS}} to ai-faqs.php str_replace token array
+* Updated: prompt-loader.php docblock and myls_list_prompt_keys() — full token map documented for all prompt types, token system difference (double vs single brace) explained
+* Updated: subtab-faqs.php and subtab-meta.php — live credential preview with link to Schema tab when empty
+* Intentionally excluded: about-area prompt — that prompt explicitly forbids business-specific claims; credentials would conflict with its "area context only" rule
+
+
+= 7.5.13 =
+* Added: {{CREDENTIALS}} token to taglines prompt — auto-assembled from Organization/LocalBusiness schema (awards, certifications, memberships)
+* Added: myls_build_tagline_credentials() helper — pulls myls_org_awards, myls_org_certifications, myls_org_memberships; detects Veteran-Owned from description; appends aggregate rating if stored in LocalBusiness location
+* Updated: taglines.txt prompt — industry-specific examples (pressure washing/paver sealing), CREDENTIALS-aware trust signal instructions, fallback to "Licensed & Insured" when empty
+* Updated: Taglines subtab — {{CREDENTIALS}} shown in variable list; live preview panel shows resolved credential string (or warning if empty with link to Schema tab)
+
+
 
 = 7.0.2 =
 * NEW: [google_reviews_slider] — Google Places API reviews displayed in a Swiper slider with glassmorphism card styling, star ratings, author attribution, and autoplay

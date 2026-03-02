@@ -6,12 +6,13 @@ PAGE DATA:
 - Excerpt: {excerpt}
 - Category: {primary_category}
 - URL: {permalink}
+- Business Credentials: {credentials}
 
 LENGTH: 145–160 characters. Google truncates at ~160, so front-load value.
 
 FORMULA — every description must contain these three elements in any order:
 1. WHAT: The specific service or topic of this page (not generic)
-2. WHY: One concrete differentiator — pick from: years of experience, licensing/insurance, warranty details, local ownership, response time, materials used, service area scope, or a measurable claim
+2. WHY: One concrete differentiator — when {credentials} is not empty, pull from it verbatim (e.g. "Veteran-Owned", "PWNA Certified", "Angi Award Winner"). Otherwise pick from: years of experience, licensing/insurance, warranty details, local ownership, response time, materials used, service area scope, or a measurable claim
 3. NEXT STEP: A soft call-to-action that fits naturally at the end
 
 OPENING VARIETY — rotate across these approaches (never reuse the same opening style consecutively in a batch):

@@ -223,21 +223,30 @@ function mlseo_compile_shortcode_documentation() {
         ],
 
         [
-            'name' => 'service_area_list',
-            'category' => 'services',
-            'description' => 'Simple linked list of service area posts. Lightweight alternative to the grid layouts.',
+            'name'        => 'service_area_list',
+            'category'    => 'services',
+            'description' => 'Simple linked list of service area posts. Supports a related-children mode that auto-filters posts whose titles begin with the current page title (e.g. "Pressure Washing in Clearwater" listed from "Pressure Washing"). Heading and icon are both customisable.',
             'basic_usage' => '[service_area_list]',
-            'attributes' => [
-                'posts_per_page' => ['default' => '-1',   'description' => 'Number of posts (-1 = all)'],
-                'orderby'        => ['default' => 'title','description' => 'Sort field'],
-                'order'          => ['default' => 'ASC',  'description' => 'Sort direction'],
+            'attributes'  => [
+                'show_drafts'          => ['default' => 'false', 'description' => 'Show draft posts only instead of published (true/false or 1/0). Drafts render as plain text — no link.'],
+                'get_related_children' => ['default' => 'false', 'description' => 'When true, lists service_area posts whose title STARTS WITH the current page\'s title. E.g. on "Pressure Washing" it surfaces "Pressure Washing in Clearwater", "Pressure Washing in Tampa", etc. Accepts true/false or 1/0.'],
+                'heading'              => ['default' => '(auto)', 'description' => 'Override the section heading. Auto-defaults to "Related Service Areas" (get_related_children mode) or "Other Service Areas" (default mode). Set heading="" to suppress the heading entirely.'],
+                'icon'                 => ['default' => 'true',  'description' => 'Show or hide the Font Awesome map-marker icon before each list item. Accepts true/false or 1/0.'],
             ],
             'examples' => [
-                ['label' => 'All areas alphabetical', 'code' => '[service_area_list]'],
-                ['label' => 'Top 10', 'code' => '[service_area_list posts_per_page="10"]'],
+                ['label' => 'All areas alphabetical',                   'code' => '[service_area_list]'],
+                ['label' => 'Show drafts only',                         'code' => '[service_area_list show_drafts="true"]'],
+                ['label' => 'Related children (auto-filter)',           'code' => '[service_area_list get_related_children="true"]'],
+                ['label' => 'Related children — custom heading',        'code' => '[service_area_list get_related_children="true" heading="Also Available In"]'],
+                ['label' => 'Related children — no heading, no icon',   'code' => '[service_area_list get_related_children="true" heading="" icon="0"]'],
+                ['label' => 'Related children — drafts preview',        'code' => '[service_area_list get_related_children="true" show_drafts="true"]'],
             ],
             'tips' => [
-                'Outputs a simple <ul> list — style via CSS as needed',
+                'heading="" (empty string) suppresses the <h3> entirely — useful when the surrounding layout already has a heading.',
+                'icon="0" removes the Font Awesome map-marker — handy for minimal list styles or when Font Awesome is not loaded.',
+                'get_related_children uses a case-insensitive PHP prefix match — no taxonomy or WP parent/child setup required.',
+                'Drop [service_area_list get_related_children="true"] on any service page; new location variants are discovered automatically as you publish them.',
+                'The current page is always excluded from results to prevent self-referencing links.',
             ],
         ],
 

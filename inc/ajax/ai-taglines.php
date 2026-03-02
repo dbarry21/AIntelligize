@@ -133,12 +133,16 @@ add_action('wp_ajax_myls_ai_taglines_generate_single', function() {
         }
     }
     
+    // Build credentials string from Organization/LocalBusiness schema options
+    $credentials = myls_build_tagline_credentials();
+
     // Build prompt by replacing variables
     $prompt = $prompt_template;
     $prompt = str_replace('{{TITLE}}', $title, $prompt);
     $prompt = str_replace('{{CONTENT}}', $content, $prompt);
     $prompt = str_replace('{{CITY_STATE}}', $city_state, $prompt);
     $prompt = str_replace('{{BUSINESS_TYPE}}', $business_type, $prompt);
+    $prompt = str_replace('{{CREDENTIALS}}', $credentials, $prompt);
     
     // ── Variation Engine: inject angle + banned phrases for tagline generation ──
     if ( class_exists('MYLS_Variation_Engine') ) {

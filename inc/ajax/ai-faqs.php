@@ -1366,9 +1366,11 @@ add_action('wp_ajax_myls_ai_faqs_generate_v1', function(){
   $contact_url = esc_url_raw( $contact_url );
 
   // Populate prompt vars
+  $credentials = function_exists('myls_build_tagline_credentials') ? myls_build_tagline_credentials() : '';
+
   $prompt = str_replace(
-    ['{{TITLE}}','{{URL}}','{{PAGE_TEXT}}','{{ALLOW_LINKS}}','{{VARIANT}}','{{CITY_STATE}}','{{CONTACT_URL}}'],
-    [$title, $url, $page_text, $allow_links ? 'YES' : 'NO', $variant, $city_state, $contact_url],
+    ['{{TITLE}}','{{URL}}','{{PAGE_TEXT}}','{{ALLOW_LINKS}}','{{VARIANT}}','{{CITY_STATE}}','{{CONTACT_URL}}','{{CREDENTIALS}}'],
+    [$title, $url, $page_text, $allow_links ? 'YES' : 'NO', $variant, $city_state, $contact_url, $credentials],
     $template
   );
 

@@ -396,3 +396,292 @@
   loadPosts();
 
 })(jQuery);
+
+/* =========================================================================
+ * AI Deep Analysis — v7.7.0
+ *
+ * - Card-based rich UI (renders section blocks with labels, colored headers)
+ * - Raw terminal log (collapsible, for the Print Log button)
+ * - Download PDF Report button (POSTs results to PHP, streams binary PDF)
+ * ========================================================================= */
+(function($){
+  'use strict';
+  if (!window.MYLS_CONTENT_ANALYZER) return;
+  var CFG = window.MYLS_CONTENT_ANALYZER;
+  var LOG = window.mylsLog;
+
+  // UI elements
+  var $pt        = $('#myls_ca_pt');
+  var $posts     = $('#myls_ca_posts');
+  var $deepRun   = $('#myls_ca_deep_run');
+  var $deepStop  = $('#myls_ca_deep_stop');
+  var $cards     = $('#myls_ca_deep_cards');
+  var $log       = $('#myls_ca_deep_log');
+  var $logWrap   = $('#myls_ca_deep_log_wrap');
+  var $logToggle = $('#myls_ca_deep_log_toggle');
+  var $pdfBtn    = $('#myls_ca_deep_pdf');
+  var $count     = $('#myls_ca_count');
+  var $status    = $('#myls_ca_status');
+
+  var deepStopping = false;
+  var allDeepResults = [];   // accumulated for PDF download
+
+  /* ── Section styling map ───────────────────────────────────────────── */
+  var sectionStyles = [
+    { match: 'WRITING',   label: 'WRITING QUALITY', bg: '#edf7ee', color: '#007017', text: '#1d2327' },
+    { match: 'CITATION',  label: 'AI CITATION',     bg: '#f5f0ff', color: '#6f42c1', text: '#1d2327' },
+    { match: 'COMPETITOR',label: 'COMPETITOR GAPS', bg: '#fffbeb', color: '#996800', text: '#1d2327' },
+    { match: 'REWRITE',   label: 'REWRITES',        bg: '#fff5f5', color: '#d63638', text: '#1d2327' },
+  ];
+
+  function getSectionStyle(heading) {
+    var h = heading.toUpperCase();
+    for (var i = 0; i < sectionStyles.length; i++) {
+      if (h.indexOf(sectionStyles[i].match) !== -1) return sectionStyles[i];
+    }
+    return { label: 'ANALYSIS', bg: '#f8f9fa', color: '#2271b1', text: '#1d2327' };
+  }
+
+  /* ── Parsing the AI markdown response ─────────────────────────────── */
+  function parseAnalysisSections(analysisText) {
+    var sections = [];
+    var lines = analysisText.split('\n');
+    var current = null;
+    var bodyLines = [];
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      // Detect section headers: "### 1. WRITING QUALITY..." or "## ..."
+      var m = line.match(/^#{1,4}\s*\d*\.?\s*(.+)/);
+      if (m) {
+        if (current !== null) {
+          sections.push({ heading: current, body: bodyLines.join('\n').trim() });
+        }
+        current = m[1].trim();
+        bodyLines = [];
+      } else if (current !== null) {
+        bodyLines.push(line);
+      }
+    }
+    if (current !== null && bodyLines.length > 0) {
+      sections.push({ heading: current, body: bodyLines.join('\n').trim() });
+    }
+    // If no sections, one big block
+    if (sections.length === 0 && analysisText.trim()) {
+      sections.push({ heading: 'Analysis', body: analysisText.trim() });
+    }
+    return sections;
+  }
+
+  /* ── Render a single post result as a card ─────────────────────────── */
+  function renderResultCard(idx, total, data) {
+    var m = data.meta || {};
+    var sections = parseAnalysisSections(data.analysis || '');
+
+    var metaChips = [
+      '<span class="myls-deep-chip"><strong>' + esc(String(m.word_count || 0)) + '</strong> words</span>',
+      '<span class="myls-deep-chip">KW: <strong>' + esc(m.focus_keyword || '(none)') + '</strong></span>',
+      '<span class="myls-deep-chip">Location: <strong>' + esc(m.city_state || '(none)') + '</strong></span>',
+      '<span class="myls-deep-chip">Schema: <strong>' + (m.has_schema ? '<span style="color:#007017">&#10003; Detected</span>' : '<span style="color:#d63638">&#10005; None</span>') + '</strong></span>',
+    ].join('');
+
+    var sectionsHtml = '';
+    for (var i = 0; i < sections.length; i++) {
+      var sec = sections[i];
+      var style = getSectionStyle(sec.heading);
+      sectionsHtml += (
+        '<div class="myls-deep-section" style="background:' + style.bg + '">' +
+          '<span class="myls-deep-section-label" style="background:' + style.color + ';color:#fff;">' +
+            esc(style.label) +
+          '</span>' +
+          '<div class="myls-deep-section-heading">' + esc(sec.heading) + '</div>' +
+          '<div class="myls-deep-section-body">' + esc(sec.body) + '</div>' +
+        '</div>'
+      );
+    }
+
+    var card = (
+      '<div class="myls-deep-post-card">' +
+        '<div class="myls-deep-post-header">' +
+          '<span class="myls-deep-post-num">' + idx + ' / ' + total + '</span>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div class="myls-deep-post-title">' + esc(data.title || '') + '</div>' +
+            '<span class="myls-deep-post-url">' + esc(data.url || '') + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="myls-deep-meta-strip">' + metaChips + '</div>' +
+        '<div class="myls-deep-sections">' + sectionsHtml + '</div>' +
+      '</div>'
+    );
+    return card;
+  }
+
+  /* ── Append to raw log terminal ────────────────────────────────────── */
+  function logDeep(idx, total, data) {
+    var m = data.meta || {};
+    var lines = [];
+    lines.push('');
+    var hdr = '=== [' + idx + '/' + total + '] ' + (data.title || '') + ' ===';
+    lines.push(hdr);
+    lines.push('    Words: ' + (m.word_count || 0) + '   KW: ' + (m.focus_keyword || '(none)'));
+    lines.push('    Schema: ' + (m.has_schema ? 'Detected' : 'Not found'));
+    lines.push('');
+    // Render sections
+    var sections = parseAnalysisSections(data.analysis || '');
+    for (var i = 0; i < sections.length; i++) {
+      lines.push('--- ' + sections[i].heading + ' ---');
+      lines.push(sections[i].body);
+      lines.push('');
+    }
+    lines.push('='.repeat(62));
+    LOG.append(lines.join('\n'), $log[0]);
+  }
+
+  /* ── Busy state ────────────────────────────────────────────────────── */
+  function setDeepBusy(on) {
+    $deepRun.prop('disabled', !!on);
+    $deepStop.prop('disabled', !on);
+    $pt.prop('disabled', !!on);
+    $posts.prop('disabled', !!on);
+    $status.text(on ? 'AI analyzing…' : '');
+    $deepRun.css({
+      background: on ? '#4a2d8a' : '#6f42c1',
+      'border-color': on ? '#4a2d8a' : '#6f42c1'
+    });
+  }
+
+  /* ── HTML escape ────────────────────────────────────────────────────── */
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── Run AI Deep Analysis ──────────────────────────────────────────── */
+  function runDeep() {
+    var ids = ($posts.val() || []).map(function(v){ return parseInt(v,10); }).filter(Boolean);
+    if (!ids.length) {
+      $cards.show().html('<div class="myls-deep-empty"><i class="bi bi-exclamation-triangle"></i> Select at least one post first.</div>');
+      return;
+    }
+
+    deepStopping = false;
+    allDeepResults = [];
+    $count.text('0');
+    setDeepBusy(true);
+    $pdfBtn.hide();
+
+    // Show card area with loading state; reset log
+    $cards.show().html(
+      '<div class="myls-deep-empty" id="myls_ca_deep_loading">' +
+      '<div class="spinner-border spinner-border-sm text-purple me-2" style="color:#6f42c1" role="status"></div>' +
+      'Sending to AI… (this may take 15-30s per page)' +
+      '</div>'
+    );
+    LOG.clear($log[0],
+      '★ AI DEEP ANALYSIS STARTED\n' +
+      '  ' + new Date().toLocaleString() + '\n' +
+      '  Pages: ' + ids.length
+    );
+
+    var total = ids.length;
+    var done  = 0;
+
+    (function next() {
+      if (deepStopping || !ids.length) {
+        setDeepBusy(false);
+        $('#myls_ca_deep_loading').remove();
+        $status.text(deepStopping ? 'Stopped.' : 'Complete — ' + done + ' page(s) analyzed.');
+
+        if (allDeepResults.length > 0) {
+          $pdfBtn.show();
+          LOG.append('\n★ Complete — ' + done + '/' + total + ' pages. Use Download PDF Report to export.', $log[0]);
+        }
+        return;
+      }
+
+      var id  = ids.shift();
+      var idx = total - ids.length;
+
+      $.post(CFG.ajaxurl, {
+        action:  'myls_content_analyze_ai_deep_v1',
+        nonce:   CFG.nonce,
+        post_id: id
+      })
+      .done(function(resp) {
+        $('#myls_ca_deep_loading').remove();
+        if (resp && resp.success && resp.data) {
+          allDeepResults.push(resp.data);
+          $cards.append(renderResultCard(idx, total, resp.data));
+          logDeep(idx, total, resp.data);
+        } else {
+          var msg = (resp && resp.data && resp.data.message) || 'Unknown error';
+          $cards.append(
+            '<div class="alert alert-danger mb-3">&#10005; [' + idx + '/' + total + '] Post #' + id + ' — ' + esc(msg) + '</div>'
+          );
+          LOG.append('\n[ERROR] [' + idx + '/' + total + '] Post #' + id + ': ' + msg, $log[0]);
+        }
+      })
+      .fail(function(xhr) {
+        $('#myls_ca_deep_loading').remove();
+        var msg = 'AJAX error (' + (xhr && xhr.status) + ')';
+        $cards.append('<div class="alert alert-danger mb-3">&#10005; ' + esc(msg) + '</div>');
+        LOG.append('\n[ERROR] ' + msg, $log[0]);
+      })
+      .always(function() {
+        done++;
+        $count.text(String(done));
+        next();
+      });
+    })();
+  }
+
+  /* ── PDF Download ──────────────────────────────────────────────────── */
+  function downloadPdf() {
+    if (!allDeepResults.length) return;
+
+    $pdfBtn.prop('disabled', true).text('Generating PDF…');
+
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = CFG.ajaxurl;
+    form.style.display = 'none';
+
+    function addField(name, value) {
+      var input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    }
+
+    addField('action',  'myls_ca_deep_pdf_v1');
+    addField('nonce',   CFG.nonce);
+    addField('results', JSON.stringify(allDeepResults));
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+
+    // Re-enable after short delay
+    setTimeout(function() {
+      $pdfBtn.prop('disabled', false).html('<i class="bi bi-file-earmark-arrow-down"></i> Download PDF Report');
+    }, 3000);
+  }
+
+  /* ── Log toggle ────────────────────────────────────────────────────── */
+  $logToggle.on('click', function() {
+    var visible = $log.is(':visible');
+    $log.toggle(!visible);
+    $logToggle.html(visible
+      ? '<i class="bi bi-terminal"></i> Show Raw Log'
+      : '<i class="bi bi-terminal-x"></i> Hide Raw Log'
+    );
+  });
+
+  /* ── Event bindings ────────────────────────────────────────────────── */
+  $deepRun.on('click',  function(e) { e.preventDefault(); runDeep(); });
+  $deepStop.on('click', function(e) { e.preventDefault(); deepStopping = true; });
+  $pdfBtn.on('click',   function(e) { e.preventDefault(); downloadPdf(); });
+
+})(jQuery);

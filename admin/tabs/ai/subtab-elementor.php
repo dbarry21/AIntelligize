@@ -24,12 +24,35 @@ return [
         $pts = get_post_types( ['public' => true], 'objects' );
         unset( $pts['attachment'] );
 
-        // Business vars
+        // Business vars — Schema options are the single source of truth.
+        // Pull from myls_org_* first, then myls_lb_locations[0] for phone/city,
+        // then fall back to myls_sb_settings (old Site Builder) and WP defaults.
         $sb        = get_option( 'myls_sb_settings', [] );
-        $biz_name  = $sb['business_name'] ?? get_bloginfo('name');
-        $biz_city  = $sb['city']          ?? '';
-        $biz_phone = $sb['phone']         ?? '';
-        $biz_email = $sb['email']         ?? get_bloginfo('admin_email');
+        $lb_locs   = (array) get_option( 'myls_lb_locations', [] );
+        $lb0       = is_array( $lb_locs[0] ?? null ) ? $lb_locs[0] : [];
+
+        // Business Name: schema org > sb_settings > blog name
+        $biz_name  = trim( (string) get_option( 'myls_org_name', '' ) );
+        if ( $biz_name === '' ) $biz_name = $sb['business_name'] ?? get_bloginfo('name');
+
+        // City, State: schema org locality+region > lb_locations[0].city > sb_settings
+        $org_city  = trim( (string) get_option( 'myls_org_locality', '' ) );
+        $org_state = trim( (string) get_option( 'myls_org_region',   '' ) );
+        if ( $org_city !== '' ) {
+            $biz_city = $org_state !== '' ? "{$org_city}, {$org_state}" : $org_city;
+        } elseif ( ! empty( $lb0['city'] ) ) {
+            $biz_city = $lb0['city'];
+        } else {
+            $biz_city = $sb['city'] ?? '';
+        }
+
+        // Phone: schema org tel > lb_locations[0].phone > sb_settings
+        $biz_phone = trim( (string) get_option( 'myls_org_tel', '' ) );
+        if ( $biz_phone === '' ) $biz_phone = $lb0['phone'] ?? $sb['phone'] ?? '';
+
+        // Email: schema org email > lb_locations[0].email > sb_settings > admin email
+        $biz_email = trim( (string) get_option( 'myls_org_email', '' ) );
+        if ( $biz_email === '' ) $biz_email = $lb0['email'] ?? $sb['email'] ?? get_bloginfo('admin_email');
 
         // Saved prompt — detect and auto-clear stale HTML-output prompts
         $saved_prompt = get_option( 'myls_elb_prompt_template', '' );
@@ -78,6 +101,33 @@ return [
                 </div>
 
                 <h4 class="mb-3"><i class="bi bi-layers"></i> Page Setup</h4>
+
+                <!-- Page Setup Templates -->
+                <div class="d-flex gap-1 mb-3 align-items-center">
+                    <select id="myls_elb_setup_history" class="form-select form-select-sm flex-grow-1">
+                        <option value="">— Load Saved Setup —</option>
+                    </select>
+                    <button type="button" class="button button-small" id="myls_elb_setup_load" title="Load selected setup">
+                        <i class="bi bi-folder2-open"></i>
+                    </button>
+                    <button type="button" class="button button-small" id="myls_elb_setup_save" title="Save current setup as template">
+                        <i class="bi bi-floppy"></i>
+                    </button>
+                    <button type="button" class="button button-small" id="myls_elb_setup_delete" title="Delete selected setup" style="color:#dc3545;">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <div id="myls_elb_setup_save_row" style="display:none;" class="d-flex gap-1 mb-2">
+                    <input type="text" id="myls_elb_setup_save_name" class="form-control form-control-sm"
+                           placeholder="Name this setup…" style="flex:1;">
+                    <button type="button" class="button button-primary button-small" id="myls_elb_setup_save_confirm">
+                        <i class="bi bi-check-lg"></i> Save
+                    </button>
+                    <button type="button" class="button button-small" id="myls_elb_setup_save_cancel">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div id="myls_elb_setup_msg" style="display:none;font-size:12px;padding:4px 8px;border-radius:4px;margin-bottom:8px;"></div>
 
                 <label class="form-label fw-bold">Post Type</label>
                 <select id="myls_elb_post_type" class="form-select mb-3">
@@ -176,9 +226,15 @@ return [
                                 <input class="form-check-input" type="checkbox" id="myls_elb_include_intro" checked>
                                 <label class="form-check-label" for="myls_elb_include_intro">Service Intro</label>
                             </div>
-                            <div class="form-check m-0">
+                            <div class="form-check m-0 d-flex align-items-center gap-2">
                                 <input class="form-check-input" type="checkbox" id="myls_elb_include_features" checked>
                                 <label class="form-check-label" for="myls_elb_include_features">Feature Cards</label>
+                                <div class="d-flex align-items-center gap-1" style="margin-left:4px;">
+                                    <input type="number" id="myls_elb_card_width" class="form-control form-control-sm"
+                                           value="30" min="10" max="100" step="1"
+                                           style="width:58px;padding:2px 6px;font-size:12px;" title="Card width % in Elementor">
+                                    <span style="font-size:11px;color:#666;">%&nbsp;W</span>
+                                </div>
                             </div>
                             <div class="form-check m-0">
                                 <input class="form-check-input" type="checkbox" id="myls_elb_include_process" checked>
@@ -231,7 +287,7 @@ return [
                 </div>
 
                 <h5 class="mb-2">Business Variables</h5>
-                <p class="form-text mt-0 mb-2">Auto-filled from Site Builder settings. Edit here for this session only.</p>
+                <p class="form-text mt-0 mb-2">Auto-filled from <a href="<?php echo admin_url('admin.php?page=myls-settings&tab=schema'); ?>" target="_blank">Schema settings</a>. Edit here for this session only.</p>
                 <div class="row g-2 mb-2">
                     <div class="col-6">
                         <label class="form-label small">Business Name</label>
@@ -324,6 +380,14 @@ return [
                                     <input class="form-check-input" type="checkbox" id="myls_elb_gen_feature">
                                     <label class="form-check-label" for="myls_elb_gen_feature">
                                         <i class="bi bi-image"></i> Featured Image
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="myls_elb_gen_feature_cards">
+                                    <label class="form-check-label" for="myls_elb_gen_feature_cards">
+                                        <i class="bi bi-grid-3x2-gap"></i> Feature Card Images <span class="text-muted" style="font-size:11px;">(4 square images — replaces icon boxes with image boxes)</span>
                                     </label>
                                 </div>
                             </div>
@@ -685,7 +749,175 @@ return [
 
             loadDescHistory();
 
-            // ── Nav detection ────────────────────────────────────────────
+            // ── Page Setup Templates ─────────────────────────────────────
+            let setupHistory = [];
+
+            function setupMsg(text, ok = true) {
+                const el = $('myls_elb_setup_msg');
+                el.textContent = text;
+                el.style.background = ok ? '#d4edda' : '#f8d7da';
+                el.style.color      = ok ? '#155724' : '#721c24';
+                el.style.display    = '';
+                clearTimeout(el._t);
+                el._t = setTimeout(() => { el.style.display = 'none'; }, 3000);
+            }
+
+            function getSetupSnapshot() {
+                return {
+                    post_type:        $('myls_elb_post_type')?.value || 'page',
+                    title:            $('myls_elb_title')?.value || '',
+                    description:      $('myls_elb_description')?.value || '',
+                    seo_keyword:      $('myls_elb_seo_keyword')?.value || '',
+                    status:           $('myls_elb_status')?.value || 'draft',
+                    add_to_menu:      $('myls_elb_menu')?.checked ?? true,
+                    include_hero:     $('myls_elb_include_hero')?.checked ?? true,
+                    include_intro:    $('myls_elb_include_intro')?.checked ?? true,
+                    include_features: $('myls_elb_include_features')?.checked ?? true,
+                    include_process:  $('myls_elb_include_process')?.checked ?? true,
+                    include_faq:      $('myls_elb_include_faq')?.checked ?? true,
+                    include_cta:      $('myls_elb_include_cta')?.checked ?? true,
+                    gen_hero:         $('myls_elb_gen_hero')?.checked ?? true,
+                    gen_feature:      $('myls_elb_gen_feature')?.checked ?? false,
+                    gen_feature_cards:$('myls_elb_gen_feature_cards')?.checked ?? false,
+                    card_width:       parseInt($('myls_elb_card_width')?.value || '30', 10),
+                    image_style:      $('myls_elb_img_style')?.value || 'photo',
+                    set_featured:     $('myls_elb_set_featured')?.checked ?? true,
+                };
+            }
+
+            function applySetupSnapshot(snap) {
+                if (!snap) return;
+                if ($('myls_elb_post_type') && snap.post_type)    $('myls_elb_post_type').value = snap.post_type;
+                if ($('myls_elb_title')     && snap.title != null) $('myls_elb_title').value     = snap.title;
+                if ($('myls_elb_description') && snap.description != null) $('myls_elb_description').value = snap.description;
+                if ($('myls_elb_seo_keyword') && snap.seo_keyword != null) $('myls_elb_seo_keyword').value = snap.seo_keyword;
+                if ($('myls_elb_status')    && snap.status)        $('myls_elb_status').value    = snap.status;
+                if ($('myls_elb_menu')      && snap.add_to_menu      != null) $('myls_elb_menu').checked             = !!snap.add_to_menu;
+                if ($('myls_elb_include_hero')     && snap.include_hero     != null) $('myls_elb_include_hero').checked     = !!snap.include_hero;
+                if ($('myls_elb_include_intro')    && snap.include_intro    != null) $('myls_elb_include_intro').checked    = !!snap.include_intro;
+                if ($('myls_elb_include_features') && snap.include_features != null) $('myls_elb_include_features').checked = !!snap.include_features;
+                if ($('myls_elb_include_process')  && snap.include_process  != null) $('myls_elb_include_process').checked  = !!snap.include_process;
+                if ($('myls_elb_include_faq')      && snap.include_faq      != null) $('myls_elb_include_faq').checked      = !!snap.include_faq;
+                if ($('myls_elb_include_cta')      && snap.include_cta      != null) $('myls_elb_include_cta').checked      = !!snap.include_cta;
+                if ($('myls_elb_gen_hero')          && snap.gen_hero          != null) $('myls_elb_gen_hero').checked          = !!snap.gen_hero;
+                if ($('myls_elb_gen_feature')       && snap.gen_feature       != null) $('myls_elb_gen_feature').checked       = !!snap.gen_feature;
+                if ($('myls_elb_gen_feature_cards') && snap.gen_feature_cards != null) $('myls_elb_gen_feature_cards').checked  = !!snap.gen_feature_cards;
+                if ($('myls_elb_card_width') && snap.card_width != null) $('myls_elb_card_width').value = snap.card_width;
+                if ($('myls_elb_img_style')  && snap.image_style)  $('myls_elb_img_style').value  = snap.image_style;
+                if ($('myls_elb_set_featured') && snap.set_featured != null) $('myls_elb_set_featured').checked = !!snap.set_featured;
+                // Trigger hero note visibility
+                const heroNote = $('myls_elb_hero_note');
+                if (heroNote) heroNote.style.display = $('myls_elb_include_hero')?.checked ? 'none' : '';
+            }
+
+            function renderSetupDropdown() {
+                const sel = $('myls_elb_setup_history');
+                sel.innerHTML = '<option value="">— Load Saved Setup (' + setupHistory.length + ') —</option>';
+                setupHistory.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value       = item.slug;
+                    opt.textContent = item.name + (item.updated ? ' · ' + item.updated.substring(0,10) : '');
+                    sel.appendChild(opt);
+                });
+            }
+
+            async function loadSetupHistory() {
+                try {
+                    const fd = new FormData();
+                    fd.append('action',   'myls_elb_list_setups');
+                    fd.append('_wpnonce', $('myls_elb_nonce').value);
+                    const res  = await fetch(ajaxurl, { method: 'POST', body: fd });
+                    const data = await res.json();
+                    if (data?.success) {
+                        setupHistory = data.data.history || [];
+                        renderSetupDropdown();
+                    }
+                } catch(e) { console.warn('Setup history load failed:', e); }
+            }
+
+            // LOAD setup
+            $('myls_elb_setup_load')?.addEventListener('click', () => {
+                const slug = $('myls_elb_setup_history').value;
+                if (!slug) { setupMsg('Select a saved setup to load.', false); return; }
+                const item = setupHistory.find(h => h.slug === slug);
+                if (item?.setup) {
+                    applySetupSnapshot(item.setup);
+                    setupMsg('Loaded: ' + item.name);
+                }
+            });
+
+            // SAVE setup — show inline name row
+            $('myls_elb_setup_save')?.addEventListener('click', () => {
+                const nameEl = $('myls_elb_setup_save_name');
+                if (!nameEl.value) nameEl.value = $('myls_elb_title').value.trim() || '';
+                $('myls_elb_setup_save_row').style.display = '';
+                nameEl.focus(); nameEl.select();
+            });
+
+            $('myls_elb_setup_save_cancel')?.addEventListener('click', () => {
+                $('myls_elb_setup_save_row').style.display = 'none';
+            });
+
+            $('myls_elb_setup_save_confirm')?.addEventListener('click', async () => {
+                const name = $('myls_elb_setup_save_name').value.trim();
+                if (!name) { setupMsg('Enter a name for this setup.', false); return; }
+                const snap = getSetupSnapshot();
+                const fd = new FormData();
+                fd.append('action',     'myls_elb_save_setup');
+                fd.append('_wpnonce',   $('myls_elb_nonce').value);
+                fd.append('setup_name', name);
+                fd.append('setup_data', JSON.stringify(snap));
+                try {
+                    const res  = await fetch(ajaxurl, { method: 'POST', body: fd });
+                    const data = await res.json();
+                    if (data?.success) {
+                        setupHistory = data.data.history || [];
+                        renderSetupDropdown();
+                        const slug = setupHistory.find(h => h.name === name)?.slug;
+                        if (slug) $('myls_elb_setup_history').value = slug;
+                        $('myls_elb_setup_save_row').style.display = 'none';
+                        setupMsg('Saved: ' + name);
+                    } else { setupMsg(data?.data?.message || 'Save failed.', false); }
+                } catch(e) { setupMsg('Network error: ' + e.message, false); }
+            });
+
+            $('myls_elb_setup_save_name')?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter')  { e.preventDefault(); $('myls_elb_setup_save_confirm').click(); }
+                if (e.key === 'Escape') { $('myls_elb_setup_save_row').style.display = 'none'; }
+            });
+
+            // DELETE setup — two-click confirm
+            $('myls_elb_setup_delete')?.addEventListener('click', async () => {
+                const slug  = $('myls_elb_setup_history').value;
+                if (!slug) { setupMsg('Select a setup to delete first.', false); return; }
+                const item  = setupHistory.find(h => h.slug === slug);
+                const label = item?.name || slug;
+                const msgEl = $('myls_elb_setup_msg');
+                if (msgEl._pendingDelete === slug) {
+                    msgEl._pendingDelete = null;
+                    const fd = new FormData();
+                    fd.append('action',     'myls_elb_delete_setup');
+                    fd.append('_wpnonce',   $('myls_elb_nonce').value);
+                    fd.append('setup_slug', slug);
+                    try {
+                        const res  = await fetch(ajaxurl, { method: 'POST', body: fd });
+                        const data = await res.json();
+                        if (data?.success) {
+                            setupHistory = data.data.history || [];
+                            renderSetupDropdown();
+                            setupMsg('Deleted: ' + label);
+                        } else { setupMsg(data?.data?.message || 'Delete failed.', false); }
+                    } catch(e) { setupMsg('Network error: ' + e.message, false); }
+                } else {
+                    msgEl._pendingDelete = slug;
+                    setupMsg('Click delete again to confirm removing "' + label + '"', false);
+                    setTimeout(() => { if (msgEl._pendingDelete === slug) msgEl._pendingDelete = null; }, 4000);
+                }
+            });
+
+            loadSetupHistory();
+
+
             (async function() {
                 try {
                     const fd = new FormData();
@@ -746,7 +978,7 @@ return [
 
             // ── Helpers ──────────────────────────────────────────────────
             function wantsImages() {
-                return $('myls_elb_gen_hero').checked || $('myls_elb_gen_feature').checked;
+                return $('myls_elb_gen_hero').checked || $('myls_elb_gen_feature').checked || $('myls_elb_gen_feature_cards').checked;
             }
 
             // ── Hero toggle ──────────────────────────────────────────────
@@ -840,7 +1072,7 @@ return [
                 progressStart(integrateImages && (wantsImages() || hasTemplates));
 
                 if (integrateImages) {
-                    const totalImgs = ($('myls_elb_gen_hero').checked ? 1 : 0) + ($('myls_elb_gen_feature').checked ? 1 : 0);
+                    const totalImgs = ($('myls_elb_gen_hero').checked ? 1 : 0) + ($('myls_elb_gen_feature').checked ? 1 : 0) + ($('myls_elb_gen_feature_cards').checked ? 4 : 0);
                     const tplMsg = hasTemplates ? '\n🔍 Will also scan templates for empty image widgets and fill with DALL-E.' : '';
                     if (totalImgs > 0) {
                         logEl.textContent = '🎨 Step 1/2: Generating ' + totalImgs + ' image(s) with DALL-E 3…\n(This may take 30–90 seconds)' + tplMsg + '\n\n✏️ Step 2/2: AI will build Elementor sections with images integrated.';
@@ -874,11 +1106,13 @@ return [
                 fd.append('append_template_3', $('myls_elb_template_3').value || '0');
 
                 if (integrateImages) {
-                    fd.append('integrate_images', '1');
-                    fd.append('image_style',      $('myls_elb_img_style').value);
-                    fd.append('gen_hero',          $('myls_elb_gen_hero').checked ? '1' : '0');
-                    fd.append('gen_feature',       $('myls_elb_gen_feature').checked ? '1' : '0');
-                    fd.append('set_featured',      $('myls_elb_set_featured').checked ? '1' : '0');
+                    fd.append('integrate_images',    '1');
+                    fd.append('image_style',          $('myls_elb_img_style').value);
+                    fd.append('gen_hero',              $('myls_elb_gen_hero').checked ? '1' : '0');
+                    fd.append('gen_feature',           $('myls_elb_gen_feature').checked ? '1' : '0');
+                    fd.append('gen_feature_cards',     $('myls_elb_gen_feature_cards').checked ? '1' : '0');
+                    fd.append('card_width',            parseInt($('myls_elb_card_width')?.value || '30', 10));
+                    fd.append('set_featured',          $('myls_elb_set_featured').checked ? '1' : '0');
                 }
 
                 try {
