@@ -151,7 +151,7 @@ function myls_elb_button_widget( string $text, string $url = '/contact/', string
  * @param string $desc      Description (plain text).
  * @param string $icon_color Background fill color for the stacked icon.
  */
-function myls_elb_icon_box_widget( string $fa_icon, string $title, string $desc, string $icon_color = '#2c7be5', int $card_width = 30 ): array {
+function myls_elb_icon_box_widget( string $fa_icon, string $title, string $desc, string $icon_color = '#2c7be5', int $card_width = 50 ): array {
     // Parse "fas fa-shield-alt" → library + value
     $parts   = explode( ' ', trim( $fa_icon ), 2 );
     $prefix  = $parts[0] ?? 'fas';
@@ -218,7 +218,7 @@ function myls_elb_image_widget( int $attach_id, string $url, string $alt = '', s
  * @param string $title      Box heading.
  * @param string $desc       Description.
  */
-function myls_elb_image_box_widget( int $attach_id, string $url, string $alt, string $title, string $desc, int $card_width = 30 ): array {
+function myls_elb_image_box_widget( int $attach_id, string $url, string $alt, string $title, string $desc, int $card_width = 50 ): array {
     return [
         'id'         => myls_elb_uid(),
         'elType'     => 'widget',
@@ -249,7 +249,7 @@ function myls_elb_image_box_widget( int $attach_id, string $url, string $alt, st
  * @param string $title  Box heading.
  * @param string $desc   Description.
  */
-function myls_elb_image_placeholder_box_widget( string $title, string $desc, int $card_width = 30 ): array {
+function myls_elb_image_placeholder_box_widget( string $title, string $desc, int $card_width = 50 ): array {
     // Neutral grey placeholder — visible in Elementor without needing a media file
     $placeholder_url = 'https://placehold.co/400x300/e8e8e8/aaaaaa?text=Add+Image';
     return [
@@ -451,61 +451,117 @@ function myls_elb_build_intro( array $d, int $container_width = 1140 ): array {
  *     [Inner Container: flex-row, wrap, center]
  *       Icon Box × N
  */
-function myls_elb_build_features( array $d, array $feature_images = [], bool $prefer_image_box = false, int $container_width = 1140, int $card_width = 30 ): array {
+/**
+ * Build the Feature Cards section.
+ *
+ * Uses a Bootstrap-grid structure: each card slot gets a container with
+ * a CSS class of "col col-md-{width}" so you can control layout, borders,
+ * padding, and backgrounds purely through your stylesheet without touching
+ * the Elementor canvas.
+ *
+ * Card count is derived from cols × rows.  Feature images (one per card)
+ * are mapped by index — if more items exist than images, icon-box widgets
+ * are used as fallback.
+ *
+ * @param array  $d               Parsed AI JSON for the features section.
+ * @param array  $feature_images  Pre-generated image attachments indexed 0…n.
+ * @param bool   $prefer_image_box Fall back to image-placeholder widgets when true.
+ * @param int    $container_width Boxed width in px (from Elementor kit).
+ * @param int    $cols            Bootstrap grid columns (1–6).
+ * @param int    $rows            Grid rows; used only to size the AI prompt — not
+ *                                enforced structurally here since the row count is
+ *                                implicit from ceil(items / cols).
+ * @return array Elementor container element.
+ */
+function myls_elb_build_features( array $d, array $feature_images = [], bool $prefer_image_box = false, int $container_width = 1140, int $cols = 3, int $rows = 1 ): array {
     $items    = (array) ( $d['items'] ?? [] );
-    $boxes    = [];
+    $expected = max( 1, $cols * $rows );
+
+    // Pad item list to exactly cols×rows so every grid cell and every generated
+    // image gets placed — even if the AI returned fewer items than requested.
+    while ( count( $items ) < $expected ) {
+        $n       = count( $items ) + 1;
+        $items[] = [
+            'icon'        => 'fas fa-star',
+            'title'       => 'Feature ' . $n,
+            'description' => '',
+        ];
+    }
+    // Trim to expected in case AI returned more
+    $items = array_slice( $items, 0, $expected );
+
+    $boxes = [];
 
     foreach ( $items as $idx => $item ) {
         $img = $feature_images[ $idx ] ?? [];
 
+        // Build the inner widget (image-box or icon-box)
         if ( ! empty( $img['id'] ) && ! empty( $img['url'] ) ) {
-            // Use Image Box widget with a real generated image
-            $boxes[] = myls_elb_image_box_widget(
+            $inner_widget = myls_elb_image_box_widget(
                 (int) $img['id'],
                 $img['url'],
                 $item['title'] ?? $img['alt'] ?? '',
                 $item['title'] ?? '',
                 $item['description'] ?? '',
-                $card_width
+                100  // widget fills the grid cell
             );
         } elseif ( $prefer_image_box ) {
-            // Site uses image-box widgets — add placeholder so user can drop image in
-            $boxes[] = myls_elb_image_placeholder_box_widget(
+            $inner_widget = myls_elb_image_placeholder_box_widget(
                 $item['title']       ?? '',
                 $item['description'] ?? '',
-                $card_width
+                100
             );
         } else {
-            // Default: Icon Box
-            $boxes[] = myls_elb_icon_box_widget(
+            $inner_widget = myls_elb_icon_box_widget(
                 $item['icon']        ?? 'fas fa-star',
                 $item['title']       ?? '',
                 $item['description'] ?? '',
                 myls_elb_icon_color( $idx ),
-                $card_width
+                100  // widget fills the grid cell
             );
         }
+
+        // Each card is an independent Elementor container — grid item.
+        // full content_width so it expands to fill the grid cell naturally.
+        // CSS class 'elb-feature-card' for per-card stylesheet targeting.
+        $card_container = myls_elb_section( [ $inner_widget ], [
+            'container_type' => 'flex',
+            'flex_direction' => 'column',
+            'flex_align_items' => 'center',
+            'content_width'  => 'full',
+            '_css_classes'   => 'elb-feature-card',
+            'padding'        => [ 'unit' => 'px', 'top' => '24', 'right' => '16', 'bottom' => '24', 'left' => '16', 'isLinked' => false ],
+        ], true );
+
+        $boxes[] = $card_container;
     }
 
-    $inner = myls_elb_section( $boxes, [
-        'container_type'       => 'flex',
-        'flex_direction'       => 'row',
-        'flex_wrap'            => 'wrap',
-        'flex_justify_content' => 'center',
-        'content_width'        => 'full',
-        'padding'              => [ 'unit' => 'px', 'top' => '0', 'right' => '0', 'bottom' => '0', 'left' => '0', 'isLinked' => false ],
+    // ── Inner grid container — Elementor CSS Grid ───────────────────────
+    // container_type: 'grid' activates Elementor's Grid layout for this container.
+    // grid_columns_number controls columns; rows are auto-created as items fill.
+    // Boxed so the grid respects the kit max-width; background on outer container
+    // spans full-width edge-to-edge.
+    $grid_row = myls_elb_section( $boxes, [
+        'container_type'     => 'grid',
+        'grid_columns_number' => [ 'unit' => 'fr', 'size' => max( 1, min( 6, $cols ) ) ],
+        'grid_columns_grid'  => [ 'unit' => 'fr', 'size' => max( 1, min( 6, $cols ) ), 'sizes' => [] ],
+        'grid_auto_flow'     => 'row',
+        'grid_columns_gap'   => [ 'unit' => 'em', 'size' => 1.5 ],
+        'grid_rows_gap'      => [ 'unit' => 'em', 'size' => 1.5 ],
+        'content_width'      => 'boxed',
+        'boxed_width'        => [ 'unit' => 'px', 'size' => $container_width ],
+        '_css_classes'       => 'elb-features-grid',
+        'padding'            => [ 'unit' => 'px', 'top' => '0', 'right' => '0', 'bottom' => '0', 'left' => '0', 'isLinked' => false ],
     ], true );
 
-    $widgets = [
+    // ── Outer 100%-wide section: heading + boxed grid ───────────────────
+    return myls_elb_section( [
         myls_elb_heading_widget( $d['heading'] ?? '', 'h2', 'center' ),
-        $inner,
-    ];
-
-    return myls_elb_section( $widgets, [
+        $grid_row,
+    ], [
         'background_background' => 'classic',
         'background_color'      => '#f8f9fa',
-        'content_width'         => 'boxed',
-        'boxed_width'           => [ 'unit' => 'px', 'size' => $container_width ],
+        'content_width'         => 'full',
         'flex_direction'        => 'column',
         'flex_align_items'      => 'center',
         'padding'               => [ 'unit' => 'px', 'top' => '60', 'right' => '20', 'bottom' => '60', 'left' => '20', 'isLinked' => false ],
@@ -513,40 +569,66 @@ function myls_elb_build_features( array $d, array $feature_images = [], bool $pr
 }
 
 
-function myls_elb_build_process( array $d, int $container_width = 1140 ): array {
-    $steps      = (array) ( $d['steps'] ?? [] );
-    $icon_boxes = [];
+function myls_elb_build_process( array $d, int $container_width = 1140, int $cols = 2 ): array {
+    $steps = (array) ( $d['steps'] ?? [] );
+    $cells = [];
+
     foreach ( $steps as $idx => $step ) {
-        $title        = ( $idx + 1 ) . '. ' . ( $step['title'] ?? '' );
-        $icon_boxes[] = myls_elb_icon_box_widget(
+        $title  = ( $idx + 1 ) . '. ' . ( $step['title'] ?? '' );
+        $widget = myls_elb_icon_box_widget(
             $step['icon']        ?? 'fas fa-check-circle',
             $title,
             $step['description'] ?? '',
-            myls_elb_icon_color( $idx )
+            myls_elb_icon_color( $idx ),
+            100
         );
+
+        // Level 3 — flex container per step (isInner: true), holds the icon box.
+        // content_width: full so it fills its grid cell edge-to-edge.
+        $cells[] = myls_elb_section( [ $widget ], [
+            'container_type' => 'flex',
+            'flex_direction' => 'column',
+            'content_width'  => 'full',
+            '_css_classes'   => 'elb-process-step',
+            'padding'        => [ 'unit' => 'px', 'top' => '24', 'right' => '16', 'bottom' => '24', 'left' => '16', 'isLinked' => false ],
+        ], true );
     }
 
-    $inner = myls_elb_section( $icon_boxes, [
-        'container_type'       => 'flex',
-        'flex_direction'       => 'row',
-        'flex_wrap'            => 'wrap',
-        'flex_justify_content' => 'center',
-        'content_width'        => 'full',
-        'padding'              => [ 'unit' => 'px', 'top' => '0', 'right' => '0', 'bottom' => '0', 'left' => '0', 'isLinked' => false ],
+    // Level 2 — Elementor CSS Grid container.
+    // container_type: 'grid' activates grid layout.
+    // content_width: 'boxed' constrains to kit max-width.
+    // grid_rows_number: 2 sets an explicit 2-row template so Elementor
+    // shows the row control; items fill row-by-row automatically.
+    $rows = (int) ceil( count( $cells ) / max( 1, $cols ) );  // auto-fit rows to item count
+    $inner_grid = myls_elb_section( $cells, [
+        'container_type'      => 'grid',
+        'grid_columns_number' => [ 'unit' => 'fr', 'size' => max( 1, min( 6, $cols ) ) ],
+        'grid_columns_grid'   => [ 'unit' => 'fr', 'size' => max( 1, min( 6, $cols ) ), 'sizes' => [] ],
+        'grid_rows_number'    => [ 'unit' => 'fr', 'size' => max( 1, $rows ) ],
+        'grid_auto_flow'      => 'row',
+        'grid_columns_gap'    => [ 'unit' => 'em', 'size' => 1.5 ],
+        'grid_rows_gap'       => [ 'unit' => 'em', 'size' => 1.5 ],
+        'content_width'       => 'boxed',
+        'boxed_width'         => [ 'unit' => 'px', 'size' => $container_width ],
+        '_css_classes'        => 'elb-process-grid',
+        'padding'             => [ 'unit' => 'px', 'top' => '0', 'right' => '0', 'bottom' => '0', 'left' => '0', 'isLinked' => false ],
     ], true );
 
-    $widgets = [
+    // Level 1 — outer 100%-wide flex column container.
+    // Full-width so a background colour can span edge-to-edge.
+    // Heading sits above the boxed grid.
+    return myls_elb_section( [
         myls_elb_heading_widget( $d['heading'] ?? '', 'h2', 'left' ),
-        $inner,
-    ];
-
-    return myls_elb_section( $widgets, [
-        'content_width'  => 'boxed',
-        'boxed_width'    => [ 'unit' => 'px', 'size' => $container_width ],
-        'flex_direction' => 'column',
-        'padding'        => [ 'unit' => 'px', 'top' => '60', 'right' => '20', 'bottom' => '60', 'left' => '20', 'isLinked' => false ],
+        $inner_grid,
+    ], [
+        'container_type'  => 'flex',
+        'flex_direction'  => 'column',
+        'flex_align_items'=> 'center',
+        'content_width'   => 'full',
+        'padding'         => [ 'unit' => 'px', 'top' => '60', 'right' => '20', 'bottom' => '60', 'left' => '20', 'isLinked' => false ],
     ] );
 }
+
 
 
 function myls_elb_build_faq( array $d, int $container_width = 1140 ): array {
@@ -656,66 +738,296 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
         }
     }
 
-    // Derive container width from kit (fallback 1140)
     $container_width = (int) ( $kit['container_width'] ?? 1140 );
-    $card_width      = (int) ( $section_flags['card_width'] ?? 30 );
 
-    // Section visibility flags (default all true for backward compat)
-    $show_hero     = $section_flags['hero']     ?? true;
-    $show_intro    = $section_flags['intro']    ?? true;
-    $show_features = $section_flags['features'] ?? true;
-    $show_process  = $section_flags['process']  ?? true;
-    $show_faq      = $section_flags['faq']      ?? true;
-    $show_cta      = $section_flags['cta']      ?? true;
-
-    // HERO
-    if ( $show_hero && ! empty( $data['hero'] ) ) {
-        $elements[] = myls_elb_build_hero( (array) $data['hero'], $hero_image );
-        $section_count++;
-    }
-
-    // INTRO
-    if ( $show_intro && ! empty( $data['intro'] ) ) {
-        $elements[] = myls_elb_build_intro( (array) $data['intro'], $container_width );
-        $section_count++;
-    }
-
-    // FEATURES — use image-box widgets if card images were generated,
-    // or fall back to site pattern detection.
-    if ( $show_features && ! empty( $data['features'] ) ) {
-        $use_image_boxes = ! empty( $feature_images ) || ( $site_patterns['has_image_boxes'] ?? false );
-        $elements[] = myls_elb_build_features( (array) $data['features'], $feature_images, $use_image_boxes, $container_width, $card_width );
-        $section_count++;
-    }
-
-    // PROCESS
-    if ( $show_process && ! empty( $data['process'] ) ) {
-        $elements[] = myls_elb_build_process( (array) $data['process'], $container_width );
-        $section_count++;
-    }
-
-    // FAQ — also extracts items for post meta
-    if ( $show_faq && ! empty( $data['faq'] ) ) {
-        $faq_result  = myls_elb_build_faq( (array) $data['faq'], $container_width );
-        $elements[]  = $faq_result['container'];
-        $all_faqs    = $faq_result['faqs'];
-        $section_count++;
-    }
-
-    // CTA
-    if ( $show_cta && ! empty( $data['cta'] ) ) {
-        $elements[] = myls_elb_build_cta( (array) $data['cta'] );
-        $section_count++;
-    }
-
-    // IMAGE SECTIONS — if site uses image widgets and AI returned image sections,
-    // or if we need to inject placeholder image sections from site_patterns
-    if ( ! empty( $data['image_section'] ) ) {
-        foreach ( (array) $data['image_section'] as $img_section ) {
-            $elements[] = myls_elb_build_image_section( (array) $img_section, $container_width );
-            $section_count++;
+    // ── Build page elements in declared order (sections_order) ───────────
+    // sections_order is an array of items like:
+    //   { id: 'hero', type: 'section', enabled: true }
+    //   { id: 'tpl_abc', type: 'template', enabled: true, template_id: 123, cols: 3, rows: 1 }
+    //
+    // Backward compat: if no sections_order was passed, derive from section_flags.
+    $sections_order = $section_flags['sections_order'] ?? [];
+    if ( empty( $sections_order ) ) {
+        $old_cols = (int) ( $section_flags['cols'] ?? 3 );
+        $old_rows = (int) ( $section_flags['rows'] ?? 1 );
+        $sections_order = [
+            [ 'id'=>'hero',     'type'=>'section', 'enabled'=> (bool) ( $section_flags['hero']     ?? true ) ],
+            [ 'id'=>'intro',    'type'=>'section', 'enabled'=> (bool) ( $section_flags['intro']    ?? true ) ],
+            [ 'id'=>'features', 'type'=>'section', 'enabled'=> (bool) ( $section_flags['features'] ?? true ), 'cols'=>$old_cols, 'rows'=>$old_rows ],
+            [ 'id'=>'process',  'type'=>'section', 'enabled'=> (bool) ( $section_flags['process']  ?? true ) ],
+            [ 'id'=>'faq',      'type'=>'section', 'enabled'=> (bool) ( $section_flags['faq']      ?? true ) ],
+            [ 'id'=>'cta',      'type'=>'section', 'enabled'=> (bool) ( $section_flags['cta']      ?? true ) ],
+        ];
+        // Append legacy template IDs at bottom
+        foreach ( (array) ( $section_flags['template_ids'] ?? [] ) as $tid ) {
+            if ( $tid ) $sections_order[] = [ 'id'=>'tpl_'.$tid, 'type'=>'template', 'enabled'=>true, 'template_id'=>(int)$tid ];
         }
     }
+
+    // Pre-compute template fill context (Wikipedia + KG) used for template placeholder AI fill
+    $tpl_context_loaded = false;
+    $tpl_kg_ctx   = '';
+    $tpl_wiki_ctx = '';
+    $tpl_log_pre  = [];
+
+    foreach ( $sections_order as $item ) {
+        if ( ( $item['type'] ?? '' ) === 'template' && ( $item['enabled'] ?? true ) && ! empty( $item['template_id'] ) ) {
+            if ( ! $tpl_context_loaded ) {
+                $tpl_topic = $section_flags['seo_keyword'] ?? $section_flags['page_title'] ?? '';
+                $tpl_kg_ctx = function_exists('myls_elb_fetch_kg_context') ? myls_elb_fetch_kg_context( $tpl_topic ) : '';
+                if ( $tpl_kg_ctx ) $tpl_log_pre[] = '🔍 Knowledge Graph context fetched for: "' . esc_html( $tpl_topic ) . '"';
+                $tpl_wiki_ctx = myls_elb_fetch_wikipedia_context( $tpl_topic );
+                if ( $tpl_wiki_ctx ) $tpl_log_pre[] = '🌐 Wikipedia context fetched for: "' . esc_html( $tpl_topic ) . '"';
+                $tpl_context_loaded = true;
+            }
+            break;
+        }
+    }
+
+    $tpl_slot_index = 0;
+
+    foreach ( $sections_order as $item ) {
+        $type    = $item['type']    ?? 'section';
+        $enabled = $item['enabled'] ?? true;
+        if ( ! $enabled ) continue;
+
+        if ( $type === 'section' ) {
+            $sid = $item['id'] ?? '';
+            switch ( $sid ) {
+                case 'hero':
+                    if ( ! empty( $data['hero'] ) ) {
+                        $elements[] = myls_elb_build_hero( (array) $data['hero'], $hero_image );
+                        $section_count++;
+                    }
+                    break;
+
+                case 'intro':
+                    if ( ! empty( $data['intro'] ) ) {
+                        $elements[] = myls_elb_build_intro( (array) $data['intro'], $container_width );
+                        $section_count++;
+                    }
+                    break;
+
+                case 'features':
+                    if ( ! empty( $data['features'] ) ) {
+                        $fcols = max( 1, min( 6, (int) ( $item['cols'] ?? 3 ) ) );
+                        $frows = max( 1, min( 6, (int) ( $item['rows'] ?? 1 ) ) );
+                        $use_image_boxes = ! empty( $feature_images ); // icons when no images generated
+                        $elements[] = myls_elb_build_features( (array) $data['features'], $feature_images, $use_image_boxes, $container_width, $fcols, $frows );
+                        $section_count++;
+                    }
+                    break;
+
+                case 'process':
+                    if ( ! empty( $data['process'] ) ) {
+                        $pcols = max( 1, min( 6, (int) ( $item['cols'] ?? 2 ) ) );
+                        $elements[] = myls_elb_build_process( (array) $data['process'], $container_width, $pcols );
+                        $section_count++;
+                    }
+                    break;
+
+                case 'faq':
+                    if ( ! empty( $data['faq'] ) ) {
+                        $faq_result  = myls_elb_build_faq( (array) $data['faq'], $container_width );
+                        $elements[]  = $faq_result['container'];
+                        $all_faqs    = $faq_result['faqs'];
+                        $section_count++;
+                    }
+                    break;
+
+                case 'cta':
+                    if ( ! empty( $data['cta'] ) ) {
+                        $elements[] = myls_elb_build_cta( (array) $data['cta'] );
+                        $section_count++;
+                    }
+                    break;
+            }
+
+        } elseif ( $type === 'template' ) {
+            $tpl_id = (int) ( $item['template_id'] ?? 0 );
+            if ( ! $tpl_id ) continue;
+
+            // ── Strip stale page settings from the template post ──────────
+            // Elementor Library templates often carry _elementor_page_settings
+            // populated by importers (e.g. Astra Starter Templates astra_sites_*
+            // font/color overrides). When we write _elementor_data to the host page
+            // Elementor's updated_post_meta hook looks up the source template's
+            // _elementor_page_settings and copies them onto the host page — causing
+            // layout and header/menu corruption. Deleting them from the template
+            // permanently prevents the bleed for all future generations too.
+            $tpl_page_settings = get_post_meta( $tpl_id, '_elementor_page_settings', true );
+            if ( ! empty( $tpl_page_settings ) ) {
+                delete_post_meta( $tpl_id, '_elementor_page_settings' );
+                $tpl_log_pre[] = '🧹 Stripped stale _elementor_page_settings from template ' . $tpl_id . ' (' . count( (array) $tpl_page_settings ) . ' keys removed).';
+            }
+
+            $tpl_data = get_post_meta( $tpl_id, '_elementor_data', true );
+            if ( ! $tpl_data ) continue;
+
+            $tpl_elements = json_decode( $tpl_data, true );
+            if ( ! is_array( $tpl_elements ) || empty( $tpl_elements ) ) continue;
+
+            $tpl_elements = myls_elb_regen_ids( $tpl_elements );
+            $tpl_slot_index++;
+
+            // Fill AI-Content / AI-H2 / AI-H3 placeholders
+            $ph_counts = myls_elb_get_placeholder_counts( $tpl_elements );
+            if ( $ph_counts['total'] > 0 ) {
+                $focus = $section_flags['seo_keyword'] ?? $section_flags['page_title'] ?? '';
+                $slot_angles = [
+                    1 => 'benefits and value proposition',
+                    2 => 'process, methodology and what to expect',
+                    3 => 'local relevance, trust factors and why choose us',
+                ];
+                $angle = $slot_angles[ $tpl_slot_index ] ?? 'key information and details';
+
+                $page_title_ctx = $section_flags['page_title'] ?? '';
+                $desc_ctx       = $section_flags['description'] ?? '';
+
+                $ai_fill_prompt  = "You are filling placeholder widgets in an Elementor template about \"{$focus}\".\n";
+                $ai_fill_prompt .= "Page title: {$page_title_ctx}. Angle for this section: {$angle}.\n";
+                if ( $desc_ctx ) {
+                    $ai_fill_prompt .= 'Page description: ' . mb_substr( wp_strip_all_tags( $desc_ctx ), 0, 400 ) . "\n";
+                }
+                if ( $tpl_kg_ctx )   $ai_fill_prompt .= "\nKnowledge Graph facts (rewrite in your own words):\n" . $tpl_kg_ctx . "\n";
+                if ( $tpl_wiki_ctx ) $ai_fill_prompt .= "\nWikipedia reference (synthesize, do NOT copy):\n" . $tpl_wiki_ctx . "\n";
+
+                $ai_fill_prompt .= "\nReturn a JSON object with exactly these keys:\n";
+                $ai_fill_prompt .= "  content_blocks: array of {$ph_counts['content']} HTML string(s). Each block must follow this exact structure:\n";
+                $ai_fill_prompt .= "    1. <h3> — angle-based heading (5-9 words) that naturally includes the focus keyword \"{$focus}\"\n";
+                $ai_fill_prompt .= "    2. <p>  — intro paragraph (2-3 sentences)\n";
+                $ai_fill_prompt .= "    3. <ul> — 3-4 <li> items, each starting with <strong>key point</strong>\n";
+                $ai_fill_prompt .= "    4. <p>  — closing paragraph (1-2 sentences)\n";
+                $ai_fill_prompt .= "    Total ~300 words per block. Tags allowed: <h3> <p> <ul> <li> <strong>.\n";
+                $ai_fill_prompt .= "  h2_headings: array of {$ph_counts['h2']} short H2 heading string(s)\n";
+                $ai_fill_prompt .= "  h3_headings: array of {$ph_counts['h3']} short H3 heading string(s)\n";
+                $ai_fill_prompt .= "Output ONLY the JSON object. No markdown. Start with { end with }.";
+
+                $ai_fill_raw = function_exists('myls_ai_chat') ? myls_ai_chat( $ai_fill_prompt, [
+                    'max_tokens'  => 1600,
+                    'temperature' => 0.75,
+                    'system'      => 'You are a content writer for Elementor WordPress pages. Output ONLY valid JSON — no markdown, no code fences. Start with { end with }.',
+                ] ) : '';
+
+                if ( $ai_fill_raw ) {
+                    $ai_fill_clean = preg_replace( '/^```(?:json)?\s*/i', '', trim( $ai_fill_raw ) );
+                    $ai_fill_clean = preg_replace( '/\s*```$/', '', $ai_fill_clean );
+                    $ai_fill_data  = json_decode( trim( $ai_fill_clean ), true );
+                    if ( json_last_error() === JSON_ERROR_NONE && is_array( $ai_fill_data ) ) {
+                        $content_blocks = array_map( 'wp_kses_post',        (array) ( $ai_fill_data['content_blocks'] ?? [] ) );
+                        $h2_headings    = array_map( 'sanitize_text_field', (array) ( $ai_fill_data['h2_headings']    ?? [] ) );
+                        $h3_headings    = array_map( 'sanitize_text_field', (array) ( $ai_fill_data['h3_headings']    ?? [] ) );
+                        $cursors = [];
+                        $tpl_elements = myls_elb_fill_all_placeholders( $tpl_elements, $content_blocks, $h2_headings, $h3_headings, $cursors );
+                        $tpl_log_pre[] = "✍️ Template {$tpl_slot_index}: AI filled placeholder(s) (angle: {$angle}).";
+                    }
+                }
+            }
+
+            // Append template elements at the current position in the page
+            foreach ( $tpl_elements as $tel ) {
+                $elements[] = $tel;
+                $section_count++;
+            }
+            $tpl_log_pre[] = '📎 Template ' . $tpl_slot_index . ' inserted: "' . get_the_title( $tpl_id ) . '" (' . count( $tpl_elements ) . ' container(s))';
+
+            // ── Generate DALL-E images for blank image widgets in this template ──
+            // Runs immediately after insertion so images appear in the final output.
+            // Caps at 5 images total across all templates (cost guard).
+            static $tpl_imgs_generated = 0;
+            $max_tpl_imgs = 5;
+
+            $integrate = (bool) ( $section_flags['integrate_images'] ?? false );
+            $tpl_api_key = (string) ( $section_flags['dalle_api_key'] ?? '' );
+
+            if ( $integrate
+                 && $tpl_api_key !== ''
+                 && $tpl_imgs_generated < $max_tpl_imgs
+                 && function_exists('myls_elb_find_empty_image_widgets')
+                 && function_exists('myls_pb_dall_e_generate') ) {
+
+                $empty_widgets = myls_elb_find_empty_image_widgets( $tpl_elements );
+
+                if ( ! empty( $empty_widgets ) ) {
+                    $tpl_log_pre[] = '🖼️ Found ' . count( $empty_widgets ) . ' empty image widget(s) in template ' . $tpl_slot_index . ' — generating…';
+
+                    $img_style      = (string) ( $section_flags['image_style'] ?? 'photo' );
+                    $focus_kw       = $section_flags['seo_keyword'] ?? $section_flags['page_title'] ?? '';
+                    $dalle_style    = ( $img_style === 'photo' ) ? 'natural' : 'vivid';
+                    $tpl_img_size   = in_array( $img_style, ['photo', 'photorealistic'], true ) ? '1792x1024' : '1024x1024';
+                    $tpl_orient     = $tpl_img_size === '1792x1024' ? 'Landscape orientation, 1792x1024' : 'Square format, 1024x1024';
+
+                    $style_map = [
+                        'photo'             => 'Professional photograph, real camera shot, natural lighting, high resolution, sharp focus, authentic scene, no illustrations, no digital art',
+                        'photorealistic'    => 'Professional stock photography style, high quality, well-lit, clean background',
+                        'modern-flat'       => 'Modern flat design illustration, clean lines, soft gradients, professional color palette, minimalist',
+                        'isometric'         => 'Isometric 3D illustration, colorful, tech-forward, clean white background',
+                        'watercolor'        => 'Soft watercolor style illustration, artistic, professional, warm tones',
+                        'gradient-abstract' => 'Abstract gradient art, flowing shapes, modern tech aesthetic, vivid colors',
+                    ];
+                    $style_suffix = $style_map[ $img_style ] ?? $style_map['photo'];
+
+                    $remaining = $max_tpl_imgs - $tpl_imgs_generated;
+                    foreach ( array_slice( $empty_widgets, 0, $remaining ) as $w_idx => $widget_info ) {
+                        $img_num    = $w_idx + 1;
+                        $alt_hint   = (string) ( $widget_info['alt_hint'] ?? '' );
+                        $img_prompt = "Create a professional image for a webpage about: {$focus_kw}. "
+                                    . ( $alt_hint ? "Image context: {$alt_hint}. " : '' )
+                                    . "Style: {$style_suffix}. {$tpl_orient}, no text or words in the image.";
+
+                        $dall_e_result = myls_pb_dall_e_generate( $tpl_api_key, $img_prompt, $tpl_img_size, $dalle_style );
+
+                        if ( $dall_e_result['ok'] ) {
+                            $tpl_attach_id = myls_pb_upload_image_from_url(
+                                $dall_e_result['url'],
+                                sanitize_title( $focus_kw ) . '-tpl-img-' . ( $tpl_slot_index ) . '-' . $img_num,
+                                $focus_kw . ' - Template ' . $tpl_slot_index . ' Image ' . $img_num,
+                                0
+                            );
+                            if ( $tpl_attach_id ) {
+                                $tpl_img_url = wp_get_attachment_url( $tpl_attach_id );
+                                $tpl_img_alt = $focus_kw . ' - Image ' . $img_num;
+
+                                // Inject into the element tree at current position
+                                $last_idx = count( $elements ) - 1;
+                                foreach ( array_slice( $elements, count( $elements ) - count( $tpl_elements ) ) as $tel_i => &$tel_ref ) {
+                                    // Walk entire elements array; inject helper handles recursion
+                                }
+                                unset( $tel_ref );
+
+                                // Use the injector on the full running elements array
+                                $elements = myls_elb_inject_image_into_widget(
+                                    $elements,
+                                    $widget_info['id'],
+                                    $tpl_attach_id,
+                                    $tpl_img_url,
+                                    $tpl_img_alt
+                                );
+
+                                // Track for parent attachment update after post save
+                                $section_flags['_tpl_images'][] = [
+                                    'type'    => 'template',
+                                    'id'      => $tpl_attach_id,
+                                    'url'     => $tpl_img_url,
+                                    'alt'     => $tpl_img_alt,
+                                    'subject' => $focus_kw,
+                                ];
+                                $tpl_imgs_generated++;
+                                $tpl_log_pre[] = "   ✅ Template image saved (ID: {$tpl_attach_id})";
+                            } else {
+                                $tpl_log_pre[] = "   ❌ Template image {$img_num}: upload to Media Library failed";
+                            }
+                        } else {
+                            $tpl_log_pre[] = "   ❌ Template image {$img_num}: " . ( $dall_e_result['error'] ?? 'DALL-E error' );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Expose template log so caller can merge it
+    $section_flags['_tpl_log'] = $tpl_log_pre;
 
     return [
         'json'          => (string) wp_json_encode( $elements ),
@@ -761,7 +1073,7 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
     $post_type       = sanitize_key( $_POST['post_type'] ?? 'page' );
     $page_status     = in_array( $_POST['page_status'] ?? '', ['draft','publish'], true )
                         ? $_POST['page_status'] : 'draft';
-    $description     = wp_kses_post( $_POST['page_description'] ?? '' );
+    $description     = sanitize_textarea_field( wp_unslash( $_POST['page_description'] ?? '' ) );
     $prompt_template = wp_kses_post( $_POST['prompt_template'] ?? '' );
 
     // Resolve tokens in description early so {{PAGE_TITLE}}, {{YOAST_TITLE}},
@@ -792,28 +1104,83 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
     // SEO keyword — used for Yoast meta and to guide AI content + Wikipedia lookup
     $seo_keyword = sanitize_text_field( trim( $_POST['seo_keyword'] ?? '' ) );
 
-    // Append Elementor templates (up to 3) at bottom
-    $append_template_ids = array_filter( array_map( 'intval', [
-        $_POST['append_template_1'] ?? 0,
-        $_POST['append_template_2'] ?? 0,
-        $_POST['append_template_3'] ?? 0,
-    ] ) );
+    // ── sections_order — unified ordered list replacing flat flags ──────
+    // Sent as JSON by the front-end.  Each element is one of:
+    //   { id: 'hero', type: 'section', enabled: true }
+    //   { id: 'features', type: 'section', enabled: true, cols: 3, rows: 2 }
+    //   { id: 'tpl_xyz', type: 'template', enabled: true, template_id: 142 }
+    $sections_order_raw = wp_unslash( $_POST['sections_order'] ?? '' );
+    $sections_order     = [];
+    if ( ! empty( $sections_order_raw ) ) {
+        $so_decoded = json_decode( $sections_order_raw, true );
+        if ( is_array( $so_decoded ) ) $sections_order = $so_decoded;
+    }
 
-    // Section toggles — default true so API calls without the param still get all sections
-    $include_hero     = ! isset( $_POST['include_hero'] )     || ! empty( $_POST['include_hero'] );
-    $include_intro    = ! isset( $_POST['include_intro'] )    || ! empty( $_POST['include_intro'] );
-    $include_features = ! isset( $_POST['include_features'] ) || ! empty( $_POST['include_features'] );
-    $include_process  = ! isset( $_POST['include_process'] )  || ! empty( $_POST['include_process'] );
-    $include_faq      = ! isset( $_POST['include_faq'] )      || ! empty( $_POST['include_faq'] );
-    $include_cta      = ! isset( $_POST['include_cta'] )      || ! empty( $_POST['include_cta'] );
-    $integrate_images = ! empty( $_POST['integrate_images'] );
-    $image_style      = sanitize_text_field( $_POST['image_style'] ?? 'photo' );
-    $gen_hero_img     = ! empty( $_POST['gen_hero'] );
-    $gen_feature_imgs  = ! empty( $_POST['gen_feature'] );
+    // Backward compat: if no sections_order, build from legacy flat flags
+    if ( empty( $sections_order ) ) {
+        $sections_order = [
+            [ 'id'=>'hero',     'type'=>'section', 'enabled'=> ( ! isset($_POST['include_hero'])     || ! empty($_POST['include_hero']) ) ],
+            [ 'id'=>'intro',    'type'=>'section', 'enabled'=> ( ! isset($_POST['include_intro'])    || ! empty($_POST['include_intro']) ) ],
+            [ 'id'=>'features', 'type'=>'section', 'enabled'=> ( ! isset($_POST['include_features']) || ! empty($_POST['include_features']) ), 'cols'=>3, 'rows'=>1 ],
+            [ 'id'=>'process',  'type'=>'section', 'enabled'=> ( ! isset($_POST['include_process'])  || ! empty($_POST['include_process']) ) ],
+            [ 'id'=>'faq',      'type'=>'section', 'enabled'=> ( ! isset($_POST['include_faq'])      || ! empty($_POST['include_faq']) ) ],
+            [ 'id'=>'cta',      'type'=>'section', 'enabled'=> ( ! isset($_POST['include_cta'])      || ! empty($_POST['include_cta']) ) ],
+        ];
+        foreach ( array_filter( array_map( 'intval', [
+            $_POST['append_template_1'] ?? 0,
+            $_POST['append_template_2'] ?? 0,
+            $_POST['append_template_3'] ?? 0,
+        ] ) ) as $tid ) {
+            $sections_order[] = [ 'id'=>'tpl_'.$tid, 'type'=>'template', 'enabled'=>true, 'template_id'=>$tid ];
+        }
+    }
+
+    // Derive feature card count from sections_order (cols × rows)
+    $features_item  = null;
+    foreach ( $sections_order as $so_item ) {
+        if ( ( $so_item['type'] ?? '' ) === 'section' && ( $so_item['id'] ?? '' ) === 'features' ) {
+            $features_item = $so_item;
+            break;
+        }
+    }
+    $feature_cols     = max( 1, min( 6, (int) ( $features_item['cols'] ?? 3 ) ) );
+    $feature_rows     = max( 1, min( 6, (int) ( $features_item['rows'] ?? 1 ) ) );
+    $card_count_total = $feature_cols * $feature_rows; // total feature card image slots
+
+    // Derive process cols from sections_order (defaults 2 cols × 2 rows = 4 steps)
+    $process_item = null;
+    foreach ( $sections_order as $so_item ) {
+        if ( ( $so_item['type'] ?? '' ) === 'section' && ( $so_item['id'] ?? '' ) === 'process' ) {
+            $process_item = $so_item;
+            break;
+        }
+    }
+    $process_cols       = max( 1, min( 6, (int) ( $process_item['cols'] ?? 2 ) ) );
+    $process_rows       = max( 1, min( 6, (int) ( $process_item['rows'] ?? 2 ) ) );
+    $process_step_total = $process_cols * $process_rows;
+
+    // Write cols/rows back into sections_order so parse_and_build reads the
+    // correct values regardless of whether the frontend serialized them.
+    foreach ( $sections_order as &$_so_ref ) {
+        if ( ( $_so_ref['type'] ?? '' ) === 'section' ) {
+            if ( $_so_ref['id'] === 'features' ) {
+                $_so_ref['cols'] = $feature_cols;
+                $_so_ref['rows'] = $feature_rows;
+            } elseif ( $_so_ref['id'] === 'process' ) {
+                $_so_ref['cols'] = $process_cols;
+                $_so_ref['rows'] = $process_rows;
+            }
+        }
+    }
+    unset( $_so_ref );
+
+    $integrate_images  = ! empty( $_POST['integrate_images'] );
+    $image_style       = sanitize_text_field( $_POST['image_style'] ?? 'photo' );
+    $gen_hero_img      = ! empty( $_POST['gen_hero'] );
     $gen_feature_cards = ! empty( $_POST['gen_feature_cards'] );
-    $card_width        = max( 10, min( 100, (int) ( $_POST['card_width'] ?? 30 ) ) );
-    $feature_count     = 1;  // Featured Image is always 1 wide photorealistic image
-    $set_featured     = ! empty( $_POST['set_featured'] );
+    $set_featured      = ! empty( $_POST['set_featured'] );   // hero image → post thumbnail
+    $page_slug         = sanitize_title( $_POST['page_slug'] ?? '' );
+    $parent_page_id    = max( 0, (int) ( $_POST['parent_page_id'] ?? 0 ) );
 
     if ( empty( $page_title ) ) {
         wp_send_json_error( ['message' => 'Page title is required.'], 400 );
@@ -889,11 +1256,9 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
         $prompt .= $site_context['prompt_block'];
     }
 
-    // If existing pages use a specific icon box count, override the feature count
-    // so the AI generates the right number of items to fill the grid evenly.
-    if ( ! empty( $site_patterns['avg_icon_box_count'] ) && $feature_count === 3 ) {
-        $feature_count = min( 6, $site_patterns['avg_icon_box_count'] );
-    }
+    // Tell AI how many feature cards to generate so content matches the grid
+    $prompt .= "\n\n[GRID INSTRUCTION] The Feature Cards section must contain exactly {$card_count_total} items (cols={$feature_cols} × rows={$feature_rows}). Generate exactly that many items in the features.items array.";
+    $prompt .= "\n[GRID INSTRUCTION] The How It Works / Process section must contain exactly {$process_step_total} steps (cols={$process_cols} × rows={$process_rows}). Generate exactly that many items in the process.steps array.";
 
     // ── Pre-generate images (reuses page builder helpers) ───────────────
     $generated_images = [];
@@ -946,60 +1311,55 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
                 }
             }
 
-            if ( $gen_feature_imgs ) {
-                $image_log[] = '🎨 Generating Featured Image (' . $image_style . ', 1792x1024)…';
-                // Use the selected style_suffix — no override
-                $i = 0; $feature_count = 1;
-                $subjects = function_exists('myls_pb_suggest_image_subjects')
-                    ? myls_pb_suggest_image_subjects( $page_title, $description, 1 )
-                    : [ $page_title ];
+            // ── Standalone Featured Image — when set_featured=true but no hero ──
+            // Generate a 1792×1024 image used only as post thumbnail (not injected
+            // into the Elementor layout as a hero background).
+            if ( ! $gen_hero_img && $set_featured ) {
+                $image_log[] = '🎨 Generating standalone featured image (1792×1024) for post thumbnail…';
+                $feat_prompt  = "Create a wide featured image for a webpage about: {$page_title}. ";
+                if ( $description ) {
+                    $feat_prompt .= 'Context: ' . mb_substr( wp_strip_all_tags( $description ), 0, 300 ) . '. ';
+                }
+                $feat_prompt .= "Style: {$style_suffix}. Landscape orientation, 1792x1024, no text or words in the image.";
 
-                for ( $i = 0; $i < $feature_count; $i++ ) {
-                    $subject     = $subjects[0] ?? $page_title;
-                    $feat_prompt = "Create a wide image for a webpage about: {$page_title}. Subject: {$subject}. Style: {$style_suffix}. Landscape orientation, 1792x1024, no text or words in the image.";
-                    $result      = myls_pb_dall_e_generate( $api_key, $feat_prompt, '1792x1024', $dalle_style );
-                    if ( $result['ok'] ) {
-                        $attach_id = myls_pb_upload_image_from_url(
-                            $result['url'],
-                            sanitize_title( $page_title ) . '-featured',
-                            $page_title . ' - Featured Image',
-                            0
-                        );
-                        if ( $attach_id ) {
-                            $generated_images[] = [
-                                'type'    => 'feature',
-                                'id'      => $attach_id,
-                                'url'     => wp_get_attachment_url( $attach_id ),
-                                'alt'     => $page_title . ' - Featured Image',
-                                'subject' => $subject,
-                            ];
-                            $image_log[] = "   ✅ Featured Image saved to Media Library (ID: {$attach_id})";
-                            // Auto set as featured image if set_featured is checked
-                            // (hero also sets it; feature overrides if hero not generated)
-                        } else {
-                            $image_log[] = '   ❌ Featured Image: DALL-E succeeded but Media Library upload failed.';
-                        }
+                $feat_result = myls_pb_dall_e_generate( $api_key, $feat_prompt, '1792x1024', $dalle_style );
+                if ( $feat_result['ok'] ) {
+                    $feat_attach_id = myls_pb_upload_image_from_url(
+                        $feat_result['url'],
+                        sanitize_title( $page_title ) . '-featured',
+                        $page_title . ' - Featured Image',
+                        0
+                    );
+                    if ( $feat_attach_id ) {
+                        $generated_images[] = [
+                            'type'    => 'featured',
+                            'id'      => $feat_attach_id,
+                            'url'     => wp_get_attachment_url( $feat_attach_id ),
+                            'alt'     => $page_title . ' - Featured Image',
+                            'subject' => $page_title,
+                        ];
+                        $image_log[] = "   ✅ Featured image saved to Media Library (ID: {$feat_attach_id})";
                     } else {
-                        $image_log[] = '   ❌ Feature ' . ( $i + 1 ) . ': ' . $result['error'];
+                        $image_log[] = '   ❌ Featured: DALL-E returned image but Media Library sideload failed.';
                     }
+                } else {
+                    $image_log[] = '   ❌ Featured image DALL-E error: ' . $feat_result['error'];
                 }
             }
 
-            // ── Feature Card Images (one per card, 1024x1024 square) ──────
-            // Generates 4 images — one per feature card — stored as type
-            // 'feature_card' so myls_elb_parse_and_build() can map them by
-            // index into image-box widgets instead of icon-box widgets.
+            // ── Feature Card Images — one per card slot (cols × rows) ────
+            // Stored as type 'feature_card'; myls_elb_build_features() maps
+            // them by index into image-box containers in the grid.
             if ( $gen_feature_cards ) {
-                $card_count  = 4; // matches default prompt template item count
-                $image_log[] = "🎨 Generating {$card_count} Feature Card Images (square, 1024x1024)…";
+                $card_count  = $card_count_total; // derived from cols × rows above
+                $image_log[] = "🎨 Generating {$card_count} Feature Card Image(s) ({$feature_cols} cols × {$feature_rows} rows, 1024×1024 square)…";
 
                 // Generate distinct visual subjects for each card slot
                 $card_subjects = function_exists('myls_pb_suggest_image_subjects')
                     ? myls_pb_suggest_image_subjects( $page_title, $description, $card_count )
                     : array_fill( 0, $card_count, $page_title );
 
-                // Feature cards look better square — use 1024x1024
-                $card_img_size  = '1024x1024';
+                $card_img_size    = '1024x1024';
                 $card_dalle_style = $dalle_style;
 
                 for ( $c = 0; $c < $card_count; $c++ ) {
@@ -1036,7 +1396,7 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
                 }
             }
 
-            if ( ! $gen_hero_img && ! $gen_feature_imgs && ! $gen_feature_cards ) {
+            if ( ! $gen_hero_img && ! $gen_feature_cards ) {
                 $image_log[] = 'ℹ️ No images requested — only template image widgets will be scanned.';
             }
         }
@@ -1046,8 +1406,8 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
     // The AI outputs structured JSON, so images cannot be placed via prompt instructions.
     // Instead, generated images are passed directly to myls_elb_parse_and_build()
     // below, where they are applied as native Elementor widget/container settings:
-    //   hero image  → container background_image (overlaid on dark background)
-    //   feature imgs → image-box widgets (replace icon-box when images are available)
+    //   hero image       → container background_image (overlaid on dark background)
+    //   feature_card[n]  → image-box widget in the nth card container of the grid
 
     // ── Knowledge Graph grounding for main prompt ───────────────────────
     // Append KG facts to the prompt so the AI generates more accurate content.
@@ -1063,6 +1423,63 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
     if ( $main_wiki_context ) {
         $prompt     .= "\n\n--- Wikipedia Reference (synthesize, do NOT copy) ---\n" . $main_wiki_context;
         $log_lines[] = '🌐 Wikipedia context injected into main prompt for: "' . esc_html( $main_kg_topic ) . '"';
+    }
+
+    // ── Schema data context — inject rich business facts into the prompt ─
+    // Pulls from the Schema subtabs (Org, LocalBusiness, Service) already
+    // configured by the site owner — awards, certs, rating, areas, hours, etc.
+    // This is high-value grounding that meaningfully improves AI citation quality.
+    $schema_ctx_parts = [];
+
+    // Organisation core
+    $org_name   = trim( (string) get_option( 'myls_org_name', '' ) );
+    $org_desc   = trim( (string) get_option( 'myls_org_description', '' ) );
+    $org_areas  = trim( (string) get_option( 'myls_org_areas', '' ) );
+    $org_url    = trim( (string) get_option( 'myls_org_url', '' ) );
+    if ( $org_name )  $schema_ctx_parts[] = "Business name: {$org_name}";
+    if ( $org_desc )  $schema_ctx_parts[] = "About the business: {$org_desc}";
+    if ( $org_areas ) $schema_ctx_parts[] = "Service areas: {$org_areas}";
+    if ( $org_url )   $schema_ctx_parts[] = "Website: {$org_url}";
+
+    // Awards & certifications
+    $awards = array_values( array_filter( array_map( 'sanitize_text_field',
+        (array) get_option( 'myls_org_awards', [] ) ) ) );
+    $certs  = array_values( array_filter( array_map( 'sanitize_text_field',
+        (array) get_option( 'myls_org_certifications', [] ) ) ) );
+    if ( $awards ) $schema_ctx_parts[] = 'Awards / recognition: ' . implode( '; ', $awards );
+    if ( $certs )  $schema_ctx_parts[] = 'Certifications: ' . implode( '; ', $certs );
+
+    // Social profiles (signals E-E-A-T)
+    $socials = array_filter( (array) get_option( 'myls_org_social_profiles', [] ) );
+    if ( $socials ) $schema_ctx_parts[] = 'Social profiles: ' . implode( ', ', $socials );
+
+    // LocalBusiness — first location (hours, price range, address)
+    $lb_locs = (array) get_option( 'myls_lb_locations', [] );
+    $lb0     = is_array( $lb_locs[0] ?? null ) ? $lb_locs[0] : [];
+    if ( ! empty( $lb0['price'] ) ) $schema_ctx_parts[] = 'Price range: ' . $lb0['price'];
+    if ( ! empty( $lb0['city'] )  ) $schema_ctx_parts[] = 'Primary city: ' . $lb0['city'];
+
+    $hours_arr = (array) ( $lb0['hours'] ?? [] );
+    $hour_lines = [];
+    foreach ( $hours_arr as $h ) {
+        $d = trim( (string) ( $h['day'] ?? '' ) );
+        $o = trim( (string) ( $h['open'] ?? '' ) );
+        $c = trim( (string) ( $h['close'] ?? '' ) );
+        if ( $d && $o && $c ) $hour_lines[] = "{$d}: {$o}–{$c}";
+    }
+    if ( $hour_lines ) $schema_ctx_parts[] = 'Business hours: ' . implode( ', ', $hour_lines );
+
+    // Google Business Profile — rating + review count
+    $gbp_rating = trim( (string) get_option( 'myls_google_places_rating', '' ) );
+    $gbp_count  = trim( (string) get_option( 'myls_google_places_review_count', '' ) );
+    if ( $gbp_rating && $gbp_count ) $schema_ctx_parts[] = "Google rating: {$gbp_rating}/5 from {$gbp_count} reviews";
+    elseif ( $gbp_rating )           $schema_ctx_parts[] = "Google rating: {$gbp_rating}/5";
+
+    if ( ! empty( $schema_ctx_parts ) ) {
+        $schema_block  = "\n\n--- Business Profile (use these facts — write naturally, do NOT copy verbatim) ---\n";
+        $schema_block .= implode( "\n", $schema_ctx_parts );
+        $prompt       .= $schema_block;
+        $log_lines[]   = '🏢 Schema business context injected (' . count( $schema_ctx_parts ) . ' data points: org, localbusiness, awards/certs, GBP rating)';
     }
 
     // ── Variation Engine angle ───────────────────────────────────────────
@@ -1126,14 +1543,19 @@ Rules:
     }
 
     // ── Parse JSON + build native Elementor widgets ──────────────────────
+    // sections_order drives build order, section visibility, cols/rows, and
+    // template interleaving — all in one pass inside myls_elb_parse_and_build().
     $section_flags  = [
-        'hero'       => $include_hero,
-        'intro'      => $include_intro,
-        'features'   => $include_features,
-        'process'    => $include_process,
-        'faq'        => $include_faq,
-        'cta'        => $include_cta,
-        'card_width' => $card_width,
+        'sections_order'   => $sections_order,
+        'seo_keyword'      => $seo_keyword,
+        'page_title'       => $page_title,
+        'description'      => $description,
+        // Template image generation flags — forwarded to parse_and_build
+        'integrate_images' => (bool) $integrate_images,
+        'dalle_api_key'    => $integrate_images && function_exists('myls_openai_get_api_key')
+                                ? ( myls_openai_get_api_key() ?: '' )
+                                : '',
+        'image_style'      => $image_style,
     ];
     $build_result   = myls_elb_parse_and_build( $html, $generated_images, $kit, $site_patterns, $section_flags );
     $elementor_json = $build_result['json'];
@@ -1141,216 +1563,13 @@ Rules:
     $section_count  = $build_result['section_count'];
     $parse_warning  = $build_result['error'];
 
-    // ── Append Elementor templates (up to 3) ────────────────────────────
-    // NOTE: $tpl_log_lines is separate from $log_lines (declared later) so
-    // entries added here survive the $log_lines = [] reset that follows.
-    $tpl_log_lines = [];
+    // Collect template-processing log lines emitted by parse_and_build
+    $tpl_log_lines  = $section_flags['_tpl_log'] ?? [];
 
-    if ( ! empty( $append_template_ids ) ) {
-        // Fetch grounding context: Knowledge Graph first, Wikipedia as fallback/supplement
-        $wiki_topic   = $seo_keyword ?: $page_title;
-
-        $kg_context   = function_exists('myls_elb_fetch_kg_context') ? myls_elb_fetch_kg_context( $wiki_topic ) : '';
-        if ( $kg_context ) {
-            $tpl_log_lines[] = '🔍 Knowledge Graph context fetched for: "' . esc_html( $wiki_topic ) . '"';
-        }
-
-        $wiki_context = myls_elb_fetch_wikipedia_context( $wiki_topic );
-        if ( $wiki_context ) {
-            $tpl_log_lines[] = '🌐 Wikipedia context fetched for: "' . esc_html( $wiki_topic ) . '"';
-        }
-
-        $page_elements    = json_decode( $elementor_json, true ) ?: [];
-        $tpl_slot_index   = 0;
-
-        foreach ( $append_template_ids as $tpl_id ) {
-            $tpl_slot_index++;
-            $tpl_data = get_post_meta( $tpl_id, '_elementor_data', true );
-            if ( ! $tpl_data ) continue;
-
-            $tpl_elements = json_decode( $tpl_data, true );
-            if ( ! is_array( $tpl_elements ) || empty( $tpl_elements ) ) continue;
-
-            // Regen IDs so no collision between templates or with generated sections
-            $tpl_elements = myls_elb_regen_ids( $tpl_elements );
-
-            // ── Fill AI-Content / AI-H2 / AI-H3 placeholders ────────────
-            $ph_counts = myls_elb_get_placeholder_counts( $tpl_elements );
-            if ( $ph_counts['total'] > 0 ) {
-                $focus = $seo_keyword ?: $page_title;
-
-                // Unique angle per template slot so content differs across appended templates
-                $slot_angles = [
-                    1 => 'benefits and value proposition',
-                    2 => 'process, methodology and what to expect',
-                    3 => 'local relevance, trust factors and why choose us',
-                ];
-                $angle = $slot_angles[ $tpl_slot_index ] ?? 'key information and details';
-
-                // ── Build structured prompt ──────────────────────────────
-                $ai_fill_prompt  = "You are filling placeholder widgets in an Elementor template about \"{$focus}\".\n";
-                $ai_fill_prompt .= "Page title: {$page_title}. Angle for this section: {$angle}.\n";
-                if ( $description ) {
-                    $ai_fill_prompt .= 'Page description: ' . mb_substr( wp_strip_all_tags( $description ), 0, 400 ) . "\n";
-                }
-                if ( $kg_context ) {
-                    $ai_fill_prompt .= "\nKnowledge Graph facts (rewrite in your own words):\n" . $kg_context . "\n";
-                }
-                if ( $wiki_context ) {
-                    $ai_fill_prompt .= "\nWikipedia reference (synthesize, do NOT copy):\n" . $wiki_context . "\n";
-                }
-
-                // Tell AI exactly how many items are needed per type
-                $ai_fill_prompt .= "\nReturn a JSON object with exactly these keys:\n";
-                $ai_fill_prompt .= "  content_blocks: array of {$ph_counts['content']} HTML string(s). Each block must follow this exact structure:\n";
-                $ai_fill_prompt .= "    1. <h3> — angle-based heading (5-9 words) that naturally includes the focus keyword \"{$focus}\"\n";
-                $ai_fill_prompt .= "    2. <p>  — intro paragraph (2-3 sentences) setting context for the angle\n";
-                $ai_fill_prompt .= "    3. <ul> — 3-4 <li> items, each starting with <strong>key point</strong> — supporting detail\n";
-                $ai_fill_prompt .= "    4. <p>  — closing paragraph (1-2 sentences) summarising value or with a subtle CTA\n";
-                $ai_fill_prompt .= "    Total ~300 words per block. Tags allowed: <h3> <p> <ul> <li> <strong>. No other tags.\n";
-                $ai_fill_prompt .= "  h2_headings:    array of {$ph_counts['h2']} short H2 heading string(s) — plain text, no HTML, 5-10 words each\n";
-                $ai_fill_prompt .= "  h3_headings:    array of {$ph_counts['h3']} short H3 heading string(s) — plain text, no HTML, 4-8 words each\n";
-                $ai_fill_prompt .= "Output ONLY the JSON object. No markdown. No code fences. Start with { and end with }.";
-
-                $ai_fill_raw = function_exists('myls_ai_chat') ? myls_ai_chat( $ai_fill_prompt, [
-                    'max_tokens'  => 1600,
-                    'temperature' => 0.75,
-                    'system'      => 'You are a content writer for Elementor WordPress pages. Output ONLY valid JSON — no markdown, no code fences, no extra text. Start with { and end with }. HTML inside JSON string values must use only allowed tags: h3, p, ul, li, strong.',
-                ] ) : '';
-
-                // ── Parse JSON response ──────────────────────────────────
-                $fill_ok = false;
-                if ( $ai_fill_raw ) {
-                    $ai_fill_clean = trim( $ai_fill_raw );
-                    $ai_fill_clean = preg_replace( '/^```(?:json)?\s*/i', '', $ai_fill_clean );
-                    $ai_fill_clean = preg_replace( '/\s*```$/',           '', $ai_fill_clean );
-                    $ai_fill_data  = json_decode( trim( $ai_fill_clean ), true );
-
-                    if ( json_last_error() === JSON_ERROR_NONE && is_array( $ai_fill_data ) ) {
-                        $content_blocks = array_map( 'wp_kses_post',        (array) ( $ai_fill_data['content_blocks'] ?? [] ) );
-                        $h2_headings    = array_map( 'sanitize_text_field', (array) ( $ai_fill_data['h2_headings']    ?? [] ) );
-                        $h3_headings    = array_map( 'sanitize_text_field', (array) ( $ai_fill_data['h3_headings']    ?? [] ) );
-
-                        $cursors      = [];
-                        $tpl_elements = myls_elb_fill_all_placeholders(
-                            $tpl_elements, $content_blocks, $h2_headings, $h3_headings, $cursors
-                        );
-
-                        $filled_parts = [];
-                        if ( $ph_counts['content'] ) $filled_parts[] = "{$ph_counts['content']} content block(s)";
-                        if ( $ph_counts['h2'] )      $filled_parts[] = "{$ph_counts['h2']} H2 heading(s)";
-                        if ( $ph_counts['h3'] )      $filled_parts[] = "{$ph_counts['h3']} H3 heading(s)";
-                        $tpl_log_lines[] = "✍️ Template {$tpl_slot_index}: AI filled " . implode( ', ', $filled_parts ) . " (angle: {$angle}).";
-                        $fill_ok = true;
-                    } else {
-                        $tpl_log_lines[] = "⚠️ Template {$tpl_slot_index}: AI returned invalid JSON for placeholders — widgets left as-is. Parse error: " . json_last_error_msg();
-                    }
-                }
-
-                if ( ! $fill_ok && ! $ai_fill_raw ) {
-                    $tpl_log_lines[] = "⚠️ Template {$tpl_slot_index}: AI call returned empty — placeholder(s) left as-is.";
-                }
-            }
-
-            $page_elements  = array_merge( $page_elements, $tpl_elements );
-            $section_count += count( $tpl_elements );
-            $tpl_log_lines[] = '📎 Template ' . $tpl_slot_index . ' appended: "' . get_the_title( $tpl_id ) . '" (' . count( $tpl_elements ) . ' container(s))';
-        }
-
-        $elementor_json = (string) wp_json_encode( $page_elements );
-    }
-
-    // ── Fill empty image widgets in templates with DALL-E ─────────────
-    // When "Integrate Images into page content" is checked and at least one
-    // template was appended, scan the final element tree for image widgets
-    // that have no real image (id=0 or placeholder URL) and generate a
-    // DALL-E image for each, based on the SEO keyword / page title.
-    //
-    // Images are uploaded to the Media Library with parent_post_id=0 here
-    // (post not yet created); the parent is updated after the post is saved.
-    // We cap at 5 generated template images to control API costs.
-    if ( $integrate_images
-         && ! empty( $append_template_ids )
-         && function_exists('myls_elb_find_empty_image_widgets')
-         && function_exists('myls_pb_dall_e_generate') ) {
-
-        $tpl_api_key = function_exists('myls_openai_get_api_key') ? myls_openai_get_api_key() : '';
-
-        if ( ! empty( $tpl_api_key ) ) {
-            $all_elements  = json_decode( $elementor_json, true ) ?: [];
-            $empty_widgets = myls_elb_find_empty_image_widgets( $all_elements );
-            $max_tpl_imgs  = 5; // cost guard
-
-            if ( ! empty( $empty_widgets ) ) {
-                $tpl_log_lines[] = '🖼️ Found ' . count( $empty_widgets ) . ' empty image widget(s) in template(s) — generating with DALL-E…';
-
-                $tpl_style_map = [
-                    'photo'             => 'Professional photograph, real camera shot, natural lighting, high resolution, sharp focus, authentic scene, no illustrations, no digital art',
-                    'photorealistic'    => 'Professional stock photography style, high quality, well-lit, clean background',
-                    'modern-flat'       => 'Modern flat design illustration, clean lines, soft gradients, professional color palette, minimalist',
-                    'isometric'         => 'Isometric 3D illustration, colorful, tech-forward, clean white background',
-                    'watercolor'        => 'Soft watercolor style illustration, artistic, professional, warm tones',
-                    'gradient-abstract' => 'Abstract gradient art, flowing shapes, modern tech aesthetic, vivid colors',
-                ];
-                $tpl_style_suffix = $tpl_style_map[ $image_style ] ?? $tpl_style_map['photo'];
-                $tpl_dalle_style  = ( $image_style === 'photo' ) ? 'natural' : 'vivid';
-                $focus_kw         = $seo_keyword ?: $page_title;
-
-                foreach ( array_slice( $empty_widgets, 0, $max_tpl_imgs ) as $w_idx => $widget_info ) {
-                    $img_number   = $w_idx + 1;
-                    $tpl_img_size = in_array( $image_style, ['photo', 'photorealistic'], true ) ? '1792x1024' : '1024x1024';
-                    $tpl_orient   = $tpl_img_size === '1792x1024' ? 'Landscape orientation, 1792x1024' : 'Square format, 1024x1024';
-                    $img_prompt   = "Create a professional image for a webpage about: {$focus_kw}. "
-                                  . ( $widget_info['alt_hint'] ? "Image context: {$widget_info['alt_hint']}. " : '' )
-                                  . "Style: {$tpl_style_suffix}. {$tpl_orient}, no text or words in the image.";
-
-                    $dall_e_result = myls_pb_dall_e_generate( $tpl_api_key, $img_prompt, $tpl_img_size, $tpl_dalle_style );
-
-                    if ( $dall_e_result['ok'] ) {
-                        $tpl_attach_id = myls_pb_upload_image_from_url(
-                            $dall_e_result['url'],
-                            sanitize_title( $focus_kw ) . '-tpl-img-' . $img_number,
-                            $focus_kw . ' - Template Image ' . $img_number,
-                            0  // parent updated after post is created
-                        );
-
-                        if ( $tpl_attach_id ) {
-                            $tpl_img_url   = wp_get_attachment_url( $tpl_attach_id );
-                            $tpl_img_alt   = $focus_kw . ' - Image ' . $img_number;
-
-                            // Inject into the element tree
-                            $all_elements = myls_elb_inject_image_into_widget(
-                                $all_elements,
-                                $widget_info['id'],
-                                $tpl_attach_id,
-                                $tpl_img_url,
-                                $tpl_img_alt
-                            );
-
-                            // Track for parent update + preview after post is saved
-                            $generated_images[] = [
-                                'type'    => 'template',
-                                'id'      => $tpl_attach_id,
-                                'url'     => $tpl_img_url,
-                                'alt'     => $tpl_img_alt,
-                                'subject' => $focus_kw,
-                            ];
-
-                            $tpl_log_lines[] = "   ✅ Template image {$img_number} generated (ID: {$tpl_attach_id})";
-                        } else {
-                            $tpl_log_lines[] = "   ❌ Template image {$img_number}: upload to Media Library failed";
-                        }
-                    } else {
-                        $tpl_log_lines[] = "   ❌ Template image {$img_number}: " . ( $dall_e_result['error'] ?? 'DALL-E error' );
-                    }
-                }
-
-                // Re-encode with injected images
-                $elementor_json = (string) wp_json_encode( $all_elements );
-            }
-        } else {
-            $tpl_log_lines[] = '⚠️ Integrate Images: OpenAI API key not set — template image widgets left as placeholders.';
-        }
+    // Merge template-generated images so parent post attachment update works
+    $tpl_new_images = $section_flags['_tpl_images'] ?? [];
+    if ( ! empty( $tpl_new_images ) ) {
+        $generated_images = array_merge( $generated_images, $tpl_new_images );
     }
 
     // ── Upsert post ──────────────────────────────────────────────────────
@@ -1366,21 +1585,63 @@ Rules:
         'fields'         => 'ids',
     ] );
 
+    // ── Block Elementor from writing _elementor_page_settings ────────────
+    // TWO separate paths can write _elementor_page_settings and break the header:
+    //
+    // PATH A — save_post (priority ~10): fires inside wp_insert_post /
+    //   wp_update_post. Elementor's Theme Builder condition evaluator runs here
+    //   and writes _elementor_page_settings with the matched template.
+    //   Caught by: $elb_meta_cleanup on save_post @ priority 999.
+    //
+    // PATH B — updated_post_meta / added_post_meta: fires when update_post_meta()
+    //   is called with _elementor_data containing Library template content.
+    //   Elementor's own updated_post_meta hook runs document-save logic that writes
+    //   _elementor_page_settings — bypassing save_post entirely. This is why the
+    //   menu breaks specifically when a Page Setup template is included.
+    //   Caught by: $elb_meta_settings_guard on updated/added_post_meta @ priority 999.
+    //
+    // Both hooks share $elb_block_post_id by reference — only active for our post.
+    $elb_block_post_id = 0; // set after insert/update
+
+    // PATH A — save_post cleanup
+    $elb_meta_cleanup = function( $fired_post_id ) use ( &$elb_block_post_id ) {
+        if ( $elb_block_post_id && (int) $fired_post_id === $elb_block_post_id ) {
+            delete_post_meta( (int) $fired_post_id, '_wp_page_template' );
+            delete_post_meta( (int) $fired_post_id, '_elementor_page_settings' );
+        }
+    };
+    add_action( 'save_post', $elb_meta_cleanup, 999 );
+
+    // PATH B — meta write guard (catches Library template path)
+    // Fires the instant _elementor_page_settings or _wp_page_template is written
+    // to our post by any caller, and immediately deletes it.
+    $elb_meta_settings_guard = function( $meta_id, $object_id, $meta_key ) use ( &$elb_block_post_id ) {
+        if ( ! $elb_block_post_id || (int) $object_id !== $elb_block_post_id ) return;
+        if ( $meta_key === '_elementor_page_settings' || $meta_key === '_wp_page_template' ) {
+            delete_post_meta( $elb_block_post_id, $meta_key );
+        }
+    };
+    add_action( 'updated_post_meta', $elb_meta_settings_guard, 999, 3 );
+    add_action( 'added_post_meta',   $elb_meta_settings_guard, 999, 3 );
+
     // Elementor stores its own rendered HTML in post_content as a cache.
     // For a fresh page we set a placeholder; Elementor will regenerate on first load.
     $post_content_fallback = '<!-- Elementor page — edit in Elementor editor -->';
 
     if ( $existing ) {
-        $post_id = (int) $existing[0];
-        wp_update_post( [
+        $post_id       = (int) $existing[0];
+        $update_args   = [
             'ID'           => $post_id,
             'post_title'   => $page_title,
             'post_content' => $post_content_fallback,
             'post_status'  => $page_status,
-        ] );
+        ];
+        if ( $page_slug )      $update_args['post_name']   = $page_slug;
+        if ( $parent_page_id ) $update_args['post_parent'] = $parent_page_id;
+        wp_update_post( $update_args );
         $action_label = 'updated';
     } else {
-        $post_id = (int) wp_insert_post( [
+        $insert_args = [
             'post_type'    => $post_type,
             'post_status'  => $page_status,
             'post_title'   => $page_title,
@@ -1389,12 +1650,39 @@ Rules:
                 '_myls_elb_generated' => 1,
                 $meta_key             => $gen_key,
             ],
-        ] );
+        ];
+        if ( $page_slug )      $insert_args['post_name']   = $page_slug;
+        if ( $parent_page_id ) $insert_args['post_parent'] = $parent_page_id;
+        $post_id = (int) wp_insert_post( $insert_args );
         $action_label = 'created';
     }
 
     if ( ! $post_id || is_wp_error( $post_id ) ) {
         wp_send_json_error( ['message' => 'Failed to create post.'], 500 );
+    }
+
+    // Activate the cleanup hook now that we have the real post ID.
+    $elb_block_post_id = $post_id;
+
+    // ── Inherit city_state + county + _myls_city_state from parent page ─────
+    // If a parent page is set and has these fields populated, copy them
+    // to the new post so shortcodes like [city_state] and [county_name] work
+    // immediately without manual entry.
+    if ( $parent_page_id ) {
+        // ACF fields: city_state, county
+        foreach ( [ 'city_state', 'county' ] as $field_key ) {
+            $parent_val = function_exists( 'get_field' )
+                ? get_field( $field_key, $parent_page_id )
+                : get_post_meta( $parent_page_id, $field_key, true );
+            if ( $parent_val !== '' && $parent_val !== null && $parent_val !== false ) {
+                update_post_meta( $post_id, $field_key, sanitize_text_field( $parent_val ) );
+            }
+        }
+        // MYLS native field: _myls_city_state (format: "City, State")
+        $parent_myls_cs = get_post_meta( $parent_page_id, '_myls_city_state', true );
+        if ( $parent_myls_cs !== '' && $parent_myls_cs !== false ) {
+            update_post_meta( $post_id, '_myls_city_state', sanitize_text_field( $parent_myls_cs ) );
+        }
     }
 
     // ── Save FAQ items to post meta ──────────────────────────────────────
@@ -1439,60 +1727,198 @@ Rules:
     update_post_meta( $post_id, '_elementor_template_type', 'wp-page' );
 
     // Do NOT set _wp_page_template or _elementor_page_settings.
-    // Working service pages (e.g. paver-sealing-tampa) have neither meta set and
-    // render correctly with Theme Builder. Any value we write here causes either
-    // a double header or the mobile nav drawer firing open on page load.
-    // Explicitly delete both in case a previous version of this plugin wrote them.
-    delete_post_meta( $post_id, '_wp_page_template' );
-    delete_post_meta( $post_id, '_elementor_page_settings' );
+    // These are deleted at the very END of this handler (just before wp_send_json_success)
+    // because wp_update_post() calls made later (excerpt, tagline, image attachment)
+    // fire save_post which causes Elementor to re-write _elementor_page_settings.
+    // Deleting here would be immediately undone.
 
-    // Clear all per-post Elementor caches so the next load regenerates cleanly.
+    // Clear only this post's cached CSS — do NOT call files_manager->clear_cache().
+    // That global clear destroys the header template and kit CSS files.
+    // When those are missing on first page load, Elementor's sticky JS captures the
+    // header width before responsive CSS applies, permanently locking it at ~100px
+    // via inline style: position:fixed; width:100px.
     delete_post_meta( $post_id, '_elementor_css' );
     delete_post_meta( $post_id, '_elementor_element_cache' );
     delete_post_meta( $post_id, '_elementor_page_assets' );
 
-    // Flush global Elementor files cache if Elementor is active.
-    if ( class_exists('\Elementor\Plugin') &&
-         isset( \Elementor\Plugin::$instance->files_manager ) ) {
-        \Elementor\Plugin::$instance->files_manager->clear_cache();
+    // Immediately regenerate this post's CSS so sticky JS has correct dimensions
+    // on the very first page load. Use new() directly — ::create() is not available
+    // in all Elementor versions and can output HTML errors that break JSON responses.
+    if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+        try {
+            $post_css = new \Elementor\Core\Files\CSS\Post( "post-{$post_id}" );
+            $post_css->update();
+        } catch ( \Throwable $e ) { /* silently ignore — CSS regenerates on first visit */ }
     }
 
     $saved_via_api = false; // document API intentionally bypassed — see comment above
 
     // ── Attach generated images ──────────────────────────────────────────
-    // set_post_thumbnail priority: hero first, then feature (so checking only
-    // "Featured Image" without hero still correctly sets the post thumbnail).
+    // set_post_thumbnail priority: hero → standalone featured → (none).
     if ( ! empty( $generated_images ) ) {
         foreach ( $generated_images as $img ) {
             wp_update_post( [ 'ID' => $img['id'], 'post_parent' => $post_id ] );
         }
         if ( $set_featured ) {
-            // Prefer hero; fall back to feature image if no hero was generated
-            $thumb = null;
+            $thumb     = null;
+            $thumb_src = '';
+            // 1st priority: hero (also used as layout background)
             foreach ( $generated_images as $img ) {
-                if ( $img['type'] === 'hero' )    { $thumb = $img['id']; break; }
+                if ( $img['type'] === 'hero' ) { $thumb = $img['id']; $thumb_src = 'Hero'; break; }
             }
+            // 2nd priority: standalone featured image (generated when no hero)
             if ( ! $thumb ) {
                 foreach ( $generated_images as $img ) {
-                    if ( $img['type'] === 'feature' ) { $thumb = $img['id']; break; }
+                    if ( $img['type'] === 'featured' ) { $thumb = $img['id']; $thumb_src = 'Featured'; break; }
                 }
             }
             if ( $thumb ) {
                 set_post_thumbnail( $post_id, $thumb );
-                $image_log[] = "   📌 Set as Featured Image (attachment ID: {$thumb})";
+                $image_log[] = "   📌 {$thumb_src} image set as post thumbnail (attachment ID: {$thumb})";
             }
         }
     }
 
-    // ── Yoast meta ───────────────────────────────────────────────────────
-    $desc_text      = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( $html ) ) );
+    // ── Yoast meta + Excerpt + Tagline — AI-generated via plugin prompts ──
+    // All four use the same prompt templates, token system, Variation Engine,
+    // and myls_ai_generate_text() as the standalone AI subtabs.
+
+    // Build shared token context (same as meta + excerpt subtabs)
+    $post_obj = get_post( $post_id );
+    $ai_ctx   = function_exists('myls_ai_context_for_post') ? myls_ai_context_for_post( $post_id ) : [];
+
+    // Add city_state + content_snippet — required by excerpt + meta prompts
+    $elb_city_state = '';
+    if ( function_exists('get_field') ) $elb_city_state = (string) get_field('city_state', $post_id);
+    if ( $elb_city_state === '' ) $elb_city_state = (string) get_post_meta( $post_id, 'city_state', true );
+    if ( $elb_city_state === '' ) {
+        $org_city  = trim( (string) get_option( 'myls_org_locality', '' ) );
+        $org_state = trim( (string) get_option( 'myls_org_region', '' ) );
+        if ( $org_city && $org_state ) $elb_city_state = "{$org_city}, {$org_state}";
+    }
+    $elb_content_snippet = function_exists('myls_get_post_plain_text')
+        ? myls_get_post_plain_text( $post_id, 200 )
+        : wp_trim_words( wp_strip_all_tags( (string) ( $post_obj->post_content ?? '' ) ), 200, '...' );
+    $ai_ctx['city_state']      = $elb_city_state;
+    $ai_ctx['content_snippet'] = $elb_content_snippet;
+
+    // ── Yoast SEO Title — AI-generated ──────────────────────────────────
+    $meta_title_tpl = function_exists('myls_get_default_prompt') ? myls_get_default_prompt('meta-title') : '';
     $yoast_title    = $seo_keyword
-        ? $seo_keyword . ' %%page%% %%sep%% %%sitename%%'
+        ? $seo_keyword . ' %%page%% %%sep%% %%sitename%%'   // fallback if AI unavailable
         : $page_title  . ' %%sep%% %%sitename%%';
-    update_post_meta( $post_id, '_yoast_wpseo_title',   $yoast_title );
-    update_post_meta( $post_id, '_yoast_wpseo_metadesc', mb_substr( $desc_text, 0, 155 ) );
-    if ( $seo_keyword ) {
-        update_post_meta( $post_id, '_yoast_wpseo_focuskw', $seo_keyword );
+
+    if ( $meta_title_tpl && function_exists('myls_ai_apply_tokens') && function_exists('myls_ai_generate_text') ) {
+        $mt_prompt = myls_ai_apply_tokens( $meta_title_tpl, $ai_ctx );
+        if ( class_exists('MYLS_Variation_Engine') ) {
+            $mt_angle  = MYLS_Variation_Engine::next_angle('meta_title');
+            $mt_prompt = MYLS_Variation_Engine::inject_variation( $mt_prompt, $mt_angle, 'meta_title' );
+        }
+        if ( function_exists('myls_ai_set_usage_context') ) myls_ai_set_usage_context( 'meta_title', $post_id );
+        $mt_raw = myls_ai_generate_text( $mt_prompt, [ 'max_tokens' => 80, 'temperature' => 0.7, 'post_id' => $post_id ] );
+        if ( $mt_raw ) {
+            $mt_clean = function_exists('myls_clean_meta_output') ? myls_clean_meta_output( $mt_raw ) : trim( wp_strip_all_tags( $mt_raw ) );
+            if ( mb_strlen( $mt_clean ) >= 30 ) {
+                $yoast_title = $mt_clean;
+                $log_lines[] = '🏷️ SEO title AI-generated (' . mb_strlen( $yoast_title ) . ' chars)';
+            }
+        }
+    }
+    update_post_meta( $post_id, '_yoast_wpseo_title', $yoast_title );
+
+    // ── Yoast Meta Description — AI-generated ────────────────────────────
+    $meta_desc_tpl  = function_exists('myls_get_default_prompt') ? myls_get_default_prompt('meta-description') : '';
+    $yoast_metadesc = mb_substr( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( $html ) ) ), 0, 155 );  // fallback
+
+    if ( $meta_desc_tpl && function_exists('myls_ai_apply_tokens') && function_exists('myls_ai_generate_text') ) {
+        $md_prompt = myls_ai_apply_tokens( $meta_desc_tpl, $ai_ctx );
+        if ( class_exists('MYLS_Variation_Engine') ) {
+            $md_angle  = MYLS_Variation_Engine::next_angle('meta_description');
+            $md_prompt = MYLS_Variation_Engine::inject_variation( $md_prompt, $md_angle, 'meta_description' );
+        }
+        if ( function_exists('myls_ai_set_usage_context') ) myls_ai_set_usage_context( 'meta_description', $post_id );
+        $md_raw = myls_ai_generate_text( $md_prompt, [ 'max_tokens' => 100, 'temperature' => 0.7, 'post_id' => $post_id ] );
+        if ( $md_raw ) {
+            $md_clean = function_exists('myls_clean_meta_output') ? myls_clean_meta_output( $md_raw ) : trim( wp_strip_all_tags( $md_raw ) );
+            if ( mb_strlen( $md_clean ) >= 60 ) {
+                $yoast_metadesc = mb_substr( $md_clean, 0, 160 );
+                $log_lines[] = '📋 Meta description AI-generated (' . mb_strlen( $yoast_metadesc ) . ' chars)';
+            }
+        }
+    }
+    update_post_meta( $post_id, '_yoast_wpseo_metadesc', $yoast_metadesc );
+    if ( $seo_keyword ) update_post_meta( $post_id, '_yoast_wpseo_focuskw', $seo_keyword );
+
+    // ── Post excerpt — uses plugin 'excerpt' prompt template ────────────
+    $existing_excerpt = trim( (string) get_post_field( 'post_excerpt', $post_id ) );
+    if ( $existing_excerpt === '' && function_exists('myls_get_default_prompt') && function_exists('myls_ai_generate_text') ) {
+        $exc_tpl = myls_get_default_prompt('excerpt');
+        if ( $exc_tpl ) {
+            $exc_prompt = function_exists('myls_ai_apply_tokens') ? myls_ai_apply_tokens( $exc_tpl, $ai_ctx ) : $exc_tpl;
+            if ( class_exists('MYLS_Variation_Engine') ) {
+                $ex_angle   = MYLS_Variation_Engine::next_angle('excerpt');
+                $exc_prompt = MYLS_Variation_Engine::inject_variation( $exc_prompt, $ex_angle, 'excerpt' );
+            }
+            if ( function_exists('myls_ai_set_usage_context') ) myls_ai_set_usage_context( 'excerpts', $post_id );
+            $exc_raw = myls_ai_generate_text( $exc_prompt, [
+                'max_tokens'  => (int)   get_option( 'myls_ai_excerpt_max_tokens',   180 ),
+                'temperature' => (float) get_option( 'myls_ai_excerpt_temperature', 0.7 ),
+                'post_id'     => $post_id,
+            ] );
+            if ( $exc_raw ) {
+                $exc_clean = function_exists('myls_clean_meta_output') ? myls_clean_meta_output( $exc_raw ) : trim( $exc_raw );
+                $exc_clean = trim( wp_strip_all_tags( $exc_clean ) );
+                if ( mb_strlen( $exc_clean ) > 20 ) {
+                    // Use $wpdb->update directly — wp_update_post() fires save_post,
+                    // which Elementor hooks to re-write _elementor_page_settings with
+                    // the matched Theme Builder template, breaking the page header.
+                    global $wpdb;
+                    $wpdb->update( $wpdb->posts, [ 'post_excerpt' => $exc_clean ], [ 'ID' => $post_id ] );
+                    clean_post_cache( $post_id );
+                    $log_lines[] = '📝 Excerpt generated (' . mb_strlen( $exc_clean ) . ' chars)';
+                }
+            }
+        }
+    }
+
+    // ── Tagline — uses plugin 'taglines' prompt template ─────────────────
+    $existing_tagline = trim( (string) get_post_meta( $post_id, '_myls_service_tagline', true ) );
+    if ( $existing_tagline === '' && function_exists('myls_get_default_prompt') && function_exists('myls_ai_generate_text') ) {
+        $tl_tpl = myls_get_default_prompt('taglines');
+        if ( $tl_tpl ) {
+            $org_name      = trim( (string) get_option( 'myls_org_name', get_bloginfo( 'name' ) ) );
+            $post_type_obj = get_post_type_object( $post_type );
+            $business_type = $org_name ?: ( $post_type_obj ? $post_type_obj->labels->singular_name : 'Service' );
+            $credentials   = function_exists('myls_build_tagline_credentials') ? myls_build_tagline_credentials() : '';
+            $tl_content    = trim( wp_strip_all_tags( (string) get_post_field( 'post_excerpt', $post_id ) ) );
+            if ( $tl_content === '' ) $tl_content = function_exists('myls_get_post_plain_text') ? myls_get_post_plain_text( $post_id, 50 ) : '';
+
+            $tl_prompt = str_replace( '{{TITLE}}',         $page_title,      $tl_tpl );
+            $tl_prompt = str_replace( '{{CONTENT}}',       $tl_content,      $tl_prompt );
+            $tl_prompt = str_replace( '{{CITY_STATE}}',    $elb_city_state,  $tl_prompt );
+            $tl_prompt = str_replace( '{{BUSINESS_TYPE}}', $business_type,   $tl_prompt );
+            $tl_prompt = str_replace( '{{CREDENTIALS}}',   $credentials,     $tl_prompt );
+
+            if ( class_exists('MYLS_Variation_Engine') ) {
+                $tl_angle  = MYLS_Variation_Engine::next_angle('taglines');
+                $tl_prompt = MYLS_Variation_Engine::inject_variation( $tl_prompt, $tl_angle, 'taglines' );
+            }
+            if ( function_exists('myls_ai_set_usage_context') ) myls_ai_set_usage_context( 'taglines', $post_id );
+            $tl_raw = myls_ai_generate_text( $tl_prompt, [ 'max_tokens' => 200, 'temperature' => 0.75, 'post_id' => $post_id ] );
+            if ( $tl_raw ) {
+                $primary_tl = '';
+                if ( preg_match_all( '/<li[^>]*>(.*?)<\/li>/is', $tl_raw, $tl_m ) ) {
+                    $primary_tl = trim( wp_strip_all_tags( $tl_m[1][0] ) );
+                }
+                if ( $primary_tl === '' ) $primary_tl = trim( wp_strip_all_tags( $tl_raw ) );
+                $primary_tl = preg_replace( '/\s*\|\s*/', ' | ', $primary_tl );
+                $primary_tl = trim( $primary_tl, '"\'.' );
+                if ( mb_strlen( $primary_tl ) > 8 ) {
+                    update_post_meta( $post_id, '_myls_service_tagline', $primary_tl );
+                    $log_lines[] = '✨ Tagline generated: ' . esc_html( $primary_tl );
+                }
+            }
+        }
     }
 
     // ── Add to menu ───────────────────────────────────────────────────────
@@ -1539,13 +1965,11 @@ Rules:
     if ( ! empty( $image_log ) ) {
         $log_lines = array_merge( $log_lines, $image_log );
         $hero_count         = count( array_filter( $generated_images, fn($i) => $i['type'] === 'hero' ) );
-        $feature_count_done = count( array_filter( $generated_images, fn($i) => $i['type'] === 'feature' ) );
         $feature_card_count = count( array_filter( $generated_images, fn($i) => $i['type'] === 'feature_card' ) );
         $tpl_img_count      = count( array_filter( $generated_images, fn($i) => $i['type'] === 'template' ) );
         $img_notes = [];
-        if ( $hero_count )         $img_notes[] = "hero → container background";
-        if ( $feature_count_done ) $img_notes[] = "1 featured → post thumbnail";
-        if ( $feature_card_count ) $img_notes[] = "{$feature_card_count} card(s) → image-box widgets";
+        if ( $hero_count )         $img_notes[] = 'hero → container background' . ( $set_featured ? ' + post thumbnail' : '' );
+        if ( $feature_card_count ) $img_notes[] = "{$feature_card_count} feature card(s) → image-box widgets ({$feature_cols}×{$feature_rows} grid)";
         if ( $tpl_img_count )      $img_notes[] = "{$tpl_img_count} template image(s) → image widgets";
         $log_lines[] = "   📸 " . count( $generated_images ) . " image(s) integrated: " . implode( ', ', $img_notes );
     }
@@ -1566,6 +1990,17 @@ Rules:
         'prompt_chars'   => mb_strlen( $prompt ),
         '_html'          => $html,
     ] ) : [ 'elapsed_ms' => round( ( microtime( true ) - $start_time ) * 1000 ) ];
+
+    // ── Final meta cleanup — MUST be last ────────────────────────────────
+    // Working service pages have NEITHER _wp_page_template NOR
+    // _elementor_page_settings set. Any value in either meta causes either a
+    // double header or the mobile nav drawer firing open on page load.
+    //
+    // These deletes run here — after excerpt ($wpdb->update), tagline
+    // (update_post_meta), and image-attachment (wp_update_post on child post IDs
+    // only) — so nothing can re-write them afterward.
+    delete_post_meta( $post_id, '_wp_page_template' );
+    delete_post_meta( $post_id, '_elementor_page_settings' );
 
     wp_send_json_success( [
         'message'         => "{$type_label} {$action_label} successfully.",
@@ -1639,7 +2074,7 @@ add_action( 'wp_ajax_myls_elb_save_description', function () {
     if ( ! wp_verify_nonce( $_POST['_wpnonce'] ?? '', 'myls_elb_create' ) ) wp_send_json_error( ['message' => 'Bad nonce'], 400 );
 
     $name        = sanitize_text_field( $_POST['desc_name'] ?? '' );
-    $description = wp_kses_post( $_POST['description'] ?? '' );
+    $description = sanitize_textarea_field( wp_unslash( $_POST['description'] ?? '' ) );
     if ( empty( $name ) )        wp_send_json_error( ['message' => 'Name is required.'], 400 );
     if ( empty( $description ) ) wp_send_json_error( ['message' => 'Description is empty.'], 400 );
 
@@ -1700,23 +2135,37 @@ add_action( 'wp_ajax_myls_elb_save_setup', function () {
     if ( ! is_array( $setup ) ) wp_send_json_error( ['message' => 'Invalid setup data.'], 400 );
 
     // Sanitize each field
+    // sections_order: deep-sanitize each item
+    $raw_so = is_array( $setup['sections_order'] ?? null ) ? $setup['sections_order'] : [];
+    $clean_so = [];
+    foreach ( $raw_so as $so_item ) {
+        if ( ! is_array( $so_item ) ) continue;
+        $type = in_array( $so_item['type'] ?? '', ['section','template'] ) ? $so_item['type'] : 'section';
+        $entry = [
+            'id'      => sanitize_key( $so_item['id']      ?? '' ),
+            'type'    => $type,
+            'enabled' => (bool) ( $so_item['enabled'] ?? true ),
+        ];
+        if ( $type === 'section' && ! empty( $so_item['cols'] ) ) {
+            $entry['cols'] = max( 1, min( 6, (int) $so_item['cols'] ) );
+            $entry['rows'] = max( 1, min( 6, (int) ( $so_item['rows'] ?? 1 ) ) );
+        }
+        if ( $type === 'template' ) {
+            $entry['template_id'] = (int) ( $so_item['template_id'] ?? 0 );
+        }
+        $clean_so[] = $entry;
+    }
+
     $clean = [
-        'post_type'         => sanitize_key(   $setup['post_type']    ?? 'page' ),
-        'title'             => sanitize_text_field( $setup['title']    ?? '' ),
-        'description'       => wp_kses_post(   $setup['description']   ?? '' ),
-        'seo_keyword'       => sanitize_text_field( $setup['seo_keyword'] ?? '' ),
+        'post_type'         => sanitize_key(        $setup['post_type']    ?? 'page' ),
+        'title'             => sanitize_text_field(  $setup['title']        ?? '' ),
+        'description'       => sanitize_textarea_field( wp_unslash( $setup['description'] ?? '' ) ),
+        'seo_keyword'       => sanitize_text_field(  $setup['seo_keyword']  ?? '' ),
         'status'            => in_array( $setup['status'] ?? '', ['draft','publish','pending'] ) ? $setup['status'] : 'draft',
         'add_to_menu'       => (bool) ( $setup['add_to_menu']       ?? true ),
-        'include_hero'      => (bool) ( $setup['include_hero']      ?? true ),
-        'include_intro'     => (bool) ( $setup['include_intro']     ?? true ),
-        'include_features'  => (bool) ( $setup['include_features']  ?? true ),
-        'include_process'   => (bool) ( $setup['include_process']   ?? true ),
-        'include_faq'       => (bool) ( $setup['include_faq']       ?? true ),
-        'include_cta'       => (bool) ( $setup['include_cta']       ?? true ),
+        'sections_order'    => $clean_so,  // replaces include_* flat flags
         'gen_hero'          => (bool) ( $setup['gen_hero']          ?? true ),
-        'gen_feature'       => (bool) ( $setup['gen_feature']       ?? false ),
         'gen_feature_cards' => (bool) ( $setup['gen_feature_cards'] ?? false ),
-        'card_width'        => max( 10, min( 100, (int) ( $setup['card_width'] ?? 30 ) ) ),
         'image_style'       => sanitize_key( $setup['image_style']  ?? 'photo' ),
         'set_featured'      => (bool) ( $setup['set_featured']      ?? true ),
     ];
@@ -2149,4 +2598,58 @@ add_action( 'wp_ajax_myls_test_kg_api', function () {
     } else {
         wp_send_json_error( ['message' => "Unexpected response (HTTP {$code}). " . wp_remote_retrieve_body($response)] );
     }
+} );
+
+/* -------------------------------------------------------------------------
+ * AJAX: Get pages/posts for the Parent Page dropdown
+ * Accepts: post_type (default: page)
+ * Returns: array of { id, title } for all published posts of that type
+ * that support page hierarchy (has_archive or is_hierarchical).
+ * -------------------------------------------------------------------------*/
+add_action( 'wp_ajax_myls_elb_get_parent_pages', function () {
+    if ( ! current_user_can('manage_options') ) wp_send_json_error( [], 403 );
+    if ( ! wp_verify_nonce( $_POST['_wpnonce'] ?? '', 'myls_elb_create' ) ) wp_send_json_error( ['message' => 'Bad nonce'], 400 );
+
+    $post_type = sanitize_key( $_POST['post_type'] ?? 'page' );
+    if ( ! post_type_exists( $post_type ) ) wp_send_json_error( ['message' => 'Invalid post type'], 400 );
+
+    // Use WP_Query directly so post_type is never coerced.
+    // 'post_type' is explicit — we never fall back to 'page'.
+    $q = new WP_Query( [
+        'post_type'              => $post_type,
+        'post_status'            => [ 'publish', 'draft' ],
+        'posts_per_page'         => 300,
+        'orderby'                => 'menu_order title',
+        'order'                  => 'ASC',
+        'no_found_rows'          => true,
+        'update_post_meta_cache' => false,
+        'update_post_term_cache' => false,
+    ] );
+
+    // Build a flat list with parent depth indentation so nested pages
+    // are visually distinguishable in the dropdown.
+    $all   = $q->posts;   // WP_Post objects
+    $index = [];
+    foreach ( $all as $p ) $index[ $p->ID ] = $p;
+
+    function myls_elb_get_depth( int $id, array &$index, int $limit = 10 ): int {
+        $depth = 0;
+        while ( $depth < $limit && isset( $index[ $id ] ) && $index[ $id ]->post_parent > 0 ) {
+            $id = $index[ $id ]->post_parent;
+            $depth++;
+        }
+        return $depth;
+    }
+
+    $pages = [];
+    foreach ( $all as $p ) {
+        $depth   = myls_elb_get_depth( $p->ID, $index );
+        $prefix  = $depth ? str_repeat( '— ', $depth ) : '';
+        $pages[] = [
+            'id'    => $p->ID,
+            'title' => $prefix . ( $p->post_title ?: '(untitled #' . $p->ID . ')' ),
+        ];
+    }
+
+    wp_send_json_success( [ 'pages' => $pages, 'post_type' => $post_type ] );
 } );

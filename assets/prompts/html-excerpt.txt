@@ -19,7 +19,7 @@ CTA ROTATION — use a DIFFERENT closing phrase for each card in the batch:
 "View our approach", "Discover the difference"
 
 REQUIREMENTS:
-- 2–4 short sentences (aim 40–80 words)
+- 1–2 short sentences (aim 20–40 words)
 - Use basic HTML only: <p>, <strong>, <em> — no other tags
 - Describe what the page is about and who it helps
 - Include the city/location naturally if provided
@@ -40,7 +40,7 @@ ANTI-DUPLICATION (for batches):
 - Each excerpt in this batch MUST open with a different word
 - Do not reuse the same CTA phrase across cards
 - Do not bold the same word/phrase across multiple cards
-- Vary sentence count (some 2 sentences, some 3, some 4)
+- Vary sentence count (some 1 sentence, some 2)
 
 INPUTS:
 - Page Title: {post_title}

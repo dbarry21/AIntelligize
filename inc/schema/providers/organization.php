@@ -142,6 +142,10 @@ add_filter('myls_schema_graph', function(array $graph) {
 		]];
 	}
 
+	// AggregateRating intentionally omitted from Organization.
+	// It lives on LocalBusiness (and Service) — adding it here creates
+	// duplicate entity signals since Organization is the site-wide identifier only.
+
 	// Allow last-mile tweaks
 	$node = apply_filters('myls_schema_org_node', $node, $current_id);
 

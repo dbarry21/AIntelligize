@@ -212,6 +212,35 @@ myls_register_admin_tab([
 							<p class="description">Used by shortcodes when a <code>place_id</code> isn’t provided explicitly.</p>
 							<p class="description">Last Place ID test: <em><?php echo esc_html($last_pid_test); ?></em></p>
 							<div id="myls-places-pid-test-result" class="notice inline" style="margin-top:8px;"></div>
+
+							<hr style="margin:16px 0;">
+
+							<label class="form-label">Google Rating &amp; Review Count</label>
+							<p class="description" style="margin-bottom:8px;">Auto-fetched from the Places API every 4 hours via WP-Cron. Used for <code>aggregateRating</code> on LocalBusiness, Organization, and Service schemas.</p>
+							<div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+								<div id="myls-places-rating-display" style="font-size:.9rem; color:#1d2327;">
+									<?php
+									$_r    = get_option('myls_google_places_rating', '');
+									$_c    = get_option('myls_google_places_review_count', '');
+									$_t    = get_option('myls_places_rating_fetched_at', '');
+									$_next = wp_next_scheduled('myls_refresh_places_rating');
+									if ( $_r !== '' && $_c !== '' ) {
+										echo '<strong>' . esc_html($_r) . ' stars</strong> &nbsp;·&nbsp; <strong>' . esc_html($_c) . ' reviews</strong>';
+										if ( $_t ) echo ' &nbsp;<span style="color:#6b7280;font-size:.8rem;">fetched ' . esc_html($_t) . '</span>';
+									} else {
+										echo '<span style="color:#6b7280;">Not yet fetched — click Fetch Now or wait for cron</span>';
+									}
+									if ( $_next ) {
+										$diff = $_next - time();
+										$hrs  = floor($diff / 3600);
+										$mins = floor(($diff % 3600) / 60);
+										echo ' &nbsp;<span style="color:#6b7280;font-size:.8rem;">· next auto-refresh in ' . esc_html("{$hrs}h {$mins}m") . '</span>';
+									}
+									?>
+								</div>
+								<button type="button" class="button" id="myls-fetch-places-rating" data-nonce="<?php echo esc_attr($ajax_nonce); ?>">Fetch Now</button>
+							</div>
+							<div id="myls-places-rating-result" class="notice inline" style="margin-top:8px;"></div>
 						</div>
 					</div>
 
@@ -456,6 +485,28 @@ myls_register_admin_tab([
 			$.post(POST_URL, { action:'myls_test_places_pid', key, place_id, nonce })
 			  .done(r=>paint($box, !!(r&&r.success), (r&&r.data&&r.data.message)|| (r&&r.data) || (r&&r.success?'Place ID OK':'Place ID test failed')))
 			  .fail(()=>paint($box,false,'Network error during Place ID test'));
+		  });
+
+		  // --- Fetch rating + review count from Places API ---
+		  $('#myls-fetch-places-rating').on('click', function(){
+			const key      = $('#myls_google_places_api_key').val();
+			const place_id = $('#myls_google_places_place_id').val();
+			const $btn     = $(this).prop('disabled', true).text('Fetching…');
+			const $box     = $('#myls-places-rating-result').removeClass('notice-success notice-error').html('<em>Fetching from Places API…</em>');
+			$.post(POST_URL, { action:'myls_fetch_places_rating', key, place_id, nonce })
+			  .done(function(r){
+				if (r && r.success && r.data) {
+				  paint($box, true, r.data.message);
+				  $('#myls-places-rating-display').html(
+					'<strong>' + r.data.rating + ' stars</strong> &nbsp;·&nbsp; <strong>' + r.data.review_count + ' reviews</strong>' +
+					' &nbsp;<span style="color:#6b7280;font-size:.8rem;">just fetched</span>'
+				  );
+				} else {
+				  paint($box, false, (r&&r.data) || 'Fetch failed');
+				}
+			  })
+			  .fail(()=>paint($box, false, 'Network error fetching rating'))
+			  .always(()=>$btn.prop('disabled', false).text('Fetch Now'));
 		  });
 
 		  // --- Static Maps ---

@@ -386,6 +386,10 @@ add_filter('myls_schema_graph', function(array $graph) {
 	if ( ! empty($area_served) ) $service['areaServed'] = $area_served;
 	if ( is_array($service_output) ) $service['serviceOutput'] = $service_output;
 
+	// AggregateRating — Service schema supports it; pull from Google Places
+	$agg_rating = function_exists('myls_schema_build_aggregate_rating') ? myls_schema_build_aggregate_rating() : null;
+	if ( is_array($agg_rating) ) $service['aggregateRating'] = $agg_rating;
+
 	$graph[] = $service;
 
 	return $graph;

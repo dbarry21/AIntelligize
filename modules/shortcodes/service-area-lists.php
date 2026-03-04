@@ -33,13 +33,14 @@
  * @since 7.5.30 — added heading, icon attributes
  */
 
+if ( ! function_exists( 'service_area_list_shortcode' ) ) {
 function service_area_list_shortcode( $atts ) {
 
     /* ── Normalise attributes ──────────────────────────────────────────── */
     $atts = shortcode_atts([
         'show_drafts'          => 'false',
         'get_related_children' => 'false',
-        'heading'              => null,   // null = auto-detect; '' = suppress
+        'heading'              => '__auto__',  // __auto__ = auto-detect; '' = suppress
         'icon'                 => 'true',
     ], $atts, 'service_area_list');
 
@@ -48,7 +49,7 @@ function service_area_list_shortcode( $atts ) {
     $show_icon            = filter_var( $atts['icon'],                 FILTER_VALIDATE_BOOLEAN );
 
     // heading: null means "auto"; empty string means "suppress"
-    $heading_override = $atts['heading']; // null | string
+    $heading_override = $atts['heading']; // '__auto__' | '' | custom string
 
     /* ── Current post context ──────────────────────────────────────────── */
     $current_post_id    = get_the_ID() ?: 0;
@@ -104,10 +105,10 @@ function service_area_list_shortcode( $atts ) {
     // null  → use auto heading
     // ''    → suppress heading (user passed heading="")
     // 'foo' → use custom string
-    if ( is_null( $heading_override ) ) {
-        $section_heading = $auto_heading;   // auto
+    if ( $heading_override === '__auto__' ) {
+        $section_heading = $auto_heading;          // auto-detect
     } else {
-        $section_heading = $heading_override; // custom or '' (suppressed)
+        $section_heading = $heading_override;      // custom string or '' (suppressed)
     }
 
     /* ── Run query ─────────────────────────────────────────────────────── */
@@ -172,4 +173,6 @@ function service_area_list_shortcode( $atts ) {
 
     return $output;
 }
+} // end function_exists
+
 add_shortcode( 'service_area_list', 'service_area_list_shortcode' );

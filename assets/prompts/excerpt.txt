@@ -9,7 +9,7 @@ E) Problem-forward: Open with the problem or need the customer has
 F) Credential-forward: Open with a trust signal (licensed, insured, years of experience, warranty)
 
 REQUIREMENTS:
-- 1–2 short sentences (aim 20–40 words)
+- 1 short sentence (aim 10–20 words)
 - Describe what the page is about and who it helps
 - If a location is obvious from the inputs, include it once naturally
 - Front-load the most important keyword within the first 8 words

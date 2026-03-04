@@ -1,3 +1,216 @@
+## [7.8.23] — 2026-03-04
+
+### Fixed
+- **Paste a Post — Featured Image not generating.** Root cause: API key was fetched via
+  bare `get_option('myls_openai_api_key')` which misses the two fallback option keys
+  (`ssseo_openai_api_key`, `openai_api_key`) and the `myls_openai_api_key` filter.
+  Fixed to use `myls_openai_get_api_key()` (with a `get_option` fallback if the function
+  is unavailable), matching the pattern used by `ai-image-gen.php`.
+
+### Added
+- **Paste a Post — Copy Permalink button.** The 🔗 icon in the permalink preview bar is
+  now a 📋 clipboard button. Clicking it copies the full URL (base + slug + trailing slash)
+  to the clipboard via `navigator.clipboard.writeText()` with a legacy `execCommand` fallback.
+  A "✔ Copied!" confirmation fades after 2 seconds.
+
+**Files changed:** `admin/tabs/utilities/subtab-paste-post.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.22] — 2026-03-04
+
+### Fixed
+- **Paste a Post** — Schedule panel (yellow box) was never appearing when "⏰ Scheduled" was selected.
+  Root cause: `schedPanel.style.display = ''` (empty string) removes the inline style but leaves
+  the CSS `display:none` rule still active. Fixed by setting to `'block'` explicitly.
+
+**Files changed:** `admin/tabs/utilities/subtab-paste-post.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.21] — 2026-03-04
+
+### Changed
+- **Paste a Post** — Schedule panel: removed yellow background, now renders as a plain section with a top border.
+
+**Files changed:** `admin/tabs/utilities/subtab-paste-post.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.20] — 2026-03-04
+
+### Changed
+- **Paste a Post — Scheduled Publish + Permalink Preview**
+  - **Permalink preview bar** now appears below the Title / Post Type row. Updates live
+    as you type the title, converting it to a slug using the same lowercase/hyphenate
+    logic WordPress applies (mirrors `sanitize_title()`).
+  - **Status dropdown** gains a ⏰ Scheduled option. Selecting it reveals a
+    `datetime-local` picker pre-filled to tomorrow at 09:00 (site local time).
+  - Client-side validation rejects a scheduled time that is in the past.
+  - Server-side: `schedule_date` (ISO `YYYY-MM-DDTHH:MM`) is parsed in the site's
+    WordPress timezone (`wp_timezone()`), `post_status` is set to `future`,
+    `post_date` (local) and `post_date_gmt` (UTC) are computed and passed to
+    `wp_insert_post()`. Falls back to `draft` if the date can't be parsed.
+  - Log line now reads `scheduled for 2026-03-10 09:00:00 (site time)` when applicable.
+
+**Files changed:** `admin/tabs/utilities/subtab-paste-post.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.19] — 2026-03-04
+
+### Added
+- **Utilities → Paste a Post** — New subtab that accepts pasted content from Google Docs or
+  Word documents via a WYSIWYG editor (wp_editor/TinyMCE).
+  - Strips `<span>`, `<font>`, inline `style=`/`class=` attributes server-side; preserves
+    `h1`–`h3`, `p`, `ul`, `ol`, `li`, `a`, `strong`, `em`, `blockquote`, `br`.
+  - Preserves all external and internal links; adds `target="_blank" rel="noopener noreferrer"`
+    to external links automatically.
+  - AI generates a title (if blank) and excerpt via the plugin's `myls_ai_generate_text()` pipeline.
+  - Creates a standard WordPress post (compatible with Elementor, Divi, Classic editor) — sets
+    Title, Excerpt, and Content. Post status is selectable (Draft / Published / Pending).
+  - DALL-E 3 generates a **Featured Image** (1792×1024, natural style) and an
+    **inline image** (1024×1024) inserted after the 2nd paragraph using `$wpdb->update()`
+    + `clean_post_cache()` to avoid hook cascade.
+  - Helper functions: `myls_paste_clean_html()`, `myls_paste_fix_external_links()`,
+    `myls_paste_insert_after_paragraph()`.
+  - AJAX action: `myls_paste_post_create` (nonce: `myls_paste_post`).
+
+### Changed
+- **Elementor Builder moved from AI tab → Utilities tab.**
+  File relocated from `admin/tabs/ai/subtab-elementor.php` to
+  `admin/tabs/utilities/subtab-elementor.php`. No functional changes — all AJAX handlers
+  remain in `inc/ajax/ai-elementor-builder.php` and `inc/ajax/ai-image-gen.php`.
+
+**Files changed:** `admin/tabs/utilities/subtab-elementor.php` (moved),
+`admin/tabs/utilities/subtab-paste-post.php` (new),
+`admin/tabs/ai/subtab-elementor.php` (deleted),
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`, `plugin-docs/tabs.md`
+
+## [7.8.18] — 2026-03-04
+
+### Fixed
+- **Empty excerpts on 2 of 4 posts** — `max_tokens` default raised from 90 to 120.
+  90 tokens was cutting off generation before a clean response could land.
+
+### Changed
+- **`_myls_city_state` now inherited from parent page** alongside `city_state` and
+  `county`. All three location fields are copied to the new post at generation time
+  when a parent page is set and the parent has them populated.
+
+**Files changed:** `inc/ajax/ai-excerpts.php`, `inc/ajax/ai-elementor-builder.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.17] — 2026-03-04
+
+### Changed
+- **Excerpt word count halved.** Plain excerpt target reduced from 20–40 words
+  to 10–20 words (1 sentence). HTML excerpt target reduced from 40–80 words to
+  20–40 words (1–2 sentences). Default `max_tokens` reduced from 180 to 90 to
+  match. Existing saved prompt overrides in the DB are unaffected — only the
+  default prompt template changes.
+
+**Files changed:** `assets/prompts/excerpt.txt`, `assets/prompts/html-excerpt.txt`,
+`inc/ajax/ai-excerpts.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.16] — 2026-03-04
+
+### Changed
+- **Removed `aggregateRating` from Organization schema.** Rating belongs on
+  `LocalBusiness` and `Service` only. Organization is the site-wide entity
+  identifier (homepage only) — duplicating the rating there creates redundant
+  entity signals. `LocalBusiness` and `Service` schemas are unchanged.
+
+**Files changed:** `inc/schema/providers/organization.php`, `aintelligize.php`,
+`readme.txt`, `CHANGELOG.md`
+
+## [7.8.15] — 2026-03-04
+
+### Added
+- **Inherit `city_state` and `county` from parent page.** When a parent page is
+  set in the Elementor Builder UI and that parent has `city_state` and/or `county`
+  ACF fields populated, the new post inherits those values automatically at
+  generation time. Uses `get_field()` when ACF is active, falls back to
+  `get_post_meta()`. Only copies if the parent value is non-empty.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `aintelligize.php`,
+`readme.txt`, `CHANGELOG.md`
+
+## [7.8.14] — 2026-03-04
+
+### Fixed
+- **Template page settings bleeding onto host page and breaking menu/header.**
+  Elementor Library templates imported via Astra Starter Templates carry
+  `_elementor_page_settings` with `astra_sites_*` font/color overrides. When
+  our plugin writes `_elementor_data` to the host page, Elementor's
+  `updated_post_meta` hook reads the source template's `_elementor_page_settings`
+  and copies them onto the host page — corrupting the header container sizing and
+  breaking the menu.
+- **Fix:** Before reading `_elementor_data` from any Library template, the plugin
+  now checks for and permanently deletes `_elementor_page_settings` from the
+  template post. This cleans up stale Astra imports on first use and prevents
+  the bleed for all future generations. Logged to the generation output so you
+  can see which templates were cleaned.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `aintelligize.php`,
+`readme.txt`, `CHANGELOG.md`
+
+## [7.8.13] — 2026-03-04
+
+### Fixed
+- **Menu/header breaks when a Page Setup template is included as a page section.**
+  Root cause: two separate paths write `_elementor_page_settings`. PATH A (inside
+  `wp_insert_post`/`wp_update_post`) was already handled by the `save_post` cleanup
+  hook. PATH B — Elementor's `updated_post_meta` hook firing when `_elementor_data`
+  is written with Library template content — wrote `_elementor_page_settings` outside
+  of `save_post` entirely, bypassing the cleanup.
+- **Fix:** Added `$elb_meta_settings_guard` on `updated_post_meta` + `added_post_meta`
+  at priority 999. Any write to `_elementor_page_settings` or `_wp_page_template` on
+  the generated post is deleted the instant it lands, regardless of trigger path.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `aintelligize.php`,
+`readme.txt`, `CHANGELOG.md`
+
+## 7.7.4 — 2026-03-02
+
+### Fixed
+- **`[service_area_list]` — `heading` attribute broken** — `shortcode_atts()` converts
+  `null` defaults to `''` (empty string), so `is_null($heading_override)` always returned
+  `false`. The heading was treated as "suppressed" whenever the user omitted the attribute,
+  meaning the auto-detect fallback ("Related Service Areas" / "Other Service Areas") never
+  fired. Fixed by replacing the `null` sentinel with `'__auto__'` and checking
+  `=== '__auto__'` instead of `is_null()`.
+- Added `function_exists()` guard around `service_area_list_shortcode` to prevent fatal
+  errors if another plugin registers the same function name.
+
+**Shortcode now works correctly:**
+- `[service_area_list]` — auto heading, icon shown
+- `[service_area_list get_related_children="true" heading="Check close to you!" icon="0"]`
+  — filtered children, custom heading, no icon
+
+**Files changed:** `modules/shortcodes/service-area-lists.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+---
+
+## 7.7.3 — 2026-03-02
+
+### Fixed
+- **Google Places Aggregate Rating sync restored** — ported from v7.6.5. The "Google Rating
+  & Review Count" section is back inside the Google Places (Business Profile) card on the
+  API Integration tab. Reverted the incorrect manual input fields added in v7.7.2.
+
+### How it works
+- **Fetch Now button** — calls `wp_ajax_myls_fetch_places_rating` which hits the Places API
+  (`fields=name,rating,user_ratings_total`) and saves results to `myls_google_places_rating`,
+  `myls_google_places_review_count`, and `myls_places_rating_fetched_at` options.
+- **Auto-refresh** — WP-Cron fires `myls_refresh_places_rating` every 4 hours
+  (`myls_every_4_hours` interval). A self-healing `init` hook reschedules if missed.
+- **Schema consumers** — `inc/schema/providers/localbusiness.php`, `organization.php`,
+  and `build-service-schema.php` all read these options for `aggregateRating` output.
+- **Display** — shows current rating + review count, fetch timestamp, and time until next
+  auto-refresh directly in the card.
+
+**Files changed:** `admin/tabs/api-integration.php`, `admin/api-integration-tests.php`,
+`aintelligize.php`, `admin/tabs/schema/subtab-localbusiness.php` (bad fields removed),
+`readme.txt`, `CHANGELOG.md`
+
+---
+
 # AIntelligize — Changelog
 
 ## 7.7.2 — 2026-03-01
@@ -2088,3 +2301,90 @@ from the plugin admin and display them on the front end with valid structured da
 
 ## 4.5.10
 - Baseline version (uploaded working build).
+
+## [7.7.6] — 2026-03-02
+
+### Changed
+- **Elementor Builder — Unified Page Sections panel** replacing separate "Generated Sections" + "Append Elementor Templates" cards with a single drag-and-drop ordered list; templates can be interleaved anywhere, not just appended at the bottom.
+- **Feature Cards grid** — outer container is now 100% full-width (background spans edge-to-edge); inner container is Elementor boxed (kit max-width); each card is its own independent Elementor container (`elb-feature-card` CSS class) sized by Bootstrap col percentage (`100 / cols %`) for easy stylesheet targeting.
+- **DALL-E UI simplified** — removed separate "Featured Image" generation; "Hero / Banner Image" now includes inline "Set as post thumbnail" toggle; Feature Card Images generates exactly `cols × rows` images (matches grid).
+- **Schema context injection** — Organization name, description, service areas, awards, certifications, social profiles, LocalBusiness hours/price range, and Google rating/review count are now injected into the AI prompt grounding block before generation, significantly improving content quality and E-E-A-T signals.
+- **Template placeholder fill** now runs inside `myls_elb_parse_and_build()` so KG/Wikipedia context is shared across all template slots in a single pass, reducing API calls.
+- **Setup Snapshots** now save/restore `sections_order` array (full drag order + template IDs + cols/rows) with backward compat for old `include_*` boolean snapshots.
+
+### Removed
+- Separate "Featured Image" DALL-E generation (separate from hero) — hero image handles post thumbnail via `set_featured` toggle.
+- `card_width %` input replaced by `Columns` × `Rows` inputs.
+- Hardcoded `card_count = 4` — card count is now always `cols × rows` from the UI.
+
+## [7.7.7] — 2026-03-03
+
+### Changed
+- **Feature Cards — Elementor CSS Grid layout**: Inner container changed from `container_type: flex` (wrap) to `container_type: grid` with `grid_columns_number` from the UI cols setting. Each card container is a full-width grid item with class `elb-feature-card`. Removed Bootstrap col classes — grid handles sizing natively. Gaps: 1.5em columns and rows.
+- **Process section — Elementor CSS Grid layout**: Inner container changed from flex-wrap to `container_type: grid`, default 2 columns. Each step is wrapped in its own grid-item container (`elb-process-step` class) with icon box at full width. Outer section unchanged (boxed).
+- **Template blank images auto-generated**: When "Integrate Images" is checked, blank `image` widgets in appended Elementor templates now get DALL-E images generated inline inside `parse_and_build()` immediately after each template is inserted. Capped at 5 total across all templates. Style/size inherits from Image Style selector. Images tracked in `_tpl_images` and parent-attached to post after save.
+- **Auto-generate post excerpt**: After a post is created/updated, if no excerpt exists, an AI-written 2-3 sentence plain-text excerpt is generated from the page title, description, and SEO keyword, then saved to `post_excerpt`. Logged in response.
+- **Auto-generate tagline**: After post save, if no `_myls_service_tagline` meta exists, a pipe-delimited tagline is generated using business name, city/state, and credentials, then saved. Logged in response.
+
+## [7.7.8] - 2026-03-02
+### Fixed
+- **Feature Cards grid cols/rows**: `feature_cols`/`feature_rows` from page setup are now written back into `sections_order` before passing to `parse_and_build`, so the grid always reflects the UI settings instead of defaulting to 3×1.
+- **How-To / Process section structure**: Rebuilt as correct 3-level Elementor nesting:
+  - **Level 1** — full-width flex column container (background spans edge-to-edge, heading sits here)
+  - **Level 2** — CSS Grid with `content_width: boxed` (2 cols × auto rows, respects kit max-width)
+  - **Level 3** — flex container per step (isInner: true) → icon box widget
+  - Added explicit `grid_rows_number` so Elementor exposes the row control in the editor.
+
+## [7.7.9] - 2026-03-02
+### Fixed
+- **Broken menu / mobile nav drawer on generated pages**: Root cause was that `wp_update_post()` calls made after the initial Elementor meta save (excerpt auto-generation, tagline save, image parent attachment) fire WordPress's `save_post` action, which Elementor hooks to re-write `_elementor_page_settings`. The early `delete_post_meta` calls were being immediately undone. Fix: moved both `delete_post_meta( $post_id, '_wp_page_template' )` and `delete_post_meta( $post_id, '_elementor_page_settings' )` to the very last lines before `wp_send_json_success`, so they always run after every other save operation.
+
+## [7.8.0] - 2026-03-02
+### Fixed
+- **Broken menu / page header (root cause)**: `wp_update_post()` for excerpt auto-generation was firing WordPress `save_post` action, which Elementor hooks to re-write `_elementor_page_settings` with the matched Theme Builder template (e.g. "services-header"). Replaced with `$wpdb->update()` + `clean_post_cache()` — writes the excerpt directly to the DB with zero hook firing. `_elementor_page_settings` can no longer be re-written by the excerpt save.
+
+### Changed
+- **How It Works cols/rows**: Process section now supports cols × rows grid control in the UI — same Cols/Rows inputs as Feature Cards. Defaults to 2 cols × 2 rows (4 steps). Frontend `SECTION_DEFS` updated with `hasCols: true` for process; `DEFAULT_SECTIONS` default updated to `cols:2, rows:2`.
+- **Process grid instruction to AI**: AI prompt now includes a `[GRID INSTRUCTION]` for process steps matching the cols × rows setting, so AI generates the correct number of steps.
+- **Process cols passed to builder**: `build_process()` call now reads `$item['cols']` from sections_order (same pattern as features), with both features and process cols/rows written back into sections_order before `parse_and_build` runs.
+
+## [7.8.1] - 2026-03-03
+### Fixed
+- **Broken sticky header (100px width) — actual root cause**: `files_manager->clear_cache()` was destroying the header template (17749) and kit (1872) CSS files in addition to the page's own CSS. On the first page load after generation, Elementor renders without those cached files and generates CSS inline on-the-fly. Due to a race condition, Elementor's sticky JS (`outerWidth()`) captures the header container before the `--width` CSS variable resolves correctly at desktop breakpoint, locking it at ~100px via `position: fixed; width: 100px` inline style permanently.
+- **Fix**: Removed `files_manager->clear_cache()`. Now only the generated post's own `_elementor_css`, `_elementor_element_cache`, and `_elementor_page_assets` metas are deleted. Immediately after saving, `\Elementor\Core\Files\CSS\Post::create()->update()` regenerates the page CSS so sticky JS has correct dimensions on first load.
+
+## [7.8.3] - 2026-03-03
+### Fixed
+- **Sticky header 100px width — actual root cause identified**: Comparing `_elementor_page_settings` between a working post (32 keys: all `astra_sites_*` typography/color settings) vs a broken generated post (1 key: only `eael_ext_toc_title`) revealed the real issue. EAEL's `save_post` hook was overwriting the full page settings with just its own key. Without `astra_sites_*` context, Elementor generates CSS without proper sizing, and sticky JS captures ~100px.
+- **Stop deleting `_elementor_page_settings`**: Previous versions deleted this meta entirely. Working pages NEED it — it contains the typography context for CSS generation. Only `_wp_page_template` should be deleted (this is what forces a Theme Builder template causing the mobile nav drawer).
+- **Stamp correct page settings after save**: After all saves complete, query for an existing published post of the same type with full page settings (>5 keys), copy those `astra_sites_*` settings to the new post, preserving the EAEL toc key. Logs as "⚙️ Page settings stamped from reference post #X".
+
+## [7.8.8] - 2026-03-03
+### Fixed
+- **Feature Cards grid still not respecting cols/rows (7.8.7 partial fix)**: Confirmed via live _elementor_data export that Elementor requires TWO keys to control grid columns: `grid_columns_number` (the slider UI control) AND `grid_columns_grid` (the key that actually generates the CSS `grid-template-columns` property). We were only writing `grid_columns_number`. Added `grid_columns_grid: { unit: 'fr', size: N, sizes: [] }` to both the features grid and process grid containers, matching Elementor's own serialization format exactly.
+
+---
+
+## [7.8.7] - 2026-03-03
+### Fixed
+- **Feature Cards cols/rows still defaulting to 3×2 despite correct UI values**: Root cause was wrong data format for `grid_columns_number` and `grid_rows_number`. These are Elementor SLIDER controls (like `grid_columns_gap`) that expect `{ 'unit': 'fr', 'size': N }` objects — not bare integers. Elementor silently discarded our integer values and fell back to its hardcoded default of 3 columns × 2 rows. Fixed by writing `[ 'unit' => 'fr', 'size' => $cols ]` format for both features and process grid containers. Same fix applied to `grid_rows_number` in the process section.
+
+---
+
+## [7.8.6] - 2026-03-03
+### Fixed
+- **Feature Cards cols/rows ignored**: `serializeSections()` was not called before building `FormData` in the generate handler. If a user typed a new column/row count and immediately clicked Generate (without tabbing away first), the `change` event never fired and the hidden input retained stale defaults. Fix: explicit `serializeSections()` call just before `new FormData()`. Also added `input` event listener alongside `change` so values are captured on every keystroke, not just on blur.
+- **Feature Card icons not used when "Feature Card Images" is unchecked**: `$use_image_boxes` fell back to `$site_patterns['has_image_boxes']`, which could be `true` from a prior site analysis even when the checkbox was unchecked — resulting in image-placeholder widgets instead of icon boxes. Fix: `$use_image_boxes` now depends solely on whether actual generated images exist (`!empty($feature_images)`).
+
+---
+
+## [7.8.5] - 2026-03-03
+### Fixed
+- **Mobile nav drawer / broken menu on generated pages (regression in 7.8.3–7.8.4)**: The page-settings stamping approach introduced in v7.8.3 was itself injecting values into `_elementor_page_settings` that trigger Astra/Hello Elementor's mobile nav drawer on page load. Reverted to the v7.7.4 approach: delete both `_wp_page_template` and `_elementor_page_settings` entirely. Additionally activated the `save_post` priority-999 hook (previously a no-op) to delete both metas immediately after every Elementor save_post write, providing belt-and-suspenders protection regardless of hook firing order.
+
+---
+
+## [7.8.4] - 2026-03-03
+### Fixed
+- **Stop deleting `_wp_page_template`**: Confirmed both working and broken posts have it set to "default" — it is not involved in the nav drawer issue. Removed all `delete_post_meta` calls for this key.
+- **No metas deleted at all**: Plugin no longer deletes any Elementor metas. The only action taken is stamping the correct `astra_sites_*` page settings from a reference post onto newly generated posts.

@@ -42,7 +42,8 @@ AI-powered content generation tools using OpenAI or Anthropic APIs.
 - **About the Area** — Location-specific "About the Area" content for service area pages.
 - **Geo Content** — Bulk location-based content generation.
 - **Page Builder** — AI-generated page content written directly into `post_content`. Supports all public post types, description/instructions field, DALL-E 3 image generation, and nav menu integration.
-- **Elementor Builder** — AI-generated pages built as native Elementor widget trees (Heading, Text Editor, Button, Icon Box, Shortcode). Writes directly to `_elementor_data` post meta.
+
+
 
   **How it works:**
   1. Before generating, analyzes the active Elementor Kit for container width, global colors, and typography.
@@ -115,6 +116,12 @@ Subtabs are auto-discovered from `admin/tabs/utilities/subtab-*.php`.
 
 **Subtabs:**
 - **Custom CSS** — Live CSS editor with real-time preview. Saves to `wp_options` and enqueues on the frontend.
+- **Elementor Builder** — AI-generated pages built as native Elementor widget trees (Heading, Text Editor, Button, Icon Box, Shortcode). Writes directly to `_elementor_data` post meta. *(Moved from AI tab in v7.8.19.)*
+
+  **How it works:**
+  1. Analyzes the active Elementor Kit for container width, global colors, and typography.
+  2. Samples existing posts of the same type to detect widget patterns.
+  3. Appends a SITE CONTEXT block to the AI prompt so the output mirrors existing pages.
 - **Empty Anchor Fix** — Automatically adds `aria-label` attributes to links with no visible anchor text. Resolves SEMRush/Ahrefs audit warnings.
 - **FAQ Editor** — Edit MYLS FAQ items per-post with WYSIWYG editor and batch `.docx` export.
 - **FAQ Migration** — Migrate FAQ data from ACF repeater fields to the native MYLS `_myls_faq_items` format.
@@ -129,6 +136,13 @@ Subtabs are auto-discovered from `admin/tabs/utilities/subtab-*.php`.
     on-demand (button-triggered, not on page load) and results are cached for 30 minutes. A ↺ Refresh Cache
     button is available. If quota errors occur, a GCP Quotas link is shown with fix instructions.
 - **llms.txt** — Controls the `/llms.txt` and `/llms-full.txt` AI discovery endpoints.
+- **Paste a Post** — Paste content from Google Docs or Word into a WYSIWYG editor to create a blog post.
+  - Strips `<span>`, `<font>`, and inline style/class attributes; keeps semantic HTML (h1–h3, p, ul, ol, li, a, strong, em, blockquote).
+  - AI generates title (if blank) and excerpt. Creates a standard WP post — compatible with Elementor, Divi, and Classic editor.
+  - Sets Title, Excerpt, and Content. Post status selectable (Draft / Published / Pending Review).
+  - External links automatically get `target="_blank" rel="noopener noreferrer"`. Internal links are preserved.
+  - Optional DALL-E 3 image generation: Featured Image (1792×1024) + inline image inserted after the 2nd paragraph (1024×1024).
+  - AJAX action: `myls_paste_post_create`. Nonce: `myls_paste_post`.
 - **Prompt Reset** — Reset any or all AI prompt templates back to factory defaults.
 
 **Credentials needed for GBP Photos:**

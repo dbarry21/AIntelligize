@@ -116,6 +116,7 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 				'longitude'=> sanitize_text_field( $loc['lng'] ?? '' ),
 			] ) : null,
 			'openingHoursSpecification' => $hours ?: null,
+			'aggregateRating' => function_exists('myls_schema_build_aggregate_rating') ? myls_schema_build_aggregate_rating() : null,
 
 
 			// schema.org: LocalBusiness does NOT support `publisher`.

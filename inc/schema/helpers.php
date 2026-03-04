@@ -98,3 +98,36 @@ if ( ! function_exists('myls_build_tagline_credentials') ) {
         return implode(' | ', array_values( array_unique( array_filter($parts) ) ) );
     }
 }
+
+/**
+ * Build an aggregateRating node from Google Places data.
+ *
+ * Returns null if rating or review count is missing/invalid.
+ * Used by: LocalBusiness, Organization, Service schema providers.
+ *
+ * @param string $rating_override  Optional override (e.g. pass from a specific location).
+ * @param string $count_override   Optional override.
+ * @return array|null
+ */
+if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
+	function myls_schema_build_aggregate_rating( string $rating_override = '', string $count_override = '' ) : ?array {
+		$rating = $rating_override !== '' ? $rating_override : trim( (string) get_option( 'myls_google_places_rating', '' ) );
+		$count  = $count_override  !== '' ? $count_override  : trim( (string) get_option( 'myls_google_places_review_count', '' ) );
+
+		if ( $rating === '' || $count === '' ) return null;
+		if ( ! is_numeric( $rating ) || ! is_numeric( $count ) ) return null;
+
+		$r = (float) $rating;
+		$c = (int)   $count;
+
+		if ( $r < 1.0 || $r > 5.0 || $c < 1 ) return null;
+
+		return [
+			'@type'       => 'AggregateRating',
+			'ratingValue' => number_format( $r, 1 ),
+			'reviewCount' => $c,
+			'bestRating'  => '5',
+			'worstRating' => '1',
+		];
+	}
+}

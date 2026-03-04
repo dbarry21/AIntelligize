@@ -3,7 +3,7 @@
  * Plugin Name:       AIntelligize
  * Plugin URI:        https://aintelligize.com/
  * Description:       Modular local SEO toolkit with schema, AI tools, bulk operations, and shortcode utilities.
- * Version: 7.7.2
+ * Version: 7.8.23
  * Author:            Dave Barry
  * Author URI:        https://davebarry.io/
  * Text Domain:       aintelligize
@@ -16,7 +16,7 @@ if ( ! defined('ABSPATH') ) exit;
  * Canonical constants & helpers (single source of truth)
  * ───────────────────────────────────────────────────────────────────────── */
 // Keep in sync with plugin header above.
-if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.5.28');
+if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.8.23');
 if ( ! defined('MYLS_MAIN_FILE') )   define('MYLS_MAIN_FILE', __FILE__);
 if ( ! defined('MYLS_PATH') )        define('MYLS_PATH', plugin_dir_path(MYLS_MAIN_FILE));
 if ( ! defined('MYLS_URL') )         define('MYLS_URL',  plugins_url('', MYLS_MAIN_FILE));
@@ -218,6 +218,58 @@ myls_include_dir_excluding( MYLS_PATH . 'modules', array('cpt') );
 
 /** Activation/Deactivation */
 register_activation_hook( __FILE__, 'myls_activate_register_cpts_and_flush' );
+register_activation_hook( __FILE__, function() {
+	if ( ! wp_next_scheduled('myls_refresh_places_rating') ) {
+		wp_schedule_event( time(), 'myls_every_4_hours', 'myls_refresh_places_rating' );
+	}
+} );
+register_deactivation_hook( __FILE__, function() {
+	wp_clear_scheduled_hook('myls_refresh_places_rating');
+} );
+
+/** Custom cron interval: every 4 hours */
+add_filter( 'cron_schedules', function( $schedules ) {
+	$schedules['myls_every_4_hours'] = [
+		'interval' => 4 * HOUR_IN_SECONDS,
+		'display'  => 'Every 4 Hours (AIntelligize)',
+	];
+	return $schedules;
+} );
+
+/** Cron callback: silently refresh Places rating + review count */
+add_action( 'myls_refresh_places_rating', function() {
+	$key = (string) get_option('myls_google_places_api_key', '');
+	$pid = (string) get_option('myls_google_places_place_id', '');
+	if ( $key === '' || $pid === '' ) return;
+
+	$url = add_query_arg( [
+		'place_id' => $pid,
+		'fields'   => 'name,rating,user_ratings_total',
+		'key'      => $key,
+	], 'https://maps.googleapis.com/maps/api/place/details/json' );
+
+	$r = wp_remote_get( $url, [ 'timeout' => 15, 'sslverify' => false ] );
+	if ( is_wp_error($r) ) return;
+
+	$body   = json_decode( wp_remote_retrieve_body($r), true );
+	$status = $body['status'] ?? '';
+	if ( $status !== 'OK' ) return;
+
+	$rating = (string) ( $body['result']['rating']             ?? '' );
+	$count  = (string) ( $body['result']['user_ratings_total'] ?? '' );
+	if ( $rating === '' || $count === '' ) return;
+
+	update_option( 'myls_google_places_rating',       $rating );
+	update_option( 'myls_google_places_review_count', $count  );
+	update_option( 'myls_places_rating_fetched_at',   current_time('mysql') );
+} );
+
+/** Self-healing: ensure cron is scheduled on every request */
+add_action( 'init', function() {
+	if ( ! wp_next_scheduled('myls_refresh_places_rating') ) {
+		wp_schedule_event( time(), 'myls_every_4_hours', 'myls_refresh_places_rating' );
+	}
+} );
 register_deactivation_hook( __FILE__, function(){ flush_rewrite_rules(); });
 
 /** Plugin row “Settings” link */

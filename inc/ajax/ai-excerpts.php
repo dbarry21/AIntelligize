@@ -76,7 +76,7 @@ if ( ! function_exists('myls_ai_generate_excerpt_text') ) {
     // Prefer MYLS wrapper if available
     if ( function_exists('myls_ai_chat') ) {
       $model = (string) get_option('myls_openai_model', '');
-      $max   = (int) get_option('myls_ai_excerpt_max_tokens', 180);
+      $max   = (int) get_option('myls_ai_excerpt_max_tokens', 120);
       $temp  = (float) get_option('myls_ai_excerpt_temperature', 0.7);
 
       if ( function_exists('myls_ai_set_usage_context') ) {

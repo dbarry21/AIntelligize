@@ -144,6 +144,31 @@ add_filter('myls_schema_graph', function( array $graph ) {
 		'mainEntity' => $main,
 	];
 
+	// publisher: link FAQPage back to the LocalBusiness (if assigned) or Organization
+	// This strengthens entity association and AI citation signals.
+	$lb_id = '';
+	foreach ( $graph as $gn ) {
+		if ( is_array($gn) && ! empty($gn['@id']) ) {
+			$t = is_array($gn['@type'] ?? '') ? ($gn['@type'][0] ?? '') : ($gn['@type'] ?? '');
+			if ( stripos( $t, 'LocalBusiness' ) !== false || stripos( $t, 'Business' ) !== false ) {
+				$lb_id = $gn['@id'];
+				break;
+			}
+		}
+	}
+	if ( ! $lb_id ) {
+		// Fallback: Organization
+		foreach ( $graph as $gn ) {
+			if ( is_array($gn) && ($gn['@type'] ?? '') === 'Organization' && ! empty($gn['@id']) ) {
+				$lb_id = $gn['@id'];
+				break;
+			}
+		}
+	}
+	if ( $lb_id ) {
+		$node['publisher'] = [ '@id' => $lb_id ];
+	}
+
 	$graph[] = apply_filters( 'myls_faq_schema_node', $node, $post_id );
 	return $graph;
 });

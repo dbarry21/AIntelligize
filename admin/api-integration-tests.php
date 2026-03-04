@@ -158,6 +158,48 @@ add_action('wp_ajax_myls_test_places_pid', function(){
   wp_send_json_error($status.': '.$err);
 });
 
+/** ---------------------- Fetch rating + review count from Places API ---------------------- */
+add_action('wp_ajax_myls_fetch_places_rating', function(){
+  myls_ajax_guard();
+  $key = sanitize_text_field($_POST['key'] ?? get_option('myls_google_places_api_key',''));
+  $pid = sanitize_text_field($_POST['place_id'] ?? get_option('myls_google_places_place_id',''));
+  if ($key === '' || $pid === '') { wp_send_json_error('API key and Place ID are required.'); }
+
+  $url = add_query_arg([
+    'place_id' => $pid,
+    'fields'   => 'name,rating,user_ratings_total',
+    'key'      => $key,
+  ], 'https://maps.googleapis.com/maps/api/place/details/json');
+
+  $r = myls_http_get_ipv4($url);
+  if (is_wp_error($r)) { wp_send_json_error('HTTP error: '.$r->get_error_message()); }
+
+  $body   = json_decode(wp_remote_retrieve_body($r), true);
+  $status = $body['status'] ?? '';
+  if ($status !== 'OK') {
+    wp_send_json_error($status.': '.($body['error_message'] ?? 'Unknown error'));
+  }
+
+  $rating       = (string) ($body['result']['rating']             ?? '');
+  $review_count = (string) ($body['result']['user_ratings_total'] ?? '');
+  $name         = (string) ($body['result']['name']               ?? '');
+
+  if ($rating === '' || $review_count === '') {
+    wp_send_json_error('Places API returned no rating data for this Place ID.');
+  }
+
+  update_option('myls_google_places_rating',       $rating);
+  update_option('myls_google_places_review_count', $review_count);
+  update_option('myls_places_rating_fetched_at',   current_time('mysql'));
+
+  wp_send_json_success([
+    'name'         => $name,
+    'rating'       => $rating,
+    'review_count' => $review_count,
+    'message'      => $name.' — '. $rating.' stars, '.$review_count.' reviews',
+  ]);
+});
+
 /** ---------------------- Static Maps key test ---------------------- */
 add_action('wp_ajax_myls_test_maps_key', function(){
   myls_ajax_guard();

@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.7.2
+Stable tag: 7.8.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -155,6 +155,23 @@ Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
 
+
+= 7.8.11 =
+* Fixed: Parent Page dropdown not refreshing on page load when a saved setup is loaded — applySetupSnapshot() now calls loadParentPages() after restoring the post type, so the dropdown always reflects the correct post type on restore rather than requiring a manual change.
+
+= 7.8.10 =
+* Fixed: Parent Page dropdown always showed 'page' post type regardless of selected Post Type — replaced get_posts() (which silently ignored post_type in some WP configs due to 'fields'=>'ids') with a direct WP_Query using the explicit post_type from the AJAX request. Response now echoes back post_type for debugging. Dropdown options also get — depth indentation for hierarchical parents.
+* Added: console.log('[AIntelligize] parent pages') debug line in loadParentPages() showing the post_type sent and response received.
+
+= 7.8.9 =
+* Fixed: Description field in Page Setup was escaping apostrophes and HTML entities (was using wp_kses_post; switched to sanitize_textarea_field + wp_unslash across all three save handlers).
+* Fixed: Feature Cards grid showed only 3 of 4 images when AI returned fewer items than cols x rows — myls_elb_build_features() now pads and trims to exactly cols x rows, matching generated image count.
+* Changed: Image box / image-box widget default width changed from 30% to 50% (icon_box, image_box, image_placeholder_box).
+* Changed: "Add to Menu" checkbox is now unchecked by default in Page Setup.
+* Added: Slug field (optional, auto-generated from title if blank) in Page Setup row.
+* Added: Parent Page dropdown in Page Setup — populated via AJAX (myls_elb_get_parent_pages), refreshes automatically when Post Type changes.
+* Added: Slug and Parent Page are included in FormData on generate and in setup snapshots (save/restore).
+* Added: Standalone featured image (1792x1024) is now generated when "Set as post thumbnail" is checked but "Hero/Banner Image" is unchecked — uses same style/prompt logic as hero. Priority order for thumbnail: hero first, standalone featured second.
 = 7.7.2 =
 * Fixed: Aggregate Rating inputs (Star Rating + Review Count) restored to LocalBusiness location form — fields were missing from both the UI and save handler. Read by schema helpers and AI prompt tokens.
 * Added: Live preview badge in location form showing star rating and review count when both fields are populated.
