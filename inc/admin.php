@@ -12,6 +12,15 @@ add_action('admin_menu', function(){
     'dashicons-location-alt',
     61
   );
+
+  // WordPress auto-creates a duplicate submenu matching the parent — replace it
+  add_submenu_page(
+    'aintelligize',
+    'AIntelligize',
+    'Dashboard',
+    'manage_options',
+    'aintelligize'
+  );
 });
 
 // Page callback: use the loader's helpers (includes icons)

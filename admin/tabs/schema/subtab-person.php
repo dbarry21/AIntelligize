@@ -252,35 +252,264 @@ $spec = [
         worksFor automatically links to your <strong><?php echo esc_html($org_name); ?></strong> Organization schema.
       </div>
 
-      <!-- LinkedIn Import -->
-      <div id="myls-linkedin-import" style="margin-bottom:16px;padding:14px;background:#fafafa;border:1px solid #e5e5e5;border-radius:.75em;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <label class="form-label" style="font-weight:700;font-size:13px;margin:0;"><i class="bi bi-linkedin" style="color:#0a66c2;"></i> Import Person from LinkedIn</label>
-          <label style="font-size:12px;color:#6c757d;cursor:pointer;display:flex;align-items:center;gap:4px;">
-            <input type="checkbox" id="myls-linkedin-html-mode" onchange="mylsLinkedInToggleMode(this)" />
-            Advanced: Paste HTML source
-          </label>
+      <!-- LinkedIn Import — 3-method tabbed UI -->
+      <style>
+        /* LinkedIn import tabs */
+        #myls-linkedin-import { margin-bottom:16px; }
+        .myls-li-tabs { display:flex; gap:0; border-bottom:2px solid #e5e5e5; margin-bottom:0; }
+        .myls-li-tab  {
+          padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer;
+          border:1px solid transparent; border-bottom:none; border-radius:.5em .5em 0 0;
+          background:transparent; color:#6c757d; white-space:nowrap;
+        }
+        .myls-li-tab:hover           { background:#f0f0f0; color:#212529; }
+        .myls-li-tab.is-active       { background:#fff; border-color:#e5e5e5; color:#0a66c2;
+                                        margin-bottom:-2px; border-bottom:2px solid #fff; }
+        .myls-li-panel               { display:none; padding:14px; background:#fff;
+                                        border:1px solid #e5e5e5; border-top:none;
+                                        border-radius:0 0 .75em .75em; }
+        .myls-li-panel.is-active     { display:block; }
+
+        /* Bookmarklet drag target */
+        .myls-bookmarklet-btn {
+          display:inline-flex; align-items:center; gap:6px;
+          background:#0a66c2; color:#fff; font-weight:700; font-size:13px;
+          padding:9px 18px; border-radius:.5em; text-decoration:none;
+          cursor:grab; user-select:none; border:2px dashed rgba(255,255,255,.5);
+          transition:background .2s;
+        }
+        .myls-bookmarklet-btn:hover { background:#004182; color:#fff; text-decoration:none; }
+
+        /* Status badge */
+        #myls-li-bm-status { font-size:13px; padding:6px 10px; border-radius:.5em; display:none; }
+        #myls-li-bm-status.success { background:#d1fae5; color:#065f46; display:block; }
+        #myls-li-bm-status.error   { background:#fee2e2; color:#991b1b; display:block; }
+        #myls-li-bm-status.info    { background:#eff6ff; color:#1e40af; display:block; }
+
+        /* Shared target/action row */
+        .myls-li-action-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; }
+        .myls-li-action-row select { padding:7px 10px; font-size:13px; border:1px solid #ced4da; border-radius:.5em; background:#fff; }
+
+        /* Polling indicator */
+        #myls-bm-polling-dot { display:none; width:8px; height:8px; border-radius:50%; background:#0a66c2; animation:bm-pulse 1s ease-in-out infinite; }
+        @keyframes bm-pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+      </style>
+
+      <div id="myls-linkedin-import">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px;">
+          <i class="bi bi-linkedin" style="color:#0a66c2;"></i> Import Person from LinkedIn
         </div>
-        <div id="myls-linkedin-text-hint" class="form-hint" style="margin-bottom:8px;">
-          <strong>How to use:</strong> Open the LinkedIn profile in your browser → Click anywhere on the page → <kbd>Ctrl+A</kbd> (select all) → <kbd>Ctrl+C</kbd> (copy) → Click the box below and <kbd>Ctrl+V</kbd> (paste).
-        </div>
-        <div id="myls-linkedin-html-hint" class="form-hint" style="margin-bottom:8px;display:none;">
-          <strong>Advanced:</strong> Open the LinkedIn profile → Right-click → View Page Source → <kbd>Ctrl+A</kbd> → <kbd>Ctrl+C</kbd> → Paste below. HTML contains more structured data for better extraction.
-        </div>
-        <textarea id="myls-linkedin-content" rows="5" placeholder="Paste LinkedIn profile content here…" style="width:100%;font-size:13px;"></textarea>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
-          <input type="url" id="myls-linkedin-url" placeholder="LinkedIn URL (optional — for sameAs link)" style="flex:1;" />
-          <select id="myls-linkedin-target" style="padding:7px 10px;font-size:13px;border:1px solid #ced4da;border-radius:.5em;background:#fff;">
-            <?php foreach ($profiles as $tidx => $tp): ?>
-            <option value="<?php echo $tidx; ?>"><?php echo esc_html($tp['label'] ?: ($tp['name'] ?: 'Person #' . ($tidx + 1))); ?></option>
-            <?php endforeach; ?>
-          </select>
-          <button type="button" id="myls-linkedin-import-btn" class="myls-btn-sm" style="background:#0a66c2;border-color:#0a66c2;color:#fff;padding:8px 16px;flex-shrink:0;">
-            <i class="bi bi-cloud-download"></i> Import with AI
+
+        <!-- Tab headers -->
+        <div class="myls-li-tabs">
+          <button type="button" class="myls-li-tab is-active" data-panel="bookmarklet">
+            <i class="bi bi-bookmark-star"></i> Bookmarklet <span style="font-size:11px;background:#d1fae5;color:#065f46;padding:1px 5px;border-radius:8px;margin-left:3px;">Best</span>
+          </button>
+          <button type="button" class="myls-li-tab" data-panel="badge">
+            <i class="bi bi-patch-check"></i> Badge API <span style="font-size:11px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:8px;margin-left:3px;">Easy</span>
+          </button>
+          <button type="button" class="myls-li-tab" data-panel="url">
+            <i class="bi bi-link-45deg"></i> Fetch by URL
+          </button>
+          <button type="button" class="myls-li-tab" data-panel="paste">
+            <i class="bi bi-clipboard"></i> Paste Content
           </button>
         </div>
-        <span class="form-hint" style="margin-top:4px;display:block;">Target person card to populate. AI will extract name, title, bio, education, credentials, expertise and more.</span>
-      </div>
+
+        <!-- ─── Panel: Bookmarklet ─── -->
+        <?php
+        // Generate token server-side — href is ready immediately, no AJAX race condition
+        $bm_token    = bin2hex( random_bytes(32) );
+        $bm_auth_key = 'myls_bm_auth_' . $bm_token;
+        set_transient( $bm_auth_key, get_current_user_id(), 2 * HOUR_IN_SECONDS );
+        $bm_ajax_url = admin_url('admin-ajax.php');
+
+        // Build the bookmarklet JS inline (mirrors myls_linkedin_build_bookmarklet_js)
+        // We call the function directly so it stays in one place
+        if ( function_exists('myls_linkedin_build_bookmarklet_js') ) {
+            $bm_js   = myls_linkedin_build_bookmarklet_js( $bm_ajax_url, $bm_token );
+            $bm_href = 'javascript:' . rawurlencode( $bm_js );
+        } else {
+            $bm_href = '#';
+        }
+        ?>
+        <div class="myls-li-panel is-active" id="myls-li-panel-bookmarklet">
+          <p style="font-size:13px;margin:0 0 10px;">
+            <strong>One-time setup:</strong> Drag the button below to your browser's bookmarks bar.
+            Then open any LinkedIn profile while logged in and click the bookmark — your profile data
+            sends here automatically. No copy-pasting needed.
+          </p>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+            <a class="myls-bookmarklet-btn"
+               href="<?php echo esc_attr( $bm_href ); ?>"
+               title="Drag this to your bookmarks bar — do not click it here">
+              <i class="bi bi-linkedin"></i> &#x1F4CE; AIntelligize: Import LinkedIn
+            </a>
+            <span style="font-size:12px;color:#6c757d;">&#x261D; Drag to bookmarks bar</span>
+            <span id="myls-bm-polling-dot"></span>
+          </div>
+          <div id="myls-li-bm-status"></div>
+          <div style="margin-top:8px;">
+            <button type="button" class="myls-btn-sm" onclick="mylsBmCheckNow()">
+              <i class="bi bi-arrow-repeat"></i> Check Now
+            </button>
+            <span style="font-size:12px;color:#6c757d;margin-left:8px;">Clicked bookmarklet but nothing happened? Hit this.</span>
+          </div>
+
+          <div class="myls-li-action-row">
+            <span style="font-size:13px;font-weight:600;">Populate:</span>
+            <select id="myls-linkedin-target-bm">
+              <?php foreach ($profiles as $tidx => $tp): ?>
+              <option value="<?php echo $tidx; ?>"><?php echo esc_html($tp['label'] ?: ($tp['name'] ?: 'Person #' . ($tidx + 1))); ?></option>
+              <?php endforeach; ?>
+            </select>
+            <span style="font-size:12px;color:#6c757d;">&#x2190; Choose which person card to fill when data arrives</span>
+          </div>
+
+          <div class="form-hint" style="margin-top:10px;">
+            &#x1F4A1; <strong>How it works:</strong> The bookmarklet runs on LinkedIn's page (in your browser, while you're
+            logged in) and reads the full profile you can see — then POSTs directly to this WordPress site.
+            LinkedIn <em>cannot</em> be loaded in an iframe here because they block it — the bookmarklet approach
+            is how we get around that.
+          </div>
+        </div>
+
+        <!-- ─── Panel: Badge API ─── -->
+        <div class="myls-li-panel" id="myls-li-panel-badge">
+          <div class="form-hint" style="margin-bottom:10px;">
+            Uses LinkedIn's public <strong>Badge API</strong> — no login required, no bookmarklet needed.
+            Just paste the LinkedIn profile URL and WordPress fetches the name, headline, and photo directly.
+            Works for any public profile.
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="url" id="myls-linkedin-badge-url"
+                   placeholder="https://www.linkedin.com/in/username"
+                   style="flex:1;min-width:240px;" />
+            <button type="button" id="myls-linkedin-badge-btn" class="myls-btn-sm"
+                    style="background:#0a66c2;border-color:#0a66c2;color:#fff;padding:8px 14px;flex-shrink:0;">
+              <i class="bi bi-patch-check"></i> Import via Badge
+            </button>
+          </div>
+          <div class="myls-li-action-row" style="margin-top:10px;">
+            <span style="font-size:13px;font-weight:600;">Populate:</span>
+            <select id="myls-linkedin-target-badge">
+              <?php foreach ($profiles as $tidx => $tp): ?>
+              <option value="<?php echo $tidx; ?>"><?php echo esc_html($tp['label'] ?: ($tp['name'] ?: 'Person #' . ($tidx + 1))); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div id="myls-li-badge-status" style="font-size:13px;margin-top:8px;"></div>
+        </div>
+
+        <!-- ─── Panel: Fetch by URL ─── -->
+        <div class="myls-li-panel" id="myls-li-panel-url">
+          <div class="form-hint" style="margin-bottom:10px;">
+            WordPress fetches the profile page server-side and extracts what's publicly visible
+            (name, headline, summary). Works best for open profiles; gated/private profiles
+            will hit LinkedIn's login wall — use the Bookmarklet method instead.
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="url" id="myls-linkedin-fetch-url" placeholder="https://www.linkedin.com/in/username" style="flex:1;min-width:240px;" />
+            <button type="button" id="myls-linkedin-fetch-btn" class="myls-btn-sm" style="background:#0a66c2;border-color:#0a66c2;color:#fff;padding:8px 14px;flex-shrink:0;">
+              <i class="bi bi-cloud-download"></i> Fetch &amp; Import
+            </button>
+          </div>
+          <div class="myls-li-action-row" style="margin-top:10px;">
+            <span style="font-size:13px;font-weight:600;">Populate:</span>
+            <select id="myls-linkedin-target-url">
+              <?php foreach ($profiles as $tidx => $tp): ?>
+              <option value="<?php echo $tidx; ?>"><?php echo esc_html($tp['label'] ?: ($tp['name'] ?: 'Person #' . ($tidx + 1))); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div id="myls-li-fetch-status" style="font-size:13px;margin-top:8px;display:none;"></div>
+        </div>
+
+        <!-- ─── Panel: Paste ─── -->
+        <div class="myls-li-panel" id="myls-li-panel-paste">
+
+          <!-- Mode toggle -->
+          <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+            <button type="button" class="myls-paste-mode-btn is-active" data-mode="full"
+                    style="font-size:12px;padding:4px 10px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;">
+              Full Profile
+            </button>
+            <button type="button" class="myls-paste-mode-btn" data-mode="section"
+                    style="font-size:12px;padding:4px 10px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;">
+              Section Only <span style="font-size:11px;color:#6c757d;">(merge, won't overwrite name/title)</span>
+            </button>
+          </div>
+
+          <!-- Full profile mode -->
+          <div id="myls-paste-mode-full">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div class="form-hint" id="myls-linkedin-text-hint">
+                <strong>How to use:</strong> Open the LinkedIn profile → <kbd>Ctrl+A</kbd> → <kbd>Ctrl+C</kbd> → paste below.
+              </div>
+              <label style="font-size:12px;color:#6c757d;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;margin-left:12px;">
+                <input type="checkbox" id="myls-linkedin-html-mode" onchange="mylsLinkedInToggleMode(this)" />
+                Paste HTML source
+              </label>
+            </div>
+            <div id="myls-linkedin-html-hint" class="form-hint" style="margin-bottom:8px;display:none;">
+              <strong>HTML mode:</strong> Right-click → View Page Source → <kbd>Ctrl+A</kbd> → <kbd>Ctrl+C</kbd> → paste below.
+            </div>
+            <textarea id="myls-linkedin-content" rows="5" placeholder="Paste LinkedIn profile content here…" style="width:100%;font-size:13px;"></textarea>
+            <div class="myls-li-action-row">
+              <input type="url" id="myls-linkedin-url" placeholder="LinkedIn URL (optional)" style="flex:1;min-width:180px;" />
+              <select id="myls-linkedin-target">
+                <?php foreach ($profiles as $tidx => $tp): ?>
+                <option value="<?php echo $tidx; ?>"><?php echo esc_html($tp['label'] ?: ($tp['name'] ?: 'Person #' . ($tidx + 1))); ?></option>
+                <?php endforeach; ?>
+              </select>
+              <button type="button" id="myls-linkedin-import-btn" class="myls-btn-sm" style="background:#0a66c2;border-color:#0a66c2;color:#fff;padding:8px 14px;flex-shrink:0;">
+                <i class="bi bi-cloud-download"></i> Import with AI
+              </button>
+            </div>
+          </div>
+
+          <!-- Section-only mode -->
+          <div id="myls-paste-mode-section" style="display:none;">
+            <div class="form-hint" style="margin-bottom:10px;">
+              Go to the LinkedIn section page → <kbd>Ctrl+A</kbd> → <kbd>Ctrl+C</kbd> → paste below.
+              Only the selected fields will be updated — name, title, and description are preserved.
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">Section you're pasting:</label>
+              <select id="myls-section-type" style="min-width:220px;">
+                <option value="certifications">Certifications &amp; Licenses — /details/certifications/</option>
+                <option value="skills">Skills — /details/skills/</option>
+                <option value="education">Education — /details/education/</option>
+                <option value="experience">Experience (knows_about) — /details/experience/</option>
+                <option value="honors">Honors &amp; Awards — /details/honors/</option>
+                <option value="languages">Languages — /details/languages/</option>
+                <option value="organizations">Organizations — /details/organizations/</option>
+              </select>
+            </div>
+
+            <textarea id="myls-section-content" rows="5"
+                      placeholder="Paste the section page content here (Ctrl+A, Ctrl+C on the LinkedIn section page)…"
+                      style="width:100%;font-size:13px;"></textarea>
+
+            <div class="myls-li-action-row">
+              <select id="myls-section-target">
+                <?php foreach ($profiles as $tidx => $tp): ?>
+                <option value="<?php echo $tidx; ?>"><?php echo esc_html($tp['label'] ?: ($tp['name'] ?: 'Person #' . ($tidx + 1))); ?></option>
+                <?php endforeach; ?>
+              </select>
+              <button type="button" id="myls-section-import-btn" class="myls-btn-sm"
+                      style="background:#0a66c2;border-color:#0a66c2;color:#fff;padding:8px 14px;flex-shrink:0;">
+                <i class="bi bi-plus-circle"></i> Merge Section with AI
+              </button>
+            </div>
+            <div id="myls-li-section-status" style="font-size:13px;margin-top:8px;"></div>
+          </div>
+
+        </div>
+
+      </div><!-- /#myls-linkedin-import -->
+
       <?php // Nonce for AI AJAX ?>
       <input type="hidden" id="myls-ai-nonce" value="<?php echo wp_create_nonce('myls_ai_ops'); ?>" />
 
@@ -719,8 +948,457 @@ $spec = [
       };
 
       /* ══════════════════════════════════════════════════════════════════
+       *  LINKEDIN IMPORT — Tab switching
+       * ══════════════════════════════════════════════════════════════════ */
+
+      // Tab switching
+      document.querySelectorAll('.myls-li-tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          var panel = this.dataset.panel;
+          document.querySelectorAll('.myls-li-tab').forEach(function(t) { t.classList.remove('is-active'); });
+          document.querySelectorAll('.myls-li-panel').forEach(function(p) { p.classList.remove('is-active'); });
+          this.classList.add('is-active');
+          var el = document.getElementById('myls-li-panel-' + panel);
+          if (el) el.classList.add('is-active');
+        });
+      });
+
+      /* ══════════════════════════════════════════════════════════════════
+       *  BOOKMARKLET — start polling immediately using server-generated token
+       * ══════════════════════════════════════════════════════════════════ */
+      var _bmToken = '<?php echo esc_js( $bm_token ); ?>';
+      var _bmNonce = document.getElementById('myls-ai-nonce') ? document.getElementById('myls-ai-nonce').value : '';
+      var _bmPollInterval = null;
+      var _bmPollCount = 0;
+
+      if (_bmToken && _bmNonce) {
+        mylsStartBookmarkletPolling(_bmToken, _bmNonce);
+      } else {
+        console.warn('AIntelligize bookmarklet: missing token or nonce', {token: !!_bmToken, nonce: !!_bmNonce});
+      }
+
+      function mylsBmSetStatus(msg, type) {
+        var s = document.getElementById('myls-li-bm-status');
+        if (!s) return;
+        s.className = type || 'info';
+        s.innerHTML = msg;
+      }
+
+      window.mylsBmCheckNow = function() {
+        if (!_bmNonce) { mylsBmSetStatus('No nonce available — try reloading the page.', 'error'); return; }
+        var fd = new FormData();
+        fd.append('action', 'myls_linkedin_bookmarklet_poll');
+        fd.append('nonce', _bmNonce);
+        mylsBmSetStatus('&#x23F3; Checking...', 'info');
+        fetch(ajaxurl, {method:'POST', body:fd})
+          .then(function(r){ return r.json(); })
+          .then(function(resp){
+            console.log('AIntelligize poll manual check:', resp);
+            if (!resp.success) {
+              mylsBmSetStatus('&#x274C; Poll error: ' + JSON.stringify(resp.data), 'error');
+              return;
+            }
+            if (resp.data.pending) {
+              mylsBmSetStatus('&#x23F3; No result waiting yet. Click the bookmarklet on LinkedIn first, then check again.', 'info');
+              return;
+            }
+            var tidx = (document.getElementById('myls-linkedin-target-bm')||{}).value || '0';
+            mylsPopulatePersonCard(tidx, resp.data.profile);
+            mylsBmSetStatus('&#x2705; Profile populated!', 'success');
+          })
+          .catch(function(err){
+            mylsBmSetStatus('&#x274C; Network error: ' + err.message, 'error');
+          });
+      };
+
+      function mylsStartBookmarkletPolling(token, nonce) {
+        if (_bmPollInterval) return;
+        var dot = document.getElementById('myls-bm-polling-dot');
+        if (dot) dot.style.display = 'block';
+        console.log('AIntelligize: bookmarklet polling started');
+
+        _bmPollInterval = setInterval(function() {
+          _bmPollCount++;
+          var fd = new FormData();
+          fd.append('action', 'myls_linkedin_bookmarklet_poll');
+          fd.append('nonce',  nonce);
+
+          fetch(ajaxurl, {method:'POST', body:fd})
+            .then(function(r){return r.json();})
+            .then(function(resp){
+              if (_bmPollCount % 10 === 0) {
+                console.log('AIntelligize poll #' + _bmPollCount + ':', resp);
+              }
+              if (!resp.success) {
+                console.warn('AIntelligize poll error:', resp.data);
+                return;
+              }
+              if (resp.data.pending) return;
+
+              clearInterval(_bmPollInterval);
+              _bmPollInterval = null;
+              if (dot) dot.style.display = 'none';
+              console.log('AIntelligize: bookmarklet result received', resp.data);
+
+              var tidx = (document.getElementById('myls-linkedin-target-bm')||{}).value || '0';
+              mylsPopulatePersonCard(tidx, resp.data.profile);
+              mylsBmSetStatus('&#x2705; Profile imported! Review the form below and save.', 'success');
+            })
+            .catch(function(err){
+              console.warn('AIntelligize poll fetch error:', err.message);
+            });
+        }, 2000);
+      }
+
+      /* ══════════════════════════════════════════════════════════════════
+       *  BADGE API — server fetches LinkedIn's public badge endpoint
+       * ══════════════════════════════════════════════════════════════════ */
+      document.getElementById('myls-linkedin-badge-btn')?.addEventListener('click', function() {
+        var btn    = this;
+        var url    = (document.getElementById('myls-linkedin-badge-url').value || '').trim();
+        var tidx   = (document.getElementById('myls-linkedin-target-badge') || {}).value || '0';
+        var nonce  = document.getElementById('myls-ai-nonce');
+        var status = document.getElementById('myls-li-badge-status');
+        var orig   = btn.innerHTML;
+
+        if (!url || url.indexOf('linkedin.com') === -1) {
+          alert('Please enter a valid LinkedIn profile URL.');
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Fetching…';
+        status.className = 'info';
+        status.textContent = 'Contacting LinkedIn Badge API…';
+
+        var fd = new FormData();
+        fd.append('action',       'myls_linkedin_badge_fetch');
+        fd.append('nonce',        nonce.value);
+        fd.append('linkedin_url', url);
+
+        fetch(ajaxurl, { method: 'POST', body: fd })
+          .then(function(r) { return r.json(); })
+          .then(function(resp) {
+            btn.disabled = false;
+            btn.innerHTML = orig;
+            if (!resp.success) {
+              status.className = 'error';
+              status.innerHTML = '&#x274C; ' + (resp.data && resp.data.message ? resp.data.message : 'Import failed.');
+              return;
+            }
+            mylsPopulatePersonCard(tidx, resp.data.profile);
+            status.className = 'success';
+            status.innerHTML = '&#x2705; Imported via Badge API: <strong>' + (resp.data.profile.name || '') + '</strong>';
+          })
+          .catch(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = orig;
+            status.className = 'error';
+            status.textContent = 'Network error: ' + err.message;
+          });
+      });
+
+      /* ══════════════════════════════════════════════════════════════════
+       *  URL FETCH — server-side proxy
+       * ══════════════════════════════════════════════════════════════════ */
+      document.getElementById('myls-linkedin-fetch-btn')?.addEventListener('click', function() {
+        var btn    = this;
+        var url    = (document.getElementById('myls-linkedin-fetch-url').value || '').trim();
+        var tidx   = (document.getElementById('myls-linkedin-target-url') || {}).value || '0';
+        var nonce  = document.getElementById('myls-ai-nonce');
+        var status = document.getElementById('myls-li-fetch-status');
+        var orig   = btn.innerHTML;
+
+        if (!url || url.indexOf('linkedin.com') === -1) {
+          alert('Please enter a valid LinkedIn profile URL.');
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Fetching…';
+        status.style.display = 'none';
+        status.className = '';
+
+        var fd = new FormData();
+        fd.append('action',       'myls_linkedin_proxy_fetch');
+        fd.append('nonce',        nonce.value);
+        fd.append('linkedin_url', url);
+
+        fetch(ajaxurl, { method: 'POST', body: fd })
+          .then(function(r) { return r.json(); })
+          .then(function(resp) {
+            btn.disabled = false;
+            btn.innerHTML = orig;
+            status.style.display = 'block';
+
+            if (!resp.success) {
+              status.style.background = resp.data && resp.data.needs_auth ? '#fffbeb' : '#fee2e2';
+              status.style.color      = resp.data && resp.data.needs_auth ? '#92400e' : '#991b1b';
+              status.style.padding    = '8px 12px';
+              status.style.borderRadius = '.5em';
+              status.innerHTML = (resp.data && resp.data.needs_auth ? '🔒 ' : '❌ ')
+                + (resp.data && resp.data.message ? resp.data.message : 'Fetch failed.');
+              return;
+            }
+
+            mylsPopulatePersonCard(tidx, resp.data.profile);
+            status.style.background   = '#d1fae5';
+            status.style.color        = '#065f46';
+            status.style.padding      = '8px 12px';
+            status.style.borderRadius = '.5em';
+            status.textContent = '✅ Profile fetched and populated! Review and save.';
+          })
+          .catch(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = orig;
+            status.style.display = 'block';
+            status.textContent = 'Network error: ' + err.message;
+          });
+      });
+
+      /* ══════════════════════════════════════════════════════════════════
+       *  Shared helper — populate a person card from a profile object
+       *  (extracted from inline click handler so all 3 methods can use it)
+       * ══════════════════════════════════════════════════════════════════ */
+      window.mylsPopulatePersonCard = function(tidx, p) {
+        console.log('mylsPopulatePersonCard called', {tidx: tidx, profile: p});
+        var card = document.querySelector('.myls-person-card[data-person-idx="' + tidx + '"]');
+        console.log('card found:', card);
+        if (!card) { alert('Target person card not found for idx=' + tidx); return; }
+
+        var pre = 'myls_person[' + tidx + ']';
+
+        function setVal(field, val) {
+          var selector = '[name="' + pre + '[' + field + ']"]';
+          var el = card.querySelector(selector);
+          console.log('setVal', field, '->', val, '| found:', !!el, '| selector:', selector);
+          if (el) el.value = val || '';
+        }
+
+        setVal('name', p.name);
+        setVal('job_title', p.job_title);
+        setVal('honorific_prefix', p.honorific_prefix);
+        setVal('description', p.description);
+        setVal('url', p.url);
+        setVal('email', p.email);
+        setVal('phone', p.phone);
+
+        var nameEl = card.querySelector('.person-name');
+        var metaEl = card.querySelector('.person-meta');
+        if (nameEl) nameEl.textContent = p.name || 'Person #' + (parseInt(tidx,10)+1);
+        if (metaEl) metaEl.textContent = (p.name||'No name set') + ' \u00b7 ' + (p.job_title||'No title set');
+
+        function fillRepeater(field, values, inputType) {
+          var container = card.querySelector('.myls-repeater[data-field="' + field + '"]');
+          if (!container || !values || !values.length) return;
+          container.querySelectorAll('.myls-repeater-row').forEach(function(r) { r.remove(); });
+          var idx = container.dataset.idx;
+          values.forEach(function(val) {
+            var row = document.createElement('div');
+            row.className = 'myls-repeater-row';
+            row.innerHTML = '<input type="' + (inputType||'url') + '" name="myls_person[' + idx + '][' + field + '][]" value="" />'
+              + '<button type="button" class="myls-btn-xs" onclick="this.parentElement.remove()" title="Remove">\u00d7</button>';
+            row.querySelector('input').value = val;
+            container.appendChild(row);
+          });
+        }
+
+        function fillComposite(field, items, keys, labels, colClass) {
+          var container = card.querySelector('.myls-composite-repeater[data-field="' + field + '"]');
+          if (!container || !items || !items.length) return;
+          container.querySelectorAll('.myls-composite-row').forEach(function(r) { r.remove(); });
+          var idx = container.dataset.idx;
+          items.forEach(function(item, ri) {
+            var row = document.createElement('div');
+            row.className = 'myls-composite-row ' + colClass;
+            var html = '';
+            keys.forEach(function(k, ki) {
+              var itype = (k.includes('url') || k.includes('wikidata') || k.includes('wikipedia')) ? 'url' : 'text';
+              html += '<div><label class="form-label">' + labels[ki] + '</label>';
+              html += '<input type="' + itype + '" name="myls_person[' + idx + '][' + field + '][' + ri + '][' + k + ']" value="" /></div>';
+            });
+            html += '<button type="button" class="row-remove" onclick="this.parentElement.remove()" title="Remove">\u00d7</button>';
+            row.innerHTML = html;
+            var inputs = row.querySelectorAll('input');
+            keys.forEach(function(k, ki) { if (inputs[ki]) inputs[ki].value = item[k] || ''; });
+            container.appendChild(row);
+          });
+        }
+
+        fillRepeater('same_as', p.same_as, 'url');
+        fillRepeater('awards', p.awards, 'text');
+        fillRepeater('languages', p.languages, 'text');
+        fillComposite('knows_about', p.knows_about, ['name','wikidata','wikipedia'], ['Topic Name','Wikidata URL','Wikipedia URL'], 'cols-3');
+        fillComposite('credentials', p.credentials, ['name','abbr','issuer','issuer_url'], ['Credential Name','Abbreviation','Issuing Org','Issuer URL'], 'cols-4');
+        fillComposite('alumni', p.alumni, ['name','url'], ['Institution Name','Institution URL'], 'cols-2');
+        fillComposite('member_of', p.member_of, ['name','url'], ['Organization Name','Organization URL'], 'cols-2');
+
+        card.classList.remove('is-collapsed');
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+
+      /* ══════════════════════════════════════════════════════════════════
        *  LINKEDIN IMPORT — AI-powered extraction from pasted content
        * ══════════════════════════════════════════════════════════════════ */
+      /* ══════════════════════════════════════════════════════════════════
+       *  PASTE MODE TOGGLE
+       * ══════════════════════════════════════════════════════════════════ */
+      document.querySelectorAll('.myls-paste-mode-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.myls-paste-mode-btn').forEach(function(b) {
+            b.classList.remove('is-active');
+            b.style.background = '#fff';
+            b.style.color = '';
+          });
+          this.classList.add('is-active');
+          this.style.background = '#0a66c2';
+          this.style.color = '#fff';
+          var mode = this.dataset.mode;
+          document.getElementById('myls-paste-mode-full').style.display    = (mode === 'full')    ? '' : 'none';
+          document.getElementById('myls-paste-mode-section').style.display = (mode === 'section') ? '' : 'none';
+        });
+      });
+
+      /* ══════════════════════════════════════════════════════════════════
+       *  SECTION PASTE — merges only the pasted section fields
+       * ══════════════════════════════════════════════════════════════════ */
+      document.getElementById('myls-section-import-btn')?.addEventListener('click', function() {
+        var btn     = this;
+        var content = (document.getElementById('myls-section-content').value || '').trim();
+        var section = document.getElementById('myls-section-type').value;
+        var tidx    = document.getElementById('myls-section-target').value || '0';
+        var nonce   = document.getElementById('myls-ai-nonce');
+        var status  = document.getElementById('myls-li-section-status');
+        var orig    = btn.innerHTML;
+
+        if (!content || content.length < 30) {
+          alert('Please paste the section content first.');
+          document.getElementById('myls-section-content').focus();
+          return;
+        }
+
+        btn.disabled  = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Extracting…';
+        status.className = 'info';
+        status.textContent = 'AI is parsing ' + section + '…';
+
+        var fd = new FormData();
+        fd.append('action',  'myls_linkedin_section_import');
+        fd.append('nonce',   nonce.value);
+        fd.append('content', content);
+        fd.append('section', section);
+
+        fetch(ajaxurl, { method: 'POST', body: fd })
+          .then(function(r) { return r.json(); })
+          .then(function(resp) {
+            btn.disabled  = false;
+            btn.innerHTML = orig;
+            if (!resp.success) {
+              status.className = 'error';
+              status.textContent = resp.data && resp.data.message ? resp.data.message : 'Import failed.';
+              return;
+            }
+            mylsMergePersonCard(tidx, resp.data.fields, section);
+            status.className = 'success';
+            status.textContent = resp.data.message;
+            document.getElementById('myls-section-content').value = '';
+          })
+          .catch(function(err) {
+            btn.disabled  = false;
+            btn.innerHTML = orig;
+            status.className = 'error';
+            status.textContent = 'Network error: ' + err.message;
+          });
+      });
+
+      /* ---------------------------------------------------------------
+       * mylsMergePersonCard
+       * Appends items into composite/simple repeaters without touching
+       * name, title, or description. Builds rows directly (no click()
+       * chain) using the same HTML pattern as mylsPersonAddComposite.
+       * ------------------------------------------------------------- */
+      window.mylsMergePersonCard = function(tidx, fields, section) {
+        var card = document.querySelector('.myls-person-card[data-person-idx="' + tidx + '"]');
+        if (!card) {
+          alert('Person card not found for idx=' + tidx);
+          return;
+        }
+
+        /* Composite field config — mirrors mylsPersonAddComposite defaults */
+        var compositeConfig = {
+          credentials: { keys: ['name','abbr','issuer','issuer_url'], cols: 'cols-4',
+                         labels: ['Credential Name','Abbreviation','Issuing Org','Issuer URL'],
+                         placeholders: ['Licensed Plumber','LP','State Board','https://...'] },
+          knows_about: { keys: ['name','wikidata','wikipedia'], cols: 'cols-3',
+                         labels: ['Topic Name','Wikidata URL','Wikipedia URL'],
+                         placeholders: ['Plumbing','',''] },
+          alumni:      { keys: ['name','url'], cols: 'cols-2',
+                         labels: ['Institution Name','Institution URL'],
+                         placeholders: ['University of Florida','https://...'] },
+          member_of:   { keys: ['name','url'], cols: 'cols-2',
+                         labels: ['Organization Name','Organization URL'],
+                         placeholders: ['PHCC','https://...'] }
+        };
+
+        Object.keys(fields).forEach(function(field) {
+          var items = fields[field];
+          if (!Array.isArray(items) || !items.length) return;
+
+          /* ---- Composite repeater ---- */
+          var cfg = compositeConfig[field];
+          if (cfg) {
+            var container = card.querySelector('.myls-composite-repeater[data-field="' + field + '"]');
+            if (!container) {
+              console.warn('mylsMergePersonCard: no composite container for', field);
+              return;
+            }
+            var idx = container.dataset.idx;
+
+            items.forEach(function(item) {
+              var subIdx = container.querySelectorAll('.myls-composite-row').length;
+              var row    = document.createElement('div');
+              row.className = 'myls-composite-row ' + cfg.cols;
+              var html = '';
+              for (var i = 0; i < cfg.keys.length; i++) {
+                var key  = cfg.keys[i];
+                var type = (key.indexOf('url') !== -1 || key === 'wikidata' || key === 'wikipedia') ? 'url' : 'text';
+                var val  = (typeof item === 'object' && item !== null) ? (item[key] || '') : (i === 0 ? String(item) : '');
+                html += '<div>';
+                html += '<label class="form-label">' + cfg.labels[i] + '</label>';
+                html += '<input type="' + type + '"'
+                      + ' name="myls_person[' + idx + '][' + field + '][' + subIdx + '][' + key + ']"'
+                      + ' value="' + val.replace(/"/g, '&quot;') + '"'
+                      + ' placeholder="' + cfg.placeholders[i] + '" />';
+                html += '</div>';
+              }
+              html += '<button type="button" class="row-remove" onclick="this.parentElement.remove()" title="Remove">×</button>';
+              row.innerHTML = html;
+              container.appendChild(row);
+            });
+            console.log('Merged', items.length, field, 'rows into card', tidx);
+            return;
+          }
+
+          /* ---- Simple repeater (awards, languages, same_as) ---- */
+          var simple = card.querySelector('.myls-repeater[data-field="' + field + '"]');
+          if (simple) {
+            var idx2 = simple.dataset.idx;
+            items.forEach(function(item) {
+              var val  = typeof item === 'string' ? item : (item.name || item.url || '');
+              if (!val) return;
+              var row  = document.createElement('div');
+              row.className = 'myls-repeater-row';
+              var type = (field === 'same_as') ? 'url' : 'text';
+              row.innerHTML = '<input type="' + type + '"'
+                            + ' name="myls_person[' + idx2 + '][' + field + '][]"'
+                            + ' value="' + val.replace(/"/g, '&quot;') + '" />'
+                            + '<button type="button" class="myls-btn-xs" onclick="this.parentElement.remove()" title="Remove">×</button>';
+              simple.appendChild(row);
+            });
+            console.log('Merged', items.length, field, 'into card', tidx);
+          }
+        });
+      };
       window.mylsLinkedInToggleMode = function(cb) {
         document.getElementById('myls-linkedin-text-hint').style.display = cb.checked ? 'none' : 'block';
         document.getElementById('myls-linkedin-html-hint').style.display = cb.checked ? 'block' : 'none';
@@ -769,89 +1447,9 @@ $spec = [
 
             var p    = resp.data.profile;
             var tidx = target.value;
-            var card = document.querySelector('.myls-person-card[data-person-idx="' + tidx + '"]');
-            if (!card) { alert('Target person card not found.'); return; }
 
-            var pre = 'myls_person[' + tidx + ']';
-
-            // Helper: set input value by name
-            function setVal(field, val) {
-              var el = card.querySelector('[name="' + pre + '[' + field + ']"]');
-              if (el) el.value = val || '';
-            }
-
-            // Populate scalar fields
-            setVal('name', p.name);
-            setVal('job_title', p.job_title);
-            setVal('honorific_prefix', p.honorific_prefix);
-            setVal('description', p.description);
-            setVal('url', p.url);
-            setVal('email', p.email);
-            setVal('phone', p.phone);
-
-            // Update header display
-            var nameEl = card.querySelector('.person-name');
-            var metaEl = card.querySelector('.person-meta');
-            if (nameEl) nameEl.textContent = p.name || 'Person #' + (parseInt(tidx,10)+1);
-            if (metaEl) metaEl.textContent = (p.name||'No name set') + ' \u00b7 ' + (p.job_title||'No title set');
-
-            // ── Populate repeaters (sameAs, awards, languages) ──
-            function fillRepeater(field, values, inputType) {
-              var container = card.querySelector('.myls-repeater[data-field="' + field + '"]');
-              if (!container || !values || !values.length) return;
-              container.querySelectorAll('.myls-repeater-row').forEach(function(r) { r.remove(); });
-              var idx = container.dataset.idx;
-              values.forEach(function(val) {
-                var row = document.createElement('div');
-                row.className = 'myls-repeater-row';
-                row.innerHTML = '<input type="' + (inputType||'url') + '" name="myls_person[' + idx + '][' + field + '][]" value="" />'
-                  + '<button type="button" class="myls-btn-xs" onclick="this.parentElement.remove()" title="Remove">\u00d7</button>';
-                row.querySelector('input').value = val;
-                container.appendChild(row);
-              });
-            }
-
-            fillRepeater('same_as', p.same_as, 'url');
-            fillRepeater('awards', p.awards, 'text');
-            fillRepeater('languages', p.languages, 'text');
-
-            // ── Populate composite repeaters ──
-            function fillComposite(field, items, keys, labels, colClass) {
-              var container = card.querySelector('.myls-composite-repeater[data-field="' + field + '"]');
-              if (!container || !items || !items.length) return;
-              container.querySelectorAll('.myls-composite-row').forEach(function(r) { r.remove(); });
-              var idx = container.dataset.idx;
-              items.forEach(function(item, ri) {
-                var row = document.createElement('div');
-                row.className = 'myls-composite-row ' + colClass;
-                var html = '';
-                keys.forEach(function(k, ki) {
-                  var itype = (k.includes('url') || k.includes('wikidata') || k.includes('wikipedia')) ? 'url' : 'text';
-                  html += '<div><label class="form-label">' + labels[ki] + '</label>';
-                  html += '<input type="' + itype + '" name="myls_person[' + idx + '][' + field + '][' + ri + '][' + k + ']" value="" /></div>';
-                });
-                html += '<button type="button" class="row-remove" onclick="this.parentElement.remove()" title="Remove">\u00d7</button>';
-                row.innerHTML = html;
-                var inputs = row.querySelectorAll('input');
-                keys.forEach(function(k, ki) {
-                  if (inputs[ki]) inputs[ki].value = item[k] || '';
-                });
-                container.appendChild(row);
-              });
-            }
-
-            fillComposite('knows_about', p.knows_about,
-              ['name','wikidata','wikipedia'], ['Topic Name','Wikidata URL','Wikipedia URL'], 'cols-3');
-            fillComposite('credentials', p.credentials,
-              ['name','abbr','issuer','issuer_url'], ['Credential Name','Abbreviation','Issuing Org','Issuer URL'], 'cols-4');
-            fillComposite('alumni', p.alumni,
-              ['name','url'], ['Institution Name','Institution URL'], 'cols-2');
-            fillComposite('member_of', p.member_of,
-              ['name','url'], ['Organization Name','Organization URL'], 'cols-2');
-
-            // Expand the target card and scroll to it
-            card.classList.remove('is-collapsed');
-            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Use shared populate helper
+            mylsPopulatePersonCard(tidx, p);
 
             // Clear paste area
             document.getElementById('myls-linkedin-content').value = '';

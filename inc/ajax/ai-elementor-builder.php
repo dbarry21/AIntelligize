@@ -35,6 +35,36 @@ if ( ! defined('ABSPATH') ) exit;
  * ========================================================================= */
 
 /**
+ * Resolve the site's contact / CTA page URL.
+ *
+ * Single canonical source: myls_contact_page_id option (set in AI Content → FAQ Builder).
+ * If not configured, falls back to auto-detecting /contact-us/ or /contact/ pages,
+ * then to home_url('/contact-us/').
+ *
+ * Use this everywhere a button or CTA link is needed rather than hardcoding '/contact/'.
+ *
+ * @return string Absolute URL, never empty.
+ */
+function myls_get_contact_url(): string {
+    $page_id = (int) get_option( 'myls_contact_page_id', 0 );
+
+    // Smart default: auto-detect common contact page slugs on first call
+    if ( $page_id <= 0 ) {
+        $p = get_page_by_path( 'contact-us' ) ?: get_page_by_path( 'contact' );
+        if ( $p && ! empty( $p->ID ) ) {
+            $page_id = (int) $p->ID;
+            update_option( 'myls_contact_page_id', $page_id );
+        }
+    }
+
+    $url = $page_id > 0 ? (string) get_permalink( $page_id ) : '';
+    if ( $url === '' ) {
+        $url = home_url( '/contact-us/' );
+    }
+    return esc_url_raw( $url );
+}
+
+/**
  * Generate a random 8-char hex ID for an Elementor element.
  */
 function myls_elb_uid(): string {
@@ -118,7 +148,17 @@ function myls_elb_text_editor_widget( string $html, array $extra = [] ): array {
  * @param string $url   Target URL.
  * @param string $align left | center | right
  */
-function myls_elb_button_widget( string $text, string $url = '/contact/', string $align = 'center' ): array {
+/**
+ * Elementor Button widget helper.
+ *
+ * @param string $url  Full URL or root-relative path. Use the resolved $contact_url
+ *                     from parse_and_build rather than a hardcoded string.
+ */
+function myls_elb_button_widget( string $text, string $url = '', string $align = 'center' ): array {
+    // If no URL provided, resolve from the canonical contact page setting.
+    if ( $url === '' ) {
+        $url = myls_get_contact_url();
+    }
     return [
         'id'         => myls_elb_uid(),
         'elType'     => 'widget',
@@ -386,7 +426,7 @@ function myls_elb_build_hero( array $d, array $hero_image = [] ): array {
         ),
         myls_elb_button_widget(
             $d['button_text'] ?? 'Contact Us',
-            $d['button_url']  ?? '/contact/',
+            $d['button_url']  ?? $contact_url,
             'center'
         ),
     ];
@@ -569,6 +609,50 @@ function myls_elb_build_features( array $d, array $feature_images = [], bool $pr
 }
 
 
+/**
+ * Rich Content Section — between Feature Cards and How It Works.
+ *
+ * A full-width outer container → boxed inner container → text_editor widget.
+ * AI generates 200–300 words of structured HTML: H3 question sub-heading,
+ * 2 tight wiki-voice paragraphs, and one 4–5 item <ul> of specific facts.
+ * This is the citation-density layer — each paragraph and list item is an
+ * independent chunk the AI can extract without surrounding context.
+ *
+ *   L1 — full-width outer flex container (white background)
+ *   L2 — boxed inner flex container (isInner: true)
+ *   L3 — text_editor widget with pre-formatted HTML
+ */
+function myls_elb_build_rich_content( array $d, int $container_width = 1140 ): array {
+    $html = trim( (string) ( $d['html'] ?? '' ) );
+    if ( $html === '' ) {
+        $html = '<h3>Why Professional Service Delivers Better Results</h3><p>Professional-grade equipment and surface-specific techniques produce results that consumer-grade tools cannot replicate. Technicians assess each surface individually before selecting pressure levels, nozzle types, and cleaning agents.</p>';
+    }
+
+    // L2 — boxed inner container (isInner: true)
+    $inner = myls_elb_section(
+        [ myls_elb_text_editor_widget( $html ) ],
+        [
+            'container_type' => 'flex',
+            'flex_direction'  => 'column',
+            'content_width'   => 'boxed',
+            'boxed_width'     => [ 'unit' => 'px', 'size' => $container_width ],
+            '_css_classes'    => 'elb-rich-content',
+            'padding'         => [ 'unit' => 'px', 'top' => '0', 'right' => '0', 'bottom' => '0', 'left' => '0', 'isLinked' => false ],
+        ],
+        true
+    );
+
+    // L1 — full-width outer container
+    return myls_elb_section( [ $inner ], [
+        'background_background' => 'classic',
+        'background_color'      => '#f8f9fa',
+        'content_width'         => 'full',
+        'flex_direction'        => 'column',
+        'flex_align_items'      => 'center',
+        'padding'               => [ 'unit' => 'px', 'top' => '60', 'right' => '20', 'bottom' => '60', 'left' => '20', 'isLinked' => false ],
+    ] );
+}
+
 function myls_elb_build_process( array $d, int $container_width = 1140, int $cols = 2 ): array {
     $steps = (array) ( $d['steps'] ?? [] );
     $cells = [];
@@ -659,6 +743,209 @@ function myls_elb_build_faq( array $d, int $container_width = 1140 ): array {
 }
 
 
+/**
+ * TL;DR Block — Phase 2.
+ *
+ * A concise 1–3 sentence direct answer placed immediately after the Hero.
+ * This is the first content AI crawlers extract; structured as a "grab-and-go"
+ * citation snippet for Google AI Overviews and ChatGPT.
+ *
+ *   [Container: white, boxed, green left-border accent, compact padding]
+ *     Text Editor (1–3 sentences, italic, entity-anchored)
+ */
+function myls_elb_build_tldr( array $d, int $container_width = 1140 ): array {
+    $text = trim( $d['text'] ?? '' );
+    if ( $text === '' ) {
+        $text = 'Professional service delivered by licensed, insured specialists.';
+    }
+
+    $widget = myls_elb_text_editor_widget(
+        '<p style="font-size:1.05em;line-height:1.7;color:#2d3a4a;font-style:italic;border-left:4px solid #10b981;padding-left:1rem;margin:0;">'
+        . esc_html( $text ) . '</p>'
+    );
+
+    return myls_elb_section( [ $widget ], [
+        'background_background' => 'classic',
+        'background_color'      => '#ffffff',
+        'content_width'         => 'boxed',
+        'boxed_width'           => [ 'unit' => 'px', 'size' => $container_width ],
+        'flex_direction'        => 'column',
+        'padding'               => [ 'unit' => 'px', 'top' => '28', 'right' => '20', 'bottom' => '28', 'left' => '20', 'isLinked' => false ],
+    ] );
+}
+
+/**
+ * Trust Bar — Phase 2.
+ *
+ * A full-width amber/gold stats strip of 4 hard numbers (rating, reviews,
+ * award, credential). AI processes these as discrete structured facts rather
+ * than marketing copy, boosting citation confidence score.
+ *
+ *   [Container: amber-tinted, full-width, flex-row]
+ *     Icon Box × 4  (stat as title, label as description)
+ */
+/**
+ * Trust Bar — Phase 2.
+ *
+ * Matches the exact 3-level structure of Feature Cards and How It Works:
+ *   L1 — full-width outer flex container (amber background, edge-to-edge)
+ *   L2 — CSS Grid: 4 cols × 1 row, boxed to kit width (isInner: true)
+ *   L3 — flex container per stat cell (isInner: true)
+ *   L4 — icon_box widget (100% width, fills its grid cell)
+ *
+ * 4 hard numbers from Business Profile: rating, reviews, award, credential.
+ * Each stat is a discrete entity the AI reads independently.
+ */
+/**
+ * Trust Bar — Phase 2.
+ *
+ * Guaranteed single-row strip of 4 credential stats.
+ *
+ * WHY FLEX NOT GRID:
+ * CSS Grid column count via JSON injection is unreliable across Elementor
+ * versions — the responsive column control can silently default to 2-3 cols,
+ * causing the 4 stat cells to wrap into 2 rows. A flex-row inner container
+ * with explicit 25%-width cells is deterministic: always 1 row, never wraps.
+ *
+ * Structure (matches the 3-level pattern of Feature Cards / How It Works):
+ *   L1 — full-width outer flex container (amber background, edge-to-edge)
+ *   L2 — boxed flex-row inner container (isInner: true) — always 1 row
+ *   L3 — flex column container per stat cell (isInner: true) — 25% width
+ *   L4 — icon_box widget at 100% width inside each cell
+ */
+function myls_elb_build_trust_bar( array $d, int $container_width = 1140 ): array {
+    $stats = array_values( (array) ( $d['stats'] ?? [] ) );
+
+    // Fallback stats if AI returned nothing
+    if ( empty( $stats ) ) {
+        $stats = [
+            [ 'icon' => 'fas fa-star',       'stat' => '5.0★',     'label' => 'Google Rating'    ],
+            [ 'icon' => 'fas fa-users',       'stat' => '893+',     'label' => 'Verified Reviews' ],
+            [ 'icon' => 'fas fa-shield-alt',  'stat' => 'Licensed', 'label' => '& Insured'        ],
+            [ 'icon' => 'fas fa-medal',        'stat' => '#1',       'label' => 'Local Award'      ],
+        ];
+    }
+
+    $icon_colors = [ '#d97706', '#b45309', '#92400e', '#78350f' ]; // amber shades
+    $cells       = [];
+
+    foreach ( array_slice( $stats, 0, 4 ) as $idx => $s ) {
+        // L4 — icon_box widget, 100% fills its cell container
+        $widget = myls_elb_icon_box_widget(
+            $s['icon']  ?? 'fas fa-star',
+            $s['stat']  ?? '',
+            $s['label'] ?? '',
+            $icon_colors[ $idx ] ?? '#d97706',
+            100
+        );
+        $widget['settings']['title_color']       = '#1a1a1a';
+        $widget['settings']['description_color'] = '#4b3a00';
+
+        // L3 — flex column container per stat, 25% width (isInner: true).
+        // _element_width + _element_custom_width set the 25% within the flex-row L2.
+        // Mobile: 50% width so 4 stats stack as a clean 2×2 grid.
+        // Tablet: keep 25% (4-across still fits on tablet/iPad viewports).
+        $cells[] = myls_elb_section( [ $widget ], [
+            'container_type'              => 'flex',
+            'flex_direction'              => 'column',
+            'flex_align_items'            => 'center',
+            'content_width'               => 'full',
+            '_css_classes'                => 'elb-trust-stat',
+            // Desktop: 25% — 4 stats in one row
+            '_element_width'              => 'initial',
+            '_element_custom_width'       => [ 'unit' => '%', 'size' => 25 ],
+            // Mobile: 50% — 4 stats become 2×2
+            '_element_width_mobile'       => 'initial',
+            '_element_custom_width_mobile'=> [ 'unit' => '%', 'size' => 50 ],
+            'padding'                     => [ 'unit' => 'px', 'top' => '20', 'right' => '16', 'bottom' => '20', 'left' => '16', 'isLinked' => false ],
+        ], true );
+    }
+
+    // L2 — flex-row inner container, boxed to kit max-width (isInner: true).
+    // Desktop: nowrap — guaranteed single row.
+    // Mobile: wrap — allows the 50%-wide cells to flow into a 2×2 grid.
+    $row = myls_elb_section( $cells, [
+        'container_type'           => 'flex',
+        'flex_direction'           => 'row',
+        'flex_wrap'                => 'nowrap',      // desktop: 1 row
+        'flex_wrap_mobile'         => 'wrap',         // mobile: allow 2×2 wrap
+        'flex_align_items'         => 'center',
+        'flex_justify_content'     => 'space-around',
+        'content_width'            => 'boxed',
+        'boxed_width'              => [ 'unit' => 'px', 'size' => $container_width ],
+        '_css_classes'             => 'elb-trust-row',
+        'padding'                  => [ 'unit' => 'px', 'top' => '0', 'right' => '0', 'bottom' => '0', 'left' => '0', 'isLinked' => false ],
+    ], true );
+
+    // L1 — full-width outer container (amber band spans edge-to-edge)
+    return myls_elb_section( [ $row ], [
+        'background_background' => 'classic',
+        'background_color'      => '#fffbeb',
+        'content_width'         => 'full',
+        'flex_direction'        => 'column',
+        'flex_align_items'      => 'center',
+        'padding'               => [ 'unit' => 'px', 'top' => '32', 'right' => '20', 'bottom' => '32', 'left' => '20', 'isLinked' => false ],
+        'border_border'         => 'solid',
+        'border_color'          => '#fde68a',
+        'border_width'          => [ 'unit' => 'px', 'top' => '1', 'right' => '0', 'bottom' => '1', 'left' => '0', 'isLinked' => false ],
+    ] );
+}
+
+
+/**
+ * Pricing Section — Phase 2.
+ *
+ * Machine-readable price ranges pulled from myls_service_price_ranges.
+ * Displayed as an HTML table so AI can extract structured price data,
+ * preventing hallucinated prices in AI Overview responses.
+ *
+ * Does NOT use AI-generated content — data comes directly from the
+ * Service Schema → Price Ranges settings saved in v7.8.43.
+ *
+ *   [Container: light purple-tinted, boxed, standard padding]
+ *     Heading (H2 — question format)
+ *     HTML Widget (price table)
+ *     Text Editor (caveat line)
+ *
+ * @param int   $post_id         Current post ID (used to match per-post ranges).
+ * @param array $d               AI JSON pricing key (heading/city tokens from prompt).
+ * @param int   $container_width Elementor kit container width in px.
+ */
+function myls_elb_build_pricing( int $post_id, array $d, int $container_width = 1140 ): array {
+    // ── Heading and caveat from AI JSON (optional) ───────────────────────
+    // Note: price data is no longer read here — [myls_pricing_table] does it
+    // at render time so edits are live without page regeneration.
+    $heading = trim( $d['heading'] ?? '' );
+    if ( $heading === '' ) {
+        $heading = 'How Much Does This Service Cost?';
+    }
+
+    $caveat = trim( $d['caveat'] ?? 'Final pricing depends on surface area, condition, and access. Contact us for a free, no-obligation written estimate.' );
+
+    // ── Shortcode widget instead of static HTML ───────────────────────────
+    // [myls_pricing_table] reads myls_service_price_ranges at render time so
+    // any price range additions or edits are reflected on the page immediately
+    // without regenerating the Elementor layout. post_id is baked in at
+    // generation time so the correct per-post ranges are always shown.
+    $sc_post_id = $post_id > 0 ? $post_id : '__current__';
+    $widgets    = [
+        myls_elb_heading_widget( $heading, 'h2', 'left' ),
+        myls_elb_shortcode_widget( '[myls_pricing_table post_id="' . $sc_post_id . '"]' ),
+        myls_elb_text_editor_widget(
+            '<p style="color:#6b7280;font-size:13px;margin-top:.75rem;">' . esc_html( $caveat ) . '</p>'
+        ),
+    ];
+
+    return myls_elb_section( $widgets, [
+        'background_background' => 'classic',
+        'background_color'      => '#f5f3ff',   // violet-50
+        'content_width'         => 'boxed',
+        'boxed_width'           => [ 'unit' => 'px', 'size' => $container_width ],
+        'flex_direction'        => 'column',
+        'padding'               => [ 'unit' => 'px', 'top' => '60', 'right' => '20', 'bottom' => '60', 'left' => '20', 'isLinked' => false ],
+    ] );
+}
+
 function myls_elb_build_cta( array $d ): array {
     $widgets = [
         myls_elb_heading_widget(
@@ -672,7 +959,7 @@ function myls_elb_build_cta( array $d ): array {
         ),
         myls_elb_button_widget(
             $d['button_text'] ?? 'Contact Us',
-            $d['button_url']  ?? '/contact/',
+            $d['button_url']  ?? $contact_url,
             'center'
         ),
     ];
@@ -740,6 +1027,13 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
 
     $container_width = (int) ( $kit['container_width'] ?? 1140 );
 
+    // Resolved CTA / button URL — from section_flags (set by AJAX handler) or
+    // canonical myls_contact_page_id option. Falls back gracefully.
+    $contact_url = trim( (string) ( $section_flags['contact_url'] ?? '' ) );
+    if ( $contact_url === '' ) {
+        $contact_url = myls_get_contact_url();
+    }
+
     // ── Build page elements in declared order (sections_order) ───────────
     // sections_order is an array of items like:
     //   { id: 'hero', type: 'section', enabled: true }
@@ -751,12 +1045,16 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
         $old_cols = (int) ( $section_flags['cols'] ?? 3 );
         $old_rows = (int) ( $section_flags['rows'] ?? 1 );
         $sections_order = [
-            [ 'id'=>'hero',     'type'=>'section', 'enabled'=> (bool) ( $section_flags['hero']     ?? true ) ],
-            [ 'id'=>'intro',    'type'=>'section', 'enabled'=> (bool) ( $section_flags['intro']    ?? true ) ],
-            [ 'id'=>'features', 'type'=>'section', 'enabled'=> (bool) ( $section_flags['features'] ?? true ), 'cols'=>$old_cols, 'rows'=>$old_rows ],
-            [ 'id'=>'process',  'type'=>'section', 'enabled'=> (bool) ( $section_flags['process']  ?? true ) ],
-            [ 'id'=>'faq',      'type'=>'section', 'enabled'=> (bool) ( $section_flags['faq']      ?? true ) ],
-            [ 'id'=>'cta',      'type'=>'section', 'enabled'=> (bool) ( $section_flags['cta']      ?? true ) ],
+            [ 'id'=>'hero',       'type'=>'section', 'enabled'=> (bool) ( $section_flags['hero']       ?? true ) ],
+            [ 'id'=>'tldr',       'type'=>'section', 'enabled'=> (bool) ( $section_flags['tldr']       ?? true ) ],
+            [ 'id'=>'intro',      'type'=>'section', 'enabled'=> (bool) ( $section_flags['intro']      ?? true ) ],
+            [ 'id'=>'trust_bar',  'type'=>'section', 'enabled'=> (bool) ( $section_flags['trust_bar']  ?? true ) ],
+            [ 'id'=>'features',     'type'=>'section', 'enabled'=> (bool) ( $section_flags['features']     ?? true ), 'cols'=>$old_cols, 'rows'=>$old_rows ],
+            [ 'id'=>'rich_content', 'type'=>'section', 'enabled'=> (bool) ( $section_flags['rich_content'] ?? true ) ],
+            [ 'id'=>'process',      'type'=>'section', 'enabled'=> (bool) ( $section_flags['process']      ?? true ) ],
+            [ 'id'=>'pricing',    'type'=>'section', 'enabled'=> (bool) ( $section_flags['pricing']    ?? true ) ],
+            // faq removed — FAQs generated post-creation via FAQ Builder tab
+            [ 'id'=>'cta',        'type'=>'section', 'enabled'=> (bool) ( $section_flags['cta']        ?? true ) ],
         ];
         // Append legacy template IDs at bottom
         foreach ( (array) ( $section_flags['template_ids'] ?? [] ) as $tid ) {
@@ -801,6 +1099,20 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
                     }
                     break;
 
+                case 'tldr':
+                    if ( ! empty( $data['tldr'] ) ) {
+                        $elements[] = myls_elb_build_tldr( (array) $data['tldr'], $container_width );
+                        $section_count++;
+                    }
+                    break;
+
+                case 'trust_bar':
+                    if ( ! empty( $data['trust_bar'] ) ) {
+                        $elements[] = myls_elb_build_trust_bar( (array) $data['trust_bar'], $container_width );
+                        $section_count++;
+                    }
+                    break;
+
                 case 'intro':
                     if ( ! empty( $data['intro'] ) ) {
                         $elements[] = myls_elb_build_intro( (array) $data['intro'], $container_width );
@@ -818,12 +1130,31 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
                     }
                     break;
 
+                case 'rich_content':
+                    if ( ! empty( $data['rich_content'] ) ) {
+                        $elements[] = myls_elb_build_rich_content( (array) $data['rich_content'], $container_width );
+                        $section_count++;
+                    }
+                    break;
+
                 case 'process':
                     if ( ! empty( $data['process'] ) ) {
                         $pcols = max( 1, min( 6, (int) ( $item['cols'] ?? 2 ) ) );
                         $elements[] = myls_elb_build_process( (array) $data['process'], $container_width, $pcols );
                         $section_count++;
                     }
+                    break;
+
+                case 'pricing':
+                    // Pricing section always renders — [myls_pricing_table] inside it
+                    // reads myls_service_price_ranges live at page-render time. If no
+                    // ranges are configured the shortcode returns '' and only the heading
+                    // and caveat show. This allows ranges added after page generation to
+                    // appear automatically without regenerating the page.
+                    $pricing_d  = is_array( $data['pricing'] ?? null ) ? (array) $data['pricing'] : [];
+                    $build_post = (int) ( $section_flags['post_id'] ?? 0 );
+                    $elements[] = myls_elb_build_pricing( $build_post, $pricing_d, $container_width );
+                    $section_count++;
                     break;
 
                 case 'faq':
@@ -1119,12 +1450,16 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
     // Backward compat: if no sections_order, build from legacy flat flags
     if ( empty( $sections_order ) ) {
         $sections_order = [
-            [ 'id'=>'hero',     'type'=>'section', 'enabled'=> ( ! isset($_POST['include_hero'])     || ! empty($_POST['include_hero']) ) ],
-            [ 'id'=>'intro',    'type'=>'section', 'enabled'=> ( ! isset($_POST['include_intro'])    || ! empty($_POST['include_intro']) ) ],
-            [ 'id'=>'features', 'type'=>'section', 'enabled'=> ( ! isset($_POST['include_features']) || ! empty($_POST['include_features']) ), 'cols'=>3, 'rows'=>1 ],
-            [ 'id'=>'process',  'type'=>'section', 'enabled'=> ( ! isset($_POST['include_process'])  || ! empty($_POST['include_process']) ) ],
-            [ 'id'=>'faq',      'type'=>'section', 'enabled'=> ( ! isset($_POST['include_faq'])      || ! empty($_POST['include_faq']) ) ],
-            [ 'id'=>'cta',      'type'=>'section', 'enabled'=> ( ! isset($_POST['include_cta'])      || ! empty($_POST['include_cta']) ) ],
+            [ 'id'=>'hero',      'type'=>'section', 'enabled'=> ( ! isset($_POST['include_hero'])      || ! empty($_POST['include_hero']) ) ],
+            [ 'id'=>'tldr',      'type'=>'section', 'enabled'=> ( ! isset($_POST['include_tldr'])      || ! empty($_POST['include_tldr']) ) ],
+            [ 'id'=>'intro',     'type'=>'section', 'enabled'=> ( ! isset($_POST['include_intro'])     || ! empty($_POST['include_intro']) ) ],
+            [ 'id'=>'trust_bar', 'type'=>'section', 'enabled'=> ( ! isset($_POST['include_trust_bar']) || ! empty($_POST['include_trust_bar']) ) ],
+            [ 'id'=>'features',      'type'=>'section', 'enabled'=> ( ! isset($_POST['include_features'])      || ! empty($_POST['include_features']) ), 'cols'=>3, 'rows'=>1 ],
+            [ 'id'=>'rich_content',  'type'=>'section', 'enabled'=> ( ! isset($_POST['include_rich_content'])  || ! empty($_POST['include_rich_content']) ) ],
+            [ 'id'=>'process',       'type'=>'section', 'enabled'=> ( ! isset($_POST['include_process'])       || ! empty($_POST['include_process']) ) ],
+            [ 'id'=>'pricing',   'type'=>'section', 'enabled'=> ( ! isset($_POST['include_pricing'])   || ! empty($_POST['include_pricing']) ) ],
+            // faq removed — FAQs generated post-creation via FAQ Builder tab
+            [ 'id'=>'cta',       'type'=>'section', 'enabled'=> ( ! isset($_POST['include_cta'])       || ! empty($_POST['include_cta']) ) ],
         ];
         foreach ( array_filter( array_map( 'intval', [
             $_POST['append_template_1'] ?? 0,
@@ -1191,6 +1526,21 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
 
     // ── Business vars ────────────────────────────────────────────────────
     $sb   = get_option( 'myls_sb_settings', [] );
+
+    // Contact / CTA button URL.
+    // Canonical source: myls_contact_page_id (set in AI Content → FAQ Builder).
+    // POST value from builder UI (PHP-injected resolved URL) is used directly;
+    // if empty, we fall back to resolving from the option ourselves.
+    $contact_url_raw = trim( esc_url_raw( sanitize_text_field( $_POST['contact_url'] ?? '' ) ) );
+    if ( $contact_url_raw !== '' ) {
+        $contact_url = $contact_url_raw;
+    } else {
+        // Resolve from canonical page-ID option (same logic as FAQ builder tab)
+        $contact_url = function_exists('myls_get_contact_url')
+            ? myls_get_contact_url()
+            : home_url('/contact-us/');
+    }
+
     $vars = [
         'business_name' => $sb['business_name'] ?? get_bloginfo('name'),
         'city'          => $sb['city']          ?? '',
@@ -1198,6 +1548,7 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
         'email'         => $sb['email']         ?? get_bloginfo('admin_email'),
         'site_name'     => get_bloginfo('name'),
         'site_url'      => home_url(),
+        'contact_url'   => $contact_url,   // available as {{contact_url}} in prompts
     ];
 
     // ── Site analysis ────────────────────────────────────────────────────
@@ -1503,7 +1854,7 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
             'temperature' => 0.7,
             'system'      => 'You are a content writer for Elementor WordPress pages. You output ONLY valid JSON — never HTML, never markdown, never code fences.
 
-Your response must be a single JSON object with these exact keys: hero, intro, features, process, faq, cta.
+Your response must be a single JSON object with these exact keys: hero, tldr, trust_bar, intro, features, rich_content, process, pricing, cta.
 
 Rules:
 - Start your response with { and end with }
@@ -1511,7 +1862,12 @@ Rules:
 - No ```json``` fences
 - All string values must be plain text (no HTML tags inside JSON values)
 - icon values must be Font Awesome 5 solid class strings like "fas fa-shield-alt"
-- paragraphs are arrays of plain text strings',
+- paragraphs are arrays of plain text strings
+- trust_bar.stats is an array of exactly 4 objects: { icon, stat, label }
+- tldr.text is a single 40-60 word plain-text sentence
+- rich_content.html is 200-300 words of pre-formatted HTML: one <h3>, two <p>, one <ul> with 4-5 <li> items. No other HTML tags. All text wiki-voice. answering "what is this service and where?"
+- pricing.heading is an H2 question about cost (optional — omit if not provided)
+- pricing.caveat is a one-sentence caveat about final pricing (optional)',
         ] );
         if ( ! empty( trim( $raw ) ) ) {
             $html    = $raw;
@@ -1527,7 +1883,7 @@ Rules:
                 'title'       => $page_title,
                 'subtitle'    => $description ?: 'Professional service in ' . $page_title,
                 'button_text' => 'Get In Touch',
-                'button_url'  => '/contact/',
+                'button_url'  => $contact_url,
             ],
             'intro' => [
                 'heading'    => 'About ' . $page_title,
@@ -1537,7 +1893,7 @@ Rules:
                 'heading'     => 'Ready to Get Started?',
                 'subtitle'    => 'Contact us today.',
                 'button_text' => 'Contact Us',
-                'button_url'  => '/contact/',
+                'button_url'  => $contact_url,
             ],
         ] );
     }
@@ -1547,9 +1903,11 @@ Rules:
     // template interleaving — all in one pass inside myls_elb_parse_and_build().
     $section_flags  = [
         'sections_order'   => $sections_order,
+        'post_id'          => $post_id,
         'seo_keyword'      => $seo_keyword,
         'page_title'       => $page_title,
         'description'      => $description,
+        'contact_url'      => $contact_url,    // resolved CTA/button URL for this generation
         // Template image generation flags — forwarded to parse_and_build
         'integrate_images' => (bool) $integrate_images,
         'dalle_api_key'    => $integrate_images && function_exists('myls_openai_get_api_key')
@@ -1664,6 +2022,29 @@ Rules:
     // Activate the cleanup hook now that we have the real post ID.
     $elb_block_post_id = $post_id;
 
+    // ── Assign selected price range to the new post ──────────────────────
+    // When post_type = 'service' and the user chose a price range in the builder
+    // UI, add this post_id to that range's post_ids array so the Pricing section
+    // renders it automatically.  Uses direct $wpdb write — no hooks fired.
+    $price_range_idx = isset( $_POST['price_range_idx'] ) && $_POST['price_range_idx'] !== ''
+        ? (int) $_POST['price_range_idx']
+        : -1;
+
+    if ( $price_range_idx >= 0 ) {
+        $all_ranges = (array) get_option( 'myls_service_price_ranges', [] );
+        if ( isset( $all_ranges[ $price_range_idx ] ) && is_array( $all_ranges[ $price_range_idx ] ) ) {
+            $range_post_ids = array_map( 'intval', (array) ( $all_ranges[ $price_range_idx ]['post_ids'] ?? [] ) );
+            if ( ! in_array( $post_id, $range_post_ids, true ) ) {
+                $range_post_ids[] = $post_id;
+                $all_ranges[ $price_range_idx ]['post_ids'] = array_values( $range_post_ids );
+                update_option( 'myls_service_price_ranges', $all_ranges );
+                $log_lines[] = '💲 Price range "' . esc_html( $all_ranges[ $price_range_idx ]['label'] ?? '' ) . '" assigned to post ID ' . $post_id . '.';
+            }
+        } else {
+            $log_lines[] = '⚠️ Price range index ' . $price_range_idx . ' not found — skipped.';
+        }
+    }
+
     // ── Inherit city_state + county + _myls_city_state from parent page ─────
     // If a parent page is set and has these fields populated, copy them
     // to the new post so shortcodes like [city_state] and [county_name] work
@@ -1686,13 +2067,14 @@ Rules:
     }
 
     // ── Save FAQ items to post meta ──────────────────────────────────────
-    // The [faq_schema_accordion] shortcode reads _myls_faq_items from the
-    // current post automatically, so we just write the array here.
+    // NOTE: The Elementor builder no longer generates FAQs directly.
+    // FAQs are created post-page-generation via the FAQ Builder tab and stored
+    // in _myls_faq_items, which [faq_schema_accordion] reads automatically.
+    // We do NOT delete existing _myls_faq_items here — re-running the page
+    // builder must never wipe FAQs set by the FAQ Builder tab.
     if ( ! empty( $faq_items ) ) {
+        // Legacy path: if a saved snapshot contained faq data, persist it.
         update_post_meta( $post_id, '_myls_faq_items', $faq_items );
-    } else {
-        // Clear stale FAQs if we regenerated without any
-        delete_post_meta( $post_id, '_myls_faq_items' );
     }
 
     // ── Save Elementor meta ──────────────────────────────────────────────

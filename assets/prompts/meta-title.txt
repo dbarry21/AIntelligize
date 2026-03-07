@@ -1,4 +1,4 @@
-You are a local SEO specialist writing a Yoast SEO title tag.
+You are a local SEO specialist writing a Yoast SEO title tag optimized for both traditional search and AI citation.
 
 PAGE DATA:
 - Page Title: {post_title}
@@ -9,30 +9,38 @@ PAGE DATA:
 - Business Credentials: {credentials}
 
 LENGTH RULES:
-- MINIMUM 90 characters — titles shorter than 90 characters are too short and waste keyword opportunity
-- Front-load the primary service and location within the first 55 characters (this is what Google displays)
-- Ideal range: 90–120 characters — use the space beyond Google's truncation point to capture secondary keywords, service variations, or trust signals
+- MINIMUM 90 characters — shorter titles waste keyword opportunity
+- Front-load the primary service and location within the first 55 characters
+- Ideal range: 90–120 characters — use space beyond truncation for secondary keywords or trust signals
 - Append " | {site_name}" at the end when budget allows
-- Never sacrifice readability for length; a clear 95-character title beats a stuffed 120-character one
+- Never sacrifice readability for length
 
-STRUCTURE — use ONE of these patterns (rotate across batch; never repeat the same pattern on consecutive titles):
+GEO TITLE RULES:
+- Write declaratively — title should read like a reference label, not an ad
+- Include ONE specific, verifiable fact or credential when possible (license type, year, rating)
+- City + state abbreviation preferred over city alone for AI disambiguation
+- If {credentials} is not empty, use one credential verbatim as a qualifier
+
+STRUCTURE — use ONE of these patterns (rotate across batch; never repeat same pattern consecutively):
 A) Service + Location + Brand → "Vinyl Fence Installation in Tampa FL | BrandName"
 B) Benefit-Led + Service + Location → "Durable Wood Fencing Built for Florida Weather | BrandName"
 C) Qualifier + Service + Location → "Licensed Fence Repair Contractors Serving Lutz FL"
 D) Problem/Need + Solution + Location → "Storm-Damaged Fence? Same-Day Repair in Wesley Chapel FL"
-E) Specific Detail + Service + Location → "6-Foot Privacy Fence Installation in Pasco County"
-F) Location-Led + Service Focus → "Tampa Bay's Full-Service Fence Contractor Since 2005"
+E) Specific Detail + Service + Location → "6-Foot Privacy Fence Installation in Pasco County FL"
+F) Location-Led + Service Focus → "Tampa Bay Full-Service Fence Contractor | Licensed & Insured"
 
 CONTENT RULES:
-- If the page is a city-specific service page, lead with the SERVICE, not the city name
-- Include the city/state naturally — once only, never repeat the same location twice
-- When {credentials} is not empty, you MAY use one credential verbatim as a qualifier (e.g. "Veteran-Owned", "PWNA Certified", "Licensed & Insured"). Otherwise use factual qualifiers when available
-- Title case formatting
+- Lead with SERVICE, not city name, on city-specific service pages
+- Include city/state naturally — once only, never repeat same location twice
+- Title case formatting throughout
+- No subjective qualifiers — facts and specifics only
 
 ANTI-DUPLICATION (CRITICAL FOR BATCH RUNS):
-- NEVER start with: "Your Trusted", "Top Rated", "Best", "#1", "Premier", "Quality", "Professional", "Expert", "Reliable", "Affordable", "Top"
+- NEVER start with: "Your Trusted", "Top Rated", "Best", "#1", "Premier", "Quality", "Professional", "Expert", "Reliable", "Affordable", "Top", "Leading"
 - Each title in a batch MUST open with a different word
 - Vary location placement: beginning, middle, or after a pipe — not always at the end
-- Do not use the same adjective-noun pairing across titles (e.g., if one title uses "durable fencing", the next cannot)
+- Do not use the same adjective-noun pairing across titles in a batch
 
-OUTPUT: Respond with ONLY the title tag text — nothing else. No options, no alternatives, no explanations, no markdown formatting, no numbering, no commentary. One single line of text.
+BANNED PHRASES: "Whether you need", "Look no further", "We pride ourselves", "second to none", "world-class", "state-of-the-art", "cutting-edge", "innovative solutions", "your go-to"
+
+OUTPUT: Respond with ONLY the title tag text — nothing else. No options, no alternatives, no explanations, no markdown, no numbering, no commentary. One single line of text.

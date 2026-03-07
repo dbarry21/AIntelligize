@@ -58,6 +58,7 @@ return [
         $biz_email = trim( (string) get_option( 'myls_org_email', '' ) );
         if ( $biz_email === '' ) $biz_email = $lb0['email'] ?? $sb['email'] ?? get_bloginfo('admin_email');
 
+
         /* ── Saved prompt — auto-clear stale HTML-pipeline prompts ──────── */
         $saved_prompt = get_option( 'myls_elb_prompt_template', '' );
         $html_prompt_fingerprints = [ 'HTML RULES', 'Output raw HTML', 'elb-hero', 'Start directly with the first <section' ];
@@ -74,6 +75,13 @@ return [
                            : ( class_exists('\\Elementor\\Plugin') ? 'detected' : '' );
 
         $nonce = wp_create_nonce( 'myls_elb_create' );
+
+        // Price ranges — used to populate the service price range selector in the UI.
+        // Serialised to JSON so JS can build the dropdown without a separate AJAX call.
+        $elb_price_ranges = array_values( array_filter(
+            (array) get_option( 'myls_service_price_ranges', [] ),
+            fn( $r ) => is_array( $r ) && trim( (string) ( $r['label'] ?? '' ) ) !== ''
+        ) );
         ?>
 
         <style>
@@ -174,6 +182,52 @@ return [
                         <?php echo esc_html( $obj->labels->singular_name ); ?>
                     </option>
                 <?php endforeach; ?>
+            </select>
+
+            <?php if ( ! empty( $elb_price_ranges ) ): ?>
+            <!-- Price Range selector — only shown when post type = service -->
+            <div id="myls_elb_price_range_row" style="display:none;" class="mb-3">
+                <label class="form-label fw-bold" for="myls_elb_price_range">
+                    <i class="bi bi-tag"></i> Price Range
+                    <span class="text-muted fw-normal" style="font-size:11px;">(optional)</span>
+                </label>
+                <select id="myls_elb_price_range" class="form-select form-select-sm">
+                    <option value="">— No price range —</option>
+                    <?php foreach ( $elb_price_ranges as $idx => $r ):
+                        $symbol = match ( strtoupper( $r['currency'] ?? 'USD' ) ) {
+                            'EUR' => '€', 'GBP' => '£', 'CAD' => 'CA$', default => '$'
+                        };
+                        $low_fmt  = ! empty( $r['low'] )  ? $symbol . number_format( (float) $r['low'],  0 ) : '';
+                        $high_fmt = ! empty( $r['high'] ) ? $symbol . number_format( (float) $r['high'], 0 ) : '';
+                        $range_display = esc_html( $r['label'] );
+                        if ( $low_fmt || $high_fmt ) {
+                            $range_display .= ' (' . implode( ' – ', array_filter( [ $low_fmt, $high_fmt ] ) ) . ')';
+                        }
+                    ?>
+                        <option value="<?php echo esc_attr( $idx ); ?>">
+                            <?php echo $range_display; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="form-text">
+                    Assigns this price range from <a href="<?php echo admin_url('admin.php?page=aintelligize&tab=schema&subtab=service'); ?>" target="_blank">Service Schema → Price Ranges</a> to the generated post. The Pricing section will render this range automatically.
+                </div>
+            </div>
+            <?php else: ?>
+            <!-- No price ranges configured — show hint only for service post type -->
+            <div id="myls_elb_price_range_row" style="display:none;" class="mb-3">
+                <div class="form-text" style="color:#856404;background:#fff3cd;border:1px solid #ffc107;padding:6px 10px;border-radius:4px;">
+                    <i class="bi bi-info-circle"></i>
+                    No price ranges configured yet.
+                    <a href="<?php echo admin_url('admin.php?page=aintelligize&tab=schema&subtab=service'); ?>" target="_blank">Add them in Service Schema → Price Ranges</a> to enable the Pricing section on generated pages.
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Price ranges data for JS (index → label/low/high) -->
+            <script>
+            window.myls_elb_price_ranges = <?php echo wp_json_encode( array_values( $elb_price_ranges ) ); ?>;
+            </script>
             </select>
 
             <label class="form-label fw-bold">Page Title <span class="text-danger">*</span></label>
@@ -301,6 +355,26 @@ return [
                 <div class="col-6">
                     <label class="form-label small">Email</label>
                     <input type="text" id="myls_elb_biz_email" class="form-control form-control-sm" value="<?php echo esc_attr($biz_email); ?>">
+                </div>
+            </div>
+            <div class="row g-2 mt-1">
+                <div class="col-12">
+                    <label class="form-label small">Contact / CTA Button URL</label>
+                    <div class="form-text p-2" style="background:#f0f4ff;border:1px solid #c7d2fe;border-radius:4px;font-size:11px;">
+                        <?php
+                        // Read from the canonical myls_contact_page_id option (set in AI Content → FAQ Builder).
+                        $elb_contact_pid = (int) get_option('myls_contact_page_id', 0);
+                        if ( $elb_contact_pid <= 0 ) {
+                            $p = get_page_by_path('contact-us') ?: get_page_by_path('contact');
+                            if ( $p ) $elb_contact_pid = (int) $p->ID;
+                        }
+                        $elb_resolved_url = $elb_contact_pid > 0 ? get_permalink($elb_contact_pid) : home_url('/contact-us/');
+                        ?>
+                        Resolved: <code><?php echo esc_html( esc_url_raw($elb_resolved_url) ); ?></code><br>
+                        <a href="<?php echo esc_url( admin_url('admin.php?page=myls-ai&tab=faqs') ); ?>" target="_blank">
+                            Change in AI Content → FAQ Builder → Contact Page
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -459,6 +533,9 @@ return [
                         <a id="myls_elb_edit_url" href="#" target="_blank" class="button button-secondary">
                             <i class="bi bi-pencil-square"></i> Edit in Elementor
                         </a>
+                        <a id="myls_elb_preview_url" href="#" target="_blank" class="button button-secondary" style="margin-left:4px;">
+                            <i class="bi bi-eye"></i> Preview Page
+                        </a>
                     </span>
                 </div>
             </div>
@@ -493,22 +570,29 @@ return [
 
             /* ── Section definitions (fixed sections, in default order) ─────── */
             const SECTION_DEFS = {
-                hero:     { label: 'Hero Banner',   icon: '🖼️'  },
-                intro:    { label: 'Service Intro', icon: '📝'  },
-                features: { label: 'Feature Cards', icon: '🃏',  hasCols: true },
-                process:  { label: 'How It Works',  icon: '⚙️',  hasCols: true },
-                faq:      { label: 'FAQ Accordion', icon: '❓'  },
-                cta:      { label: 'CTA Block',     icon: '📣'  },
+                hero:      { label: 'Hero Banner',    icon: '🖼️'  },
+                tldr:      { label: 'TL;DR Block',    icon: '🟢'  },
+                trust_bar: { label: 'Trust Bar',      icon: '🟡'  },
+                intro:     { label: 'Service Intro',  icon: '📝'  },
+                features:  { label: 'Feature Cards',  icon: '🃏',  hasCols: true },
+                process:   { label: 'How It Works',   icon: '⚙️',  hasCols: true },
+                pricing:   { label: 'Pricing',        icon: '💜'  },
+                // faq removed — FAQs are generated post-creation via the FAQ Builder tab
+                cta:       { label: 'CTA Block',      icon: '📣'  },
             };
 
             /* Default ordered list — cloned as live state */
             const DEFAULT_SECTIONS = [
-                { id:'hero',     type:'section',  enabled:true },
-                { id:'intro',    type:'section',  enabled:true },
-                { id:'features', type:'section',  enabled:true, cols:3, rows:1 },
-                { id:'process',  type:'section',  enabled:true, cols:2, rows:2 },
-                { id:'faq',      type:'section',  enabled:true },
-                { id:'cta',      type:'section',  enabled:true },
+                { id:'hero',      type:'section',  enabled:true },
+                { id:'tldr',         type:'section',  enabled:true },
+                { id:'intro',        type:'section',  enabled:true },
+                { id:'trust_bar',    type:'section',  enabled:true },
+                { id:'features',     type:'section',  enabled:true, cols:3, rows:1 },
+                { id:'rich_content', type:'section',  enabled:true },
+                { id:'process',      type:'section',  enabled:true, cols:2, rows:2 },
+                { id:'pricing',   type:'section',  enabled:true },
+                // faq omitted — FAQs are generated post-creation via the FAQ Builder tab
+                { id:'cta',       type:'section',  enabled:true },
             ];
 
             /** Mutable live array — modified by drag, checkbox, add/remove */
@@ -936,6 +1020,7 @@ return [
                     add_to_menu:       $('myls_elb_menu')?.checked           ?? false,
                     page_slug:         ($('myls_elb_slug')?.value || '').trim(),
                     parent_page_id:    parseInt($('myls_elb_parent_page')?.value || '0'),
+                    price_range_idx:   $('myls_elb_price_range')?.value     || '',
                     gen_hero:          $('myls_elb_gen_hero')?.checked       ?? true,
                     gen_feature_cards: $('myls_elb_gen_feature_cards')?.checked ?? false,
                     image_style:       $('myls_elb_img_style')?.value       || 'photo',
@@ -947,6 +1032,8 @@ return [
             function applySetupSnapshot(snap) {
                 if (!snap) return;
                 if ($('myls_elb_post_type')    && snap.post_type)           $('myls_elb_post_type').value    = snap.post_type;
+                togglePriceRangeRow(); // show/hide price range row after restoring post type
+                if ($('myls_elb_price_range')  && snap.price_range_idx != null) $('myls_elb_price_range').value = String(snap.price_range_idx);
                 if ($('myls_elb_title')        && snap.title != null)        $('myls_elb_title').value        = snap.title;
                 if ($('myls_elb_description')  && snap.description != null)  $('myls_elb_description').value  = snap.description;
                 if ($('myls_elb_seo_keyword')  && snap.seo_keyword != null)  $('myls_elb_seo_keyword').value  = snap.seo_keyword;
@@ -966,7 +1053,7 @@ return [
                 } else if (snap.include_hero !== undefined) {
                     // Backward compatibility: old snapshot without sections_order
                     sectionItems = JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
-                    const flagMap = { hero:'include_hero', intro:'include_intro', features:'include_features', process:'include_process', faq:'include_faq', cta:'include_cta' };
+                    const flagMap = { hero:'include_hero', intro:'include_intro', features:'include_features', process:'include_process', cta:'include_cta' };
                     sectionItems.forEach(item => {
                         if (item.type==='section' && flagMap[item.id] !== undefined)
                             item.enabled = !!snap[flagMap[item.id]];
@@ -1103,6 +1190,15 @@ return [
             loadParentPages();
             $('myls_elb_post_type')?.addEventListener('change', loadParentPages);
 
+            /* ── Show/hide price range selector for service post type ─────── */
+            function togglePriceRangeRow() {
+                const pt  = $('myls_elb_post_type')?.value || '';
+                const row = $('myls_elb_price_range_row');
+                if ( row ) row.style.display = pt === 'service' ? '' : 'none';
+            }
+            togglePriceRangeRow(); // run on page load
+            $('myls_elb_post_type')?.addEventListener('change', togglePriceRangeRow);
+
             /* ── Nav post detection (block theme info) ───────────────────────── */
             (async function() {
                 try {
@@ -1208,10 +1304,16 @@ return [
                 fd.append('seo_keyword',       ($('myls_elb_seo_keyword').value||'').trim());
                 fd.append('sections_order',    $('myls_sections_order').value);
                 fd.append('image_style',       $('myls_elb_img_style').value);
+                // Price range: only sent when post type is 'service' and a range is selected
+                const priceRangeEl = $('myls_elb_price_range');
+                if ( priceRangeEl && priceRangeEl.value !== '' ) {
+                    fd.append('price_range_idx', priceRangeEl.value);
+                }
                 fd.append('gen_hero',          $('myls_elb_gen_hero').checked ? '1' : '0');
                 fd.append('gen_feature_cards', $('myls_elb_gen_feature_cards').checked ? '1' : '0');
                 fd.append('set_featured',      $('myls_elb_set_featured').checked ? '1' : '0');
                 fd.append('integrate_images',  hasImages ? '1' : '0');
+                fd.append('contact_url',       '<?php echo esc_js( esc_url_raw($elb_resolved_url) ); ?>');
 
                 try {
                     const res  = await fetch(ajaxurl, { method:'POST', body:fd });
@@ -1228,6 +1330,10 @@ return [
                         if (dbgEl && lastPostId) dbgEl.value = lastPostId;
                         if (data.data.edit_url) {
                             $('myls_elb_edit_url').href = data.data.edit_url;
+                            // view_url is the page permalink — open in new tab for quick preview
+                            if (data.data.view_url) {
+                                $('myls_elb_preview_url').href = data.data.view_url;
+                            }
                             editLink.style.display = '';
                         }
                         if (data.data.images && data.data.images.length) {

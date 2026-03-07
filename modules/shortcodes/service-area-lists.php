@@ -115,7 +115,7 @@ function service_area_list_shortcode( $atts ) {
     $service_areas = new WP_Query( $args );
 
     if ( ! $service_areas->have_posts() ) {
-        return '<p>No service areas found.</p>';
+        return '';
     }
 
     /* ── Collect matching posts ────────────────────────────────────────── */
@@ -143,7 +143,7 @@ function service_area_list_shortcode( $atts ) {
     wp_reset_postdata();
 
     if ( empty( $items ) ) {
-        return '<p>No service areas found.</p>';
+        return '';
     }
 
     /* ── Build HTML output ─────────────────────────────────────────────── */

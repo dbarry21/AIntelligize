@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.8.23
+Stable tag: 7.8.60
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,41 @@ FAQ Quick Editor now supports multi-post batch save and WYSIWYG answers.
 Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
+
+= 7.8.60 =
+* Cookie Consent: Privacy Policy URL field replaced with native WordPress page picker (get_pages() dropdown)
+* Cookie Consent: page ID stored via absint(); resolved to permalink at render time via get_permalink()
+* Cookie Consent: backward-compatible — legacy URL strings reverse-looked-up via url_to_postid() on first save
+* Cookie Consent: admin JS privacyLink() updated to treat select value "0" as no page selected
+* Docs: tabs.md, index.md updated with full Cookie Consent module documentation
+
+= 7.8.59 =
+* Cookie Consent: fixed admin preview not rendering — rewrote cookie-consent-admin.js to use inline styles instead of CSS class names (frontend CSS not loaded on admin pages)
+* Cookie Consent: fixed mobile layout — slim bar with small 11px centered text row above side-by-side 50% buttons (flex: 1 1 0)
+
+= 7.8.58 =
+* Added: Cookie Consent Banner module — lightweight GDPR/CCPA-aware consent banner, no third-party dependencies
+* 5 themes: Dark, Light, Glassmorphism, Minimal, Branded (custom color pickers)
+* Delay options: Immediately / 0.5s / 1s / 1.5s / 2s / 3s / 5s
+* Accept + optional Decline button with configurable labels
+* GDPR Script Blocking (opt-in): window.mylsCCBUnblock() helper; scripts tagged type="text/plain" data-ccb-consent="analytics" activated post-Accept
+* Live admin preview updates mobile (320px) and desktop frames as settings change
+* Cookie: myls_cookie_consent; values: accepted | declined; configurable expiry (default 180 days)
+* Custom DOM events: ccb:accepted / ccb:declined
+* Admin tab auto-discovered; module auto-loaded via existing myls_include_dir_excluding()
+
+= 7.8.41 =
+* Person/LinkedIn: Added 3-method tabbed import UI — Bookmarklet, URL Fetch, Paste
+* New AJAX endpoint `myls_linkedin_bookmarklet_receive` — receives authenticated DOM data from the bookmarklet
+* New AJAX endpoint `myls_linkedin_proxy_fetch` — server-side LinkedIn fetch via `wp_remote_get`
+* New AJAX endpoint `myls_linkedin_get_bookmarklet` — generates personalized bookmarklet JS with embedded nonce and AJAX URL
+* Bookmarklet reads full authenticated LinkedIn profile (skills, certs, education, awards) and POSTs to WP silently
+* Admin page polls `localStorage` for incoming bookmarklet data (1.5s interval) and auto-populates the target person card
+* Bookmarklet is auto-generated on page load; "Generate Bookmarklet" button refreshes nonce if needed
+* Extracted `mylsPopulatePersonCard()` as shared JS helper — all 3 methods now use same populate logic
+* Explained clearly why iframe approach doesn't work for LinkedIn (X-Frame-Options: DENY)
+* Refactored: extracted `myls_linkedin_extraction_system_prompt()` shared function used by both proxy and bookmarklet AI pipelines
+
 
 
 = 7.8.11 =

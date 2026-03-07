@@ -49,24 +49,28 @@ return [
     $contact_url = esc_url_raw( $contact_url );
 
     // ---------------------------------------------------------------------
-    // Default prompt (v2)
+    // Default prompt (v3 — GEO-aligned: wiki-voice, 40-60 word answer blocks, Island Test, fact density)
+    // v3 always resets to the file default so the improved prompt is used
+    // on all existing installs without manual intervention.
     // ---------------------------------------------------------------------
-    $default_prompt = get_option('myls_ai_faqs_prompt_template_v2', '');
-    if ( ! is_string($default_prompt) || trim($default_prompt) === '' ) {
-      $default_prompt = myls_get_default_prompt('faqs-builder');
-    }
+    $default_prompt = myls_get_default_prompt('faqs-builder');
 
-    // ---------------------------------------------------------------------
-    // One-time migration from legacy option key (v1)
-    // ---------------------------------------------------------------------
-    if ( ! is_string($default_prompt) || trim($default_prompt) === '' ) {
-      $legacy = get_option('myls_ai_faqs_prompt_template', '');
-      if ( is_string($legacy) && trim($legacy) !== '' ) {
-        $is_legacy_one_line = (stripos($legacy, 'ONE LINE') !== false) || (stripos($legacy, '<strong>Question') !== false && stripos($legacy, '<strong>Answer') !== false);
-        $migrated = $is_legacy_one_line ? $default_prompt : $legacy;
-        update_option('myls_ai_faqs_prompt_template_v2', $migrated);
-        $default_prompt = $migrated;
-      }
+    // One-time migration: copy any custom v2 prompt the user had saved,
+    // unless it matches the old default fingerprint (in which case reset to v3 default).
+    if ( get_option('myls_ai_faqs_prompt_template_v3', '') === '' ) {
+        $v2_saved = get_option('myls_ai_faqs_prompt_template_v3', '');
+        $old_fingerprint = 'expert local SEO copywriter creating structured FAQs';
+        if ( is_string($v2_saved) && trim($v2_saved) !== '' && strpos($v2_saved, $old_fingerprint) === false ) {
+            // User had a custom prompt — preserve it in v3
+            update_option('myls_ai_faqs_prompt_template_v3', $v2_saved);
+            $default_prompt = $v2_saved;
+        }
+        // else: was the old default — silently upgrade to v3 file default
+    } else {
+        $saved_v3 = get_option('myls_ai_faqs_prompt_template_v3', '');
+        if ( is_string($saved_v3) && trim($saved_v3) !== '' ) {
+            $default_prompt = $saved_v3;
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -79,7 +83,7 @@ return [
       $posted_prompt = wp_kses_post( wp_unslash($_POST['myls_ai_faqs_prompt_template'] ?? '') );
 
       update_option('myls_ai_faqs_prompt_template', $posted_prompt);
-      update_option('myls_ai_faqs_prompt_template_v2', $posted_prompt);
+      update_option('myls_ai_faqs_prompt_template_v3', $posted_prompt);
 
       update_option('myls_ai_faqs_tokens', max(1, (int) ($_POST['myls_ai_faqs_tokens'] ?? 1200)));
       update_option('myls_ai_faqs_temperature', (float) ($_POST['myls_ai_faqs_temperature'] ?? 0.5));
@@ -100,7 +104,7 @@ return [
       $contact_url     = esc_url_raw( $contact_url );
     }
 
-    $prompt = get_option('myls_ai_faqs_prompt_template_v2', $default_prompt);
+    $prompt = get_option('myls_ai_faqs_prompt_template_v3', $default_prompt);
     if ( ! is_string($prompt) || trim($prompt) === '' ) $prompt = $default_prompt;
 
     $tokens = (int) get_option('myls_ai_faqs_tokens', 4000);

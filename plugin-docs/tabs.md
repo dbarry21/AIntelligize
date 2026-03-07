@@ -23,7 +23,7 @@ Manages all structured data output for the site.
 **Subtabs:**
 - **Organization** — Business name, logo, address, phone, social profiles, awards, certifications. Outputs Organization and LocalBusiness schema.
 - **Person** — Multi-person E-E-A-T schema with Wikidata/Wikipedia expertise linking, LinkedIn import, PDF export. Supports multiple person profiles.
-- **Service** — Service schema markup for service pages and the Service CPT.
+- **Service** — Service schema markup for service pages and the Service CPT. Includes a **Price Ranges** repeater: assign low/high price ranges to specific posts; outputs as `offers → PriceSpecification` (minPrice/maxPrice) in the Service schema JSON-LD. Option key: `myls_service_price_ranges`.
 - **FAQ** — FAQ schema settings and accordion configuration.
 - **About Page** — AboutPage schema for company/about pages.
 
@@ -49,10 +49,14 @@ AI-powered content generation tools using OpenAI or Anthropic APIs.
   1. Before generating, analyzes the active Elementor Kit for container width, global colors, and typography.
   2. Samples up to 3 existing posts of the same post type to detect widget patterns (icon boxes, image boxes, image slots, section backgrounds, FAQ shortcodes, hero/CTA structure).
   3. Appends a SITE CONTEXT block to the AI prompt so the output mirrors your existing pages.
-  4. AI returns structured JSON (hero, intro, features, process, faq, cta).
-  5. PHP converts JSON into native Elementor containers with `container_type: flexbox` and child widgets.
-  6. Saves via direct `_elementor_data` meta write (bypasses Elementor document API which strips unregistered settings like `container_type`).
-  7. FAQ items extracted from JSON and saved to `_myls_faq_items` for use by `[faq_schema_accordion]`.
+  4. Appends a Business Profile block (Google rating, review count, awards, certifications) and instructs the AI to use these facts naturally in hero, feature cards, and CTA copy.
+  5. AI returns structured JSON (hero, intro, features, process, cta). **FAQ section is not generated here** — use the FAQ Builder tab after page creation.
+  6. PHP converts JSON into native Elementor containers with `container_type: flexbox` and child widgets.
+  7. Saves via direct `_elementor_data` meta write (bypasses Elementor document API which strips unregistered settings like `container_type`).
+
+  **GEO Writing Rules enforced in prompt:** wiki-voice declarative prose, fact density, Island Test (self-contained paragraphs), brand name repetition, question-format headings (at least 2 headings as direct search-intent questions).
+
+  **`_myls_faq_items` is never deleted by the page builder.** Re-running the builder will not wipe FAQs created by the FAQ Builder tab.
 
   **Site analyzer detects:** hero sections (dark first container), CTA sections (dark container after pos 3), FAQ shortcodes, image/image-box widget usage, icon box counts, section background color sequences, button alignment.
 
@@ -187,6 +191,84 @@ Automated video blog post creation from YouTube channel content. Pulls videos vi
 **File:** `tab-migration.php`
 
 Tools for migrating data from other SEO plugins or importing/exporting plugin settings between sites.
+
+---
+
+## Cookie Consent
+**File:** `admin/tabs/tab-cookie-consent.php`
+**Module:** `modules/cookie-consent/cookie-consent.php`
+**Order:** 90
+
+Lightweight, self-contained GDPR/CCPA cookie consent banner. No third-party
+plugin dependencies. Auto-loaded via `myls_include_dir_excluding()` and
+auto-discovered by the tab loader.
+
+**Subtabs:**
+
+### Settings & Preview
+All configuration options with a live dual-frame preview (320px mobile + desktop)
+that updates in real time as you change settings.
+
+| Setting | Description | Default |
+|---|---|---|
+| Enable Banner | Toggle the banner on/off sitewide | On |
+| Banner Message | Consent message text (supports `<a>`, `<strong>`, `<em>`) | "We use cookies…" |
+| Accept Button Label | Label for the accept button | Accept |
+| Decline Button Label | Label for the decline button | Decline |
+| Show Decline Button | Toggle the decline button | On |
+| Privacy Policy Page | Native WordPress page picker — dropdown of all published pages | None |
+| Privacy Link Label | Link text for the privacy policy link | Privacy Policy |
+| Position | `bottom` or `top` | bottom |
+| Delay | Time before banner slides in: Immediately / 0.5s / 1s / 1.5s / 2s / 3s / 5s | 1.5s |
+| Consent Cookie Expiry | Days before consent cookie expires | 180 |
+| Theme | `dark` / `light` / `glass` / `minimal` / `branded` | dark |
+| Branded Colors | Background, button, and text color pickers (visible when Theme = Branded) | — |
+| Script Blocking | GDPR-level script blocking — holds `type="text/plain"` scripts until Accept | Off |
+
+**Themes:**
+- `dark` — Deep navy background, blue CTA button
+- `light` — White background, subtle shadow
+- `glass` — Frosted glass via `backdrop-filter: blur()`
+- `minimal` — Off-white, black border, underline-style decline
+- `branded` — Fully custom colors via admin color pickers
+
+**Mobile layout (≤600px):** Slim bar — small `11px` centered text row above two
+side-by-side buttons each taking exactly 50% width (`flex: 1 1 0`). Compact
+padding keeps the banner unobtrusive on small screens.
+
+### Script Blocking
+Documentation tab with copy-ready code snippets for GDPR-level script blocking:
+
+- **Method 1 — Inline scripts:** Change `type="text/javascript"` → `type="text/plain"` + `data-ccb-consent="analytics"`. Plugin activates after Accept.
+- **Method 2 — WordPress `wp_head` hook:** Dequeue auto-loaded script, re-output as `text/plain`.
+- **Method 3 — Manual JS trigger:** Call `window.mylsCCBUnblock('analytics')` or `window.mylsCCBUnblock('*')` directly.
+
+### Usage & Docs
+- Theme reference table
+- JavaScript events: `ccb:accepted` / `ccb:declined` (custom DOM events, bubbles)
+- Reset consent snippet for testing (clears `myls_cookie_consent` cookie via console)
+- GDPR compliance notes
+
+**Storage:**
+- Cookie name: `myls_cookie_consent`
+- Values: `accepted` | `declined`
+- Expiry: configurable (default 180 days)
+- Option key: `aintelligize_ccb_settings` (single serialized array)
+
+**JS API:**
+```js
+// Unblock all consent-gated scripts after custom accept logic
+window.mylsCCBUnblock('*');
+window.mylsCCBUnblock('analytics'); // category-specific
+
+// Listen for consent events
+document.addEventListener('ccb:accepted', () => { /* activate tracking */ });
+document.addEventListener('ccb:declined', () => { /* suppress tracking */ });
+```
+
+**WP Consent API:** Not required. The module is fully self-contained.
+
+---
 
 ---
 

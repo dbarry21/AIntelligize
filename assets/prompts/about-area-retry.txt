@@ -1,4 +1,4 @@
-The previous draft was rejected — it was too short, incomplete, used markdown instead of HTML, or included fabricated business details. Rewrite for {{CITY_STATE}} following these requirements exactly.
+The previous draft was rejected — it was too short, used marketing language, failed the Island Test, or included vague statements without specific facts. Rewrite for {{CITY_STATE}} following these requirements exactly.
 
 INPUTS:
 - Page Title: {{PAGE_TITLE}}
@@ -9,28 +9,31 @@ INPUTS:
 STRICT RULES:
 1. 400–600 words of clean HTML. No markdown, no backticks, no code fences.
 2. Allowed tags ONLY: <h2>, <h3>, <p>, <ul>, <li>, <strong>. No inline styles. No class attributes.
-3. Bold {{CITY_STATE}} and county names with <strong>. Bold 1–2 landmarks. Do not over-bold.
-4. Mention {{FOCUS_KEYWORD}} 2–3 times naturally.
-5. Do NOT mention any specific business. Area context only.
-6. Do NOT fabricate facts. Use general public knowledge.
+3. WIKI-VOICE: Every sentence must be neutral, declarative, and encyclopedic. No "we/our/us". No marketing language.
+4. ISLAND TEST: Every sentence must make sense if read in complete isolation. Replace all pronouns with the actual noun they refer to.
+5. FACT DENSITY: Include specific named places, highway numbers, county names, distances, or population data. At least 4 specific verifiable facts in the full piece.
+6. Bold {{CITY_STATE}} and county names with <strong>. Bold 1–2 named landmarks. Do not over-bold.
+7. Mention {{FOCUS_KEYWORD}} 2–3 times naturally. Do not force it.
+8. Do NOT mention any specific business. Area context only.
+9. Do NOT fabricate facts. Use only general public knowledge.
 
-REQUIRED STRUCTURE (all sections mandatory this time):
+REQUIRED STRUCTURE (all sections mandatory):
 
 <h2>About <strong>{{SERVICE_SUBTYPE}}</strong> in <strong>{{CITY_STATE}}</strong></h2>
 
-<p>2–3 sentence intro connecting {{CITY_STATE}} to {{FOCUS_KEYWORD}} and the {{SERVICE_SUBTYPE}} context. Include county name.</p>
+<p>2–3 sentence intro connecting {{CITY_STATE}} to {{FOCUS_KEYWORD}} and the {{SERVICE_SUBTYPE}} context. Include county name and one specific geographic or demographic fact.</p>
 
 <h3>[Neighborhoods or communities subsection]</h3>
-<ul><li>3–5 items: real neighborhoods, nearby cities, or communities</li></ul>
+<ul><li>3–5 items: real neighborhoods, nearby cities, or communities with one specific detail each</li></ul>
 
 <h3>[Recreation, landmarks, or local features subsection]</h3>
-<ul><li>3–5 items: real parks, venues, attractions, or seasonal highlights</li></ul>
+<ul><li>3–5 items: real parks, venues, attractions with specific names and one fact per item</li></ul>
 
-<h3>[Climate, transportation, or growth subsection]</h3>
-<p>1–2 sentences about seasonal weather, key roads/highways, or area growth relevant to {{SERVICE_SUBTYPE}}.</p>
+<h3>[Climate, infrastructure, or growth subsection]</h3>
+<p>1–2 sentences using specific data: seasonal weather facts, named roads/highways, or measurable growth indicators relevant to {{SERVICE_SUBTYPE}}.</p>
 
-<p>Closing that ties back to {{SERVICE_SUBTYPE}} and {{FOCUS_KEYWORD}} in {{CITY_STATE}}.</p>
+<p>Closing sentence tying {{SERVICE_SUBTYPE}} and {{FOCUS_KEYWORD}} to a specific local condition in {{CITY_STATE}}.</p>
 
-BANNED: "Nestled in", "Located in", "Welcome to", "Situated in", "Known for its", "vibrant", "charming", "thriving", "bustling", "picturesque", "quaint", "hidden gem"
+BANNED: "Nestled in", "Located in", "Welcome to", "Situated in", "Known for its", "In the heart of", "vibrant", "charming", "thriving", "bustling", "picturesque", "quaint", "hidden gem", "scenic", "tight-knit", "we", "our", "us"
 
 OUTPUT: Respond with ONLY the HTML — nothing else. No commentary, no options, no code fences.

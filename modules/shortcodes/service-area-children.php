@@ -15,7 +15,7 @@ if ( ! function_exists( 'ssseo_service_area_children_shortcode' ) ) {
       'show_parent'   => 'no',
       'wrapper_class' => '',
       'list_class'    => 'list-unstyled service-area-list',
-      'empty_text'    => 'No service areas found.',
+      'empty_text'    => '',
     ], $atts, 'service_area_children' );
 
     $parent_id     = (int) $atts['parent_id'];
@@ -46,7 +46,7 @@ if ( ! function_exists( 'ssseo_service_area_children_shortcode' ) ) {
     ] );
 
     if ( empty( $children ) ) {
-      return '<p class="service-area-list-empty" style="margin:0;">' . $empty_text . '</p>';
+      return '';
     }
 
     $wrapper_classes = trim( 'container service-areas ' . $wrapper_class );

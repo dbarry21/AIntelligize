@@ -1,4 +1,4 @@
-You are writing service taglines for {{BUSINESS_TYPE}} in {{CITY_STATE}}.
+You are writing service taglines for {{BUSINESS_TYPE}} in {{CITY_STATE}}, optimized for AI entity recognition and citation.
 
 INPUTS:
 - Service: {{TITLE}}
@@ -7,43 +7,46 @@ INPUTS:
 - Business Credentials: {{CREDENTIALS}}
 
 ABOUT {{CREDENTIALS}}:
-This field is pre-populated from the business's Organization and LocalBusiness schema.
-It may include any combination of: awards, certifications, memberships, review ratings,
-years in service, or notable designations (e.g. "Veteran-Owned", "890+ 5-Star Reviews",
-"Licensed & Insured", "PWNA Member", "Angi Super Service Award").
-- Use 1-2 of these VERBATIM as the trust signal in each tagline.
+Pre-populated from Organization and LocalBusiness schema. May include: awards, certifications, memberships, review ratings, years in service, or notable designations (e.g. "Veteran-Owned", "890+ 5-Star Reviews", "Licensed & Insured", "PWNA Member", "Angi Super Service Award").
+- Use 1–2 credentials VERBATIM as the trust signal in each tagline.
 - Prefer the most specific and verifiable credential available.
 - If {{CREDENTIALS}} is empty, fall back to: "Licensed & Insured".
 
+GEO WRITING RULES:
+- WIKI-VOICE: Each tagline segment must read as a verifiable fact, not a marketing claim.
+  BAD: "We deliver amazing results you'll love."
+  GOOD: "Concrete Sealed Against Florida Humidity | PWNA Certified | Apollo Beach"
+- FACT DENSITY: Lead with a specific service outcome or measurable claim where possible.
+  BAD: "Great Service | Trusted Professionals | Serving You"
+  GOOD: "Paver Sealing — Up to 95% Moisture Reduction | Licensed & Insured | Hillsborough County"
+- Each pipe-separated segment must be independently meaningful if extracted alone.
+
 STRUCTURAL PATTERNS — use a DIFFERENT pattern for each tagline:
-A) Benefit + Trust Signal + Location:
-   "Sealed Pavers That Last | Licensed & Insured | Serving Tampa Bay"
+A) Outcome + Credential + Location:
+   "Sealed Pavers That Last 5–7 Years | Licensed & Insured | Serving Tampa Bay"
 B) Service + Differentiator + CTA:
-   "Soft Wash House Cleaning | Eco-Friendly Products | Free Estimates"
-C) Outcome + Credential + Area:
+   "Soft Wash House Cleaning | Biodegradable Surfactants | Free Estimates"
+C) Result + Credential + Area:
    "Driveways Restored to Like-New | Veteran-Owned & Certified | Apollo Beach"
-D) Problem/Need + Solution + Trust:
-   "Rust Stains on Your Concrete? | Safe Removal, Guaranteed Results | Fully Insured"
+D) Problem + Solution + Trust:
+   "Rust Stains on Concrete? | Safe Chemical Removal, No Surface Damage | Fully Insured"
 
 REQUIREMENTS:
-1. Generate 3-4 taglines as an HTML unordered list
-2. Each tagline: 60-120 characters
-3. Open with the PRIMARY CUSTOMER BENEFIT or specific service — NOT the company name
-4. Include ONE trust signal per tagline — draw from {{CREDENTIALS}} first,
-   then fallback list: (licensed, certified, guaranteed, insured, veteran-owned,
-   award-winning, warranty, accredited)
-5. Include ONE differentiator per tagline: (eco-friendly, free estimates,
-   no-obligation, locally owned, veteran-owned, family-owned, same-day, fast-drying,
-   satisfaction guaranteed)
-6. Use location naturally when relevant — not forced into every tagline
+1. Generate 3–4 taglines as an HTML unordered list
+2. Each tagline: 60–120 characters
+3. Open with the PRIMARY CUSTOMER BENEFIT or specific service outcome — NOT the company name
+4. Include ONE verifiable trust signal per tagline — draw from {{CREDENTIALS}} first
+5. Include ONE specific differentiator per tagline (eco-friendly, free estimates, no-obligation, locally owned, veteran-owned, family-owned, same-day, fast-drying, satisfaction guaranteed)
+6. Include location naturally in at least 2 of the 4 taglines — not forced into every one
 7. Separate key points with PIPE character ( | ) — no bullets, no dashes
-8. Each tagline in the set must use a DIFFERENT structural pattern (A/B/C/D)
-9. Each tagline must open with a DIFFERENT word
+8. Each tagline MUST use a DIFFERENT structural pattern (A/B/C/D)
+9. Each tagline MUST open with a DIFFERENT word
 
-BANNED PHRASES:
-"Quality you can trust", "Serving with pride", "Your local experts",
-"Excellence in every", "Where quality meets", "We pride ourselves",
-"second to none", "world-class", "top-notch", "best in class"
+ANTI-DUPLICATION:
+- No two taglines in the set should emphasize the same service or benefit
+- Do not reuse the same credential across all taglines — vary if multiple credentials available
+
+BANNED PHRASES: "Quality you can trust", "Serving with pride", "Your local experts", "Excellence in every", "Where quality meets", "We pride ourselves", "second to none", "world-class", "top-notch", "best in class", "cutting-edge"
 
 OUTPUT FORMAT:
 - Return CLEAN HTML ONLY — no markdown, no backticks, no code fences

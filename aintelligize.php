@@ -3,7 +3,7 @@
  * Plugin Name:       AIntelligize
  * Plugin URI:        https://aintelligize.com/
  * Description:       Modular local SEO toolkit with schema, AI tools, bulk operations, and shortcode utilities.
- * Version: 7.8.23
+ * Version: 7.8.60
  * Author:            Dave Barry
  * Author URI:        https://davebarry.io/
  * Text Domain:       aintelligize
@@ -16,7 +16,7 @@ if ( ! defined('ABSPATH') ) exit;
  * Canonical constants & helpers (single source of truth)
  * ───────────────────────────────────────────────────────────────────────── */
 // Keep in sync with plugin header above.
-if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.8.23');
+if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.8.60');
 if ( ! defined('MYLS_MAIN_FILE') )   define('MYLS_MAIN_FILE', __FILE__);
 if ( ! defined('MYLS_PATH') )        define('MYLS_PATH', plugin_dir_path(MYLS_MAIN_FILE));
 if ( ! defined('MYLS_URL') )         define('MYLS_URL',  plugins_url('', MYLS_MAIN_FILE));
@@ -78,6 +78,9 @@ require_once MYLS_PATH . 'inc/release-notes.php';
 /** Assets */
 require_once MYLS_PATH . 'inc/assets.php';
 require_once MYLS_PATH . 'inc/custom-css.php';
+
+/** Cookie Consent Module */
+require_once MYLS_PATH . 'modules/cookie-consent/cookie-consent.php';
 require_once MYLS_PATH . 'inc/blog-prefix.php';
 
 /** CPT registration BEFORE module extras */
@@ -176,6 +179,7 @@ if ( ! function_exists('myls_ai_set_usage_context') ) {
 require_once MYLS_PATH . 'inc/ajax/ai-excerpts.php';
 require_once MYLS_PATH . 'inc/ajax/ai-html-excerpts.php';
 require_once MYLS_PATH . 'inc/ajax/ai-person-linkedin.php';
+require_once MYLS_PATH . 'inc/ajax/ai-linkedin-proxy.php';
 require_once MYLS_PATH . 'inc/ajax/ai-taglines.php';
 require_once MYLS_PATH . 'inc/ajax/ai-page-builder.php';
 require_once MYLS_PATH . 'inc/elementor-site-analyzer.php';
@@ -337,6 +341,41 @@ add_action('wp_enqueue_scripts', function() {
     // Use the centralized asset URL helper (prevents missing/double slashes).
     wp_enqueue_style('myls-accordion', myls_asset_url('assets/css/myls-accordion.css'), [], MYLS_VERSION);
 });
+
+
+/**
+ * One-time prompt reset migration — v7.8.57
+ *
+ * Clears all saved prompt options so new GEO-aligned file defaults are used.
+ * Runs once on update; flag myls_prompts_reset_v78570 prevents re-running.
+ * Affects: meta title/desc, excerpts, taglines, about-area, geo-rewrite,
+ *          llms-txt, page-builder, elementor-builder, and all FAQ variants.
+ */
+add_action( 'plugins_loaded', function () {
+    if ( get_option( 'myls_prompts_reset_v78570' ) ) return;
+
+    $prompt_options = [
+        'myls_ai_prompt_title',
+        'myls_ai_prompt_desc',
+        'myls_ai_prompt_excerpt',
+        'myls_ai_prompt_html_excerpt',
+        'myls_ai_taglines_prompt_template',
+        'myls_ai_about_prompt_template',
+        'myls_ai_geo_prompt_template',
+        'myls_ai_llms_txt_prompt_template',
+        'myls_pb_prompt_template',
+        'myls_elb_prompt_template',
+        'myls_ai_faqs_prompt_template',
+        'myls_ai_faqs_prompt_template_v2',
+        'myls_ai_faqs_prompt_template_v3',
+    ];
+
+    foreach ( $prompt_options as $key ) {
+        delete_option( $key );
+    }
+
+    update_option( 'myls_prompts_reset_v78570', '1' );
+}, 5 );  // priority 5 — runs before any tab tries to read saved prompt
 
 
 /** Divi modules (safe: module file registers itself on et_builder_ready) */

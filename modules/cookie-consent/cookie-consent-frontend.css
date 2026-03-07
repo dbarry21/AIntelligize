@@ -1,0 +1,252 @@
+/**
+ * AIntelligize – Cookie Consent Banner
+ * Frontend stylesheet
+ * Supports themes: dark | light | glass | minimal | branded
+ */
+
+/* ── Base: hidden off-screen ────────────────────────────────────── */
+#aintelligize-ccb {
+    display: none; /* JS sets display:flex once delay fires */
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 999999;
+    padding: 14px 20px;
+    gap: 14px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    box-sizing: border-box;
+    transition: transform 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease;
+}
+
+/* Position variants */
+#aintelligize-ccb.ccb-pos-bottom {
+    bottom: 0;
+    transform: translateY(110%);
+}
+#aintelligize-ccb.ccb-pos-top {
+    top: 0;
+    transform: translateY(-110%);
+}
+
+/* Visible state (JS adds .ccb-visible) */
+#aintelligize-ccb.ccb-visible {
+    display: flex;
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* ── Content wrapper ─────────────────────────────────────────────── */
+.ccb-content {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+.ccb-content p {
+    margin: 0 0 4px 0;
+    padding: 0;
+}
+.ccb-content a.ccb-privacy-link {
+    font-size: 13px;
+    text-decoration: underline;
+    opacity: 0.8;
+}
+.ccb-content a.ccb-privacy-link:hover {
+    opacity: 1;
+}
+
+/* ── Button group ────────────────────────────────────────────────── */
+.ccb-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+.ccb-btn {
+    display: inline-block;
+    padding: 10px 22px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid transparent;
+    min-height: 44px;       /* iOS touch target */
+    min-width: 80px;
+    text-align: center;
+    text-decoration: none;
+    transition: opacity 0.2s, background 0.2s, transform 0.1s;
+    line-height: 1.2;
+}
+.ccb-btn:active { transform: scale(0.97); }
+.ccb-btn-accept {}
+.ccb-btn-decline {
+    background: transparent !important;
+    font-weight: 500;
+    font-size: 13px;
+    padding: 10px 14px;
+}
+
+/* ══ THEMES ══════════════════════════════════════════════════════════ */
+
+/* ── Dark ─────────────────────────────── */
+#aintelligize-ccb.ccb-theme-dark {
+    background: #1a1a2e;
+    color: #e8e8f0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.35);
+}
+.ccb-theme-dark .ccb-content a.ccb-privacy-link { color: #90b4ff; }
+.ccb-theme-dark .ccb-btn-accept {
+    background: #4f8ef7;
+    color: #fff;
+    border-color: #4f8ef7;
+}
+.ccb-theme-dark .ccb-btn-accept:hover { opacity: 0.88; }
+.ccb-theme-dark .ccb-btn-decline { color: #aaa; border-color: #444; }
+.ccb-theme-dark .ccb-btn-decline:hover { color: #fff; border-color: #888; }
+
+/* ── Light ────────────────────────────── */
+#aintelligize-ccb.ccb-theme-light {
+    background: #ffffff;
+    color: #333;
+    border-top: 1px solid #e0e0e0;
+    box-shadow: 0 -4px 18px rgba(0,0,0,0.08);
+}
+.ccb-theme-light .ccb-content a.ccb-privacy-link { color: #0073aa; }
+.ccb-theme-light .ccb-btn-accept {
+    background: #0073aa;
+    color: #fff;
+    border-color: #0073aa;
+}
+.ccb-theme-light .ccb-btn-accept:hover { opacity: 0.88; }
+.ccb-theme-light .ccb-btn-decline { color: #666; border-color: #ccc; }
+.ccb-theme-light .ccb-btn-decline:hover { background: #f0f0f0; color: #333; }
+
+/* ── Glass ────────────────────────────── */
+#aintelligize-ccb.ccb-theme-glass {
+    background: rgba(20, 20, 40, 0.65);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    color: #f0f0ff;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 -4px 32px rgba(0,0,0,0.4);
+}
+.ccb-theme-glass .ccb-content a.ccb-privacy-link { color: #b8d4ff; }
+.ccb-theme-glass .ccb-btn-accept {
+    background: rgba(100, 160, 255, 0.85);
+    color: #fff;
+    border-color: rgba(100,160,255,0.6);
+}
+.ccb-theme-glass .ccb-btn-accept:hover { background: rgba(100,160,255,1); }
+.ccb-theme-glass .ccb-btn-decline {
+    color: rgba(255,255,255,0.7);
+    border-color: rgba(255,255,255,0.25);
+}
+.ccb-theme-glass .ccb-btn-decline:hover {
+    border-color: rgba(255,255,255,0.6);
+    color: #fff;
+}
+
+/* ── Minimal ──────────────────────────── */
+#aintelligize-ccb.ccb-theme-minimal {
+    background: #f8f8f8;
+    color: #444;
+    border-top: 3px solid #333;
+    padding: 10px 20px;
+    font-size: 13px;
+}
+.ccb-theme-minimal .ccb-content a.ccb-privacy-link { color: #555; }
+.ccb-theme-minimal .ccb-btn-accept {
+    background: #333;
+    color: #fff;
+    border-color: #333;
+    padding: 8px 18px;
+    font-size: 13px;
+    min-height: 40px;
+}
+.ccb-theme-minimal .ccb-btn-accept:hover { background: #111; }
+.ccb-theme-minimal .ccb-btn-decline {
+    color: #888;
+    border-color: #ccc;
+    font-size: 12px;
+}
+
+/* ── Branded (uses CSS vars set inline by PHP) ─────────────────── */
+#aintelligize-ccb.ccb-theme-branded {
+    background: var(--ccb-bg, #1a1a2e);
+    color: var(--ccb-text, #fff);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.25);
+}
+.ccb-theme-branded .ccb-content a.ccb-privacy-link {
+    color: var(--ccb-link, #90b4ff);
+}
+.ccb-theme-branded .ccb-btn-accept {
+    background: var(--ccb-btn-bg, #4f8ef7);
+    color: var(--ccb-btn-text, #fff);
+    border-color: var(--ccb-btn-bg, #4f8ef7);
+}
+.ccb-theme-branded .ccb-btn-accept:hover { opacity: 0.88; }
+.ccb-theme-branded .ccb-btn-decline {
+    color: var(--ccb-text, #fff);
+    border-color: rgba(255,255,255,0.35);
+    opacity: 0.75;
+}
+.ccb-theme-branded .ccb-btn-decline:hover { opacity: 1; }
+
+/* ══ MOBILE ══════════════════════════════════════════════════════════
+   Slim bar: compact text on one row, two buttons side-by-side below.
+   Keeps the banner unobtrusive on small screens.
+═════════════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+    /* Switch to column layout — text row, then button row */
+    #aintelligize-ccb {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 9px 12px 11px;
+        gap: 7px;
+    }
+
+    /* Small, readable message text */
+    .ccb-content {
+        flex-basis: auto;
+        width: 100%;
+    }
+    .ccb-content p {
+        font-size: 11px;
+        line-height: 1.35;
+        text-align: center;
+        margin: 0;
+    }
+    .ccb-content a.ccb-privacy-link {
+        font-size: 11px;
+    }
+
+    /* Button row — side-by-side, each exactly 50% */
+    .ccb-buttons {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 7px;
+    }
+    .ccb-btn {
+        flex: 1 1 0;      /* equal share = 50% each */
+        min-width: 0;
+        min-height: 34px;
+        padding: 6px 6px;
+        font-size: 12px;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+/* Safe area for iPhone home indicator */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    #aintelligize-ccb.ccb-pos-bottom {
+        padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    }
+}

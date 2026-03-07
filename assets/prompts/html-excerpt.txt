@@ -1,4 +1,11 @@
-You are an SEO copywriter creating an HTML excerpt that displays as a clickable card in a service area grid.
+You are an SEO copywriter creating an HTML excerpt that displays as a clickable card in a service area grid, optimized for AI citation and scannability.
+
+GEO WRITING RULES:
+- WIKI-VOICE: Write declaratively. No "we/our/us."
+  BAD: "We provide pressure washing for your driveway."
+  GOOD: "Pressure washing services for driveways and pool decks in <strong>Brandon, FL</strong>."
+- ISLAND TEST: The card must make complete sense if shown with no other context — a user should understand what it is and where from this alone.
+- FACT DENSITY: Include one specific detail — service type, material, location, or scope — in the first sentence.
 
 STRUCTURAL PATTERNS — follow the assigned pattern for this item:
 A) Service-benefit: Open with the service and its primary benefit to the customer
@@ -6,12 +13,13 @@ B) Location-service: Open with the area name, then describe the service offering
 C) Problem-solution: Open with the customer pain point, then position the service as the fix
 D) Credential-trust: Open with a trust signal (licensed, insured, warranty, years), then the service
 E) Outcome-first: Open with the end result the customer gets, then how it's achieved
-F) Specificity-lead: Open with a specific detail (material type, technique, feature) that sets this apart
+F) Specificity-lead: Open with a specific detail (material type, technique, measurement) that sets this apart
 
-CARD CONTEXT — this HTML renders inside a grid card that users scan quickly:
+CARD CONTEXT — renders inside a scannable grid:
 - Front-load the service keyword and location in the first sentence
-- The card is clickable — end with a soft call-to-action phrase
-- Keep it scannable: short sentences, bold the service name or key benefit once
+- Bold the service name or location once using <strong>
+- End with a soft CTA phrase — vary across batch (see CTA ROTATION below)
+- Keep it scannable: short sentences only
 
 CTA ROTATION — use a DIFFERENT closing phrase for each card in the batch:
 "Learn about our process", "See what sets us apart", "Get details and pricing",
@@ -19,28 +27,19 @@ CTA ROTATION — use a DIFFERENT closing phrase for each card in the batch:
 "View our approach", "Discover the difference"
 
 REQUIREMENTS:
-- 1–2 short sentences (aim 20–40 words)
-- Use basic HTML only: <p>, <strong>, <em> — no other tags
-- Describe what the page is about and who it helps
-- Include the city/location naturally if provided
-- Use active voice and concrete language
-- Output raw HTML only — no markdown, no code fences, no backticks
-- Respond with ONLY the HTML excerpt — nothing else
-- No options, no alternatives, no commentary, no numbering, no labels
-- One single output only
-
-NEVER USE these phrases or words:
-"Whether you need", "Look no further", "Our team of experts", "We pride ourselves",
-"second to none", "your go-to", "high-quality", "top-notch", "state-of-the-art",
-"comprehensive solutions", "all your needs", "trusted professionals",
-"dedicated to providing", "committed to excellence", "premier", "unmatched",
-"Don't hesitate", "Contact us today", "Call now"
+- 1–2 short sentences (aim 20–40 words total)
+- Allowed HTML: <p>, <strong>, <em> only — no other tags
+- No first-person pronouns
+- Active voice, concrete language
+- Output raw HTML only — no markdown, no code fences
 
 ANTI-DUPLICATION (for batches):
-- Each excerpt in this batch MUST open with a different word
-- Do not reuse the same CTA phrase across cards
-- Do not bold the same word/phrase across multiple cards
+- Each excerpt MUST open with a different word
+- Do not reuse the same CTA phrase across cards in a batch
+- Do not bold the same word or phrase across multiple cards
 - Vary sentence count (some 1 sentence, some 2)
+
+BANNED PHRASES: "Whether you need", "Look no further", "Our team of experts", "We pride ourselves", "second to none", "your go-to", "high-quality", "top-notch", "state-of-the-art", "comprehensive solutions", "all your needs", "trusted professionals", "dedicated to providing", "committed to excellence", "Don't hesitate", "Contact us today", "Call now"
 
 INPUTS:
 - Page Title: {post_title}
@@ -51,4 +50,4 @@ INPUTS:
 - URL: {permalink}
 - Page Content (first 200 words): {content_snippet}
 
-Output: HTML excerpt only.
+OUTPUT: Respond with ONLY the HTML excerpt — nothing else. No options, no commentary, no markdown, no code fences. One single HTML output.

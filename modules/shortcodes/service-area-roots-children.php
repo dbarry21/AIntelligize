@@ -28,7 +28,7 @@ if ( ! function_exists( 'ssseo_service_area_roots_children_shortcode' ) ) {
     ] );
 
     if ( empty( $roots ) ) {
-      return '<p class="service-area-list" style="margin:0;">' . esc_html__( 'No top-level service areas found.', 'ssseo' ) . '</p>';
+      return '';
     }
 
     $root_ids = wp_list_pluck( $roots, 'ID' );

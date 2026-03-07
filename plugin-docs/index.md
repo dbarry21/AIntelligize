@@ -32,6 +32,14 @@ AIntelligize is a comprehensive WordPress plugin designed for local businesses a
 - **Google Maps Integration**: Static map generation with preview
 - **Location Hierarchy**: Parent-child service area relationships
 
+### Cookie Consent & GDPR
+- **Cookie Consent Banner**: Lightweight self-contained consent banner — no plugin dependencies
+- **5 Themes**: Dark, Light, Glassmorphism, Minimal, Branded (custom colors)
+- **Script Blocking**: GDPR-level — holds analytics scripts until user accepts
+- **Native Page Picker**: Privacy Policy field uses WordPress page dropdown
+- **Mobile-Optimized**: Slim bar with side-by-side buttons on small screens
+- **JS Events**: `ccb:accepted` / `ccb:declined` custom DOM events for custom integrations
+
 ### Bulk Operations
 - **Bulk Meta Generation**: Generate meta titles and descriptions
 - **Bulk FAQ Generation**: Create FAQs for multiple posts

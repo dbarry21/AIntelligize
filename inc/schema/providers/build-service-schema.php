@@ -329,17 +329,51 @@ add_filter('myls_schema_graph', function(array $graph) {
 	$service_subtype = trim(wp_strip_all_tags($service_subtype));
 	$service_name    = ($service_subtype !== '') ? $service_subtype : $service_type;
 
-	// serviceOutput: excerpt (process shortcodes) as Thing
-	$excerpt_raw = (string) get_the_excerpt($post_id);
-	$service_output_text = trim($excerpt_raw) !== '' ? myls_plaintext_from_content($excerpt_raw) : '';
+	// serviceOutput: noun-phrase describing the tangible deliverable.
+	// Priority: 1) explicit admin field  2) smart default derived from service type
+	// Never uses the post excerpt — that is a process description, not a deliverable.
+	$service_output_text = trim( (string) get_option( 'myls_service_output', '' ) );
 
-	$service_output = null;
-	if ( $service_output_text !== '' ) {
-		$service_output = [
-			'@type' => 'Thing',
-			'name'  => $service_output_text,
+	if ( $service_output_text === '' ) {
+		// Derive a sensible noun-phrase from the page title (already used as serviceType).
+		// Strip stop words so "Pressure Washing Services" → "Cleaned pressure washing surfaces".
+		// Simple map: title → noun phrase. Falls back to generic if no match.
+		$title_lower = strtolower( wp_strip_all_tags( $page_title ) );
+		$noun_map    = [
+			'wash'     => 'Professionally cleaned and washed exterior surfaces',
+			'clean'    => 'Professionally cleaned exterior surfaces',
+			'seal'     => 'Professionally sealed and protected hard surfaces',
+			'pressure' => 'Restored, mold-free pressure-washed surfaces',
+			'soft'     => 'Gently soft-washed, stain-free exterior surfaces',
+			'paver'    => 'Sealed, color-enhanced paver surfaces',
+			'travert'  => 'Cleaned and sealed travertine surfaces',
+			'roof'     => 'Clean, algae-free roof surface',
+			'gutter'   => 'Clear, flow-tested gutters and downspouts',
+			'fence'    => 'Clean, mold-free fence panels',
+			'concrete' => 'Clean, stain-free concrete surfaces',
+			'driveway' => 'Clean, restored driveway surface',
+			'sidewalk' => 'Clean, safe sidewalk surface',
+			'pool'     => 'Clean, sanitized pool deck surface',
+			'window'   => 'Streak-free, clean window surfaces',
+			'hvac'     => 'Tested, serviced HVAC system',
+			'plumb'    => 'Repaired, functional plumbing system',
+			'electr'   => 'Inspected, functional electrical system',
 		];
+		foreach ( $noun_map as $keyword => $phrase ) {
+			if ( str_contains( $title_lower, $keyword ) ) {
+				$service_output_text = $phrase;
+				break;
+			}
+		}
+		if ( $service_output_text === '' ) {
+			$service_output_text = 'Completed, professionally delivered ' . strtolower( $service_type ) . ' service';
+		}
 	}
+
+	$service_output = [
+		'@type' => 'Thing',
+		'name'  => $service_output_text,
+	];
 
 	/* ----------------------------
 	 * areaServed rules
@@ -384,11 +418,41 @@ add_filter('myls_schema_graph', function(array $graph) {
 
 	if ( $image_url ) $service['image'] = esc_url_raw($image_url);
 	if ( ! empty($area_served) ) $service['areaServed'] = $area_served;
-	if ( is_array($service_output) ) $service['serviceOutput'] = $service_output;
+	$service['serviceOutput'] = $service_output; // always present — noun-phrase deliverable
 
 	// AggregateRating — Service schema supports it; pull from Google Places
 	$agg_rating = function_exists('myls_schema_build_aggregate_rating') ? myls_schema_build_aggregate_rating() : null;
 	if ( is_array($agg_rating) ) $service['aggregateRating'] = $agg_rating;
+
+	// ── Price Ranges (offers → PriceSpecification) ───────────────────────
+	// Look up myls_service_price_ranges for any entry whose post_ids contains
+	// the current post.  If found, attach an Offer with a PriceSpecification
+	// node so AI and search engines see the price range directly in schema.
+	$price_ranges = (array) get_option( 'myls_service_price_ranges', [] );
+	foreach ( $price_ranges as $pr ) {
+		if ( ! is_array($pr) ) continue;
+
+		$range_ids = array_map( 'absint', (array) ( $pr['post_ids'] ?? [] ) );
+		if ( ! in_array( $post_id, $range_ids, true ) ) continue;
+
+		$low      = trim( (string) ( $pr['low']      ?? '' ) );
+		$high     = trim( (string) ( $pr['high']     ?? '' ) );
+		$currency = strtoupper( trim( (string) ( $pr['currency'] ?? 'USD' ) ) );
+
+		// Need at least one price value to output valid schema
+		if ( $low === '' && $high === '' ) continue;
+
+		$price_spec = [ '@type' => 'PriceSpecification', 'priceCurrency' => $currency ];
+		if ( $low  !== '' ) $price_spec['minPrice'] = $low;
+		if ( $high !== '' ) $price_spec['maxPrice'] = $high;
+
+		$service['offers'] = [
+			'@type'              => 'Offer',
+			'priceCurrency'      => $currency,
+			'priceSpecification' => $price_spec,
+		];
+		break; // one matching range per post — first match wins
+	}
 
 	$graph[] = $service;
 

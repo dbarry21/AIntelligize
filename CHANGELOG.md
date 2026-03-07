@@ -1,3 +1,214 @@
+## [7.8.51] — 2026-03-06
+
+### Fixed — Trust Bar 4-column overlap on mobile
+- Added Elementor responsive suffix keys to the trust bar L2 row container and L3 stat cells:
+  - L2 `flex_wrap_mobile: 'wrap'` — allows cells to flow on mobile (desktop stays `nowrap`)
+  - L3 `_element_width_mobile: 'initial'` + `_element_custom_width_mobile: 50%` — each stat
+    cell becomes 50% wide on mobile, so the 4 stats render as a clean **2×2 grid** instead
+    of overflowing/overlapping at 25% on a narrow screen.
+  - Tablet breakpoint unchanged — 4-across still fits on iPad/tablet viewports.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.50] — 2026-03-06
+
+### Fixed — Trust Bar renders as 2 rows (root cause: CSS Grid column injection unreliable)
+- Replaced the `container_type: grid` L2 inner container in `myls_elb_build_trust_bar()`
+  with a `container_type: flex` row container (`flex_direction: row`, `flex_wrap: nowrap`).
+- Each L3 stat cell is now set to exactly 25% width via `_element_width: initial` +
+  `_element_custom_width: 25%`, guaranteeing exactly 1 row regardless of Elementor version
+  or viewport. CSS Grid column count via JSON injection was silently defaulting to 2–3 cols.
+- CSS class renamed `elb-trust-row` on the L2 flex container (was `elb-trust-grid`).
+
+### Changed — Default section order: intro now precedes trust_bar
+- Narrative arc corrected: Hero → TL;DR → **Intro** → **Trust Bar** → Features.
+  Intro builds the WHY first; trust bar then punctuates with proof credentials.
+  Previous order (trust_bar before intro) front-loaded credentials before context.
+- Updated in: JS `DEFAULT_SECTIONS`, AJAX handler `$section_flags` fallback,
+  and POST-based backward compat fallback.
+
+### Changed — Rich Content section background colour
+- Changed from white (`#ffffff`) to light grey (`#f8f9fa`) to visually separate the
+  citation-depth block from the white intro above and white process section below.
+  Creates a consistent alternating white/grey rhythm: intro (white) → trust bar (amber)
+  → features (grey) → rich content (grey) → process (white) → pricing (purple-tint) → CTA.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `admin/tabs/utilities/subtab-elementor.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.49] — 2026-03-06
+
+### Added — Price Range selector in Elementor Builder (service post type)
+- When **Post Type = Service** is selected in the Elementor Builder left panel, a new
+  **Price Range** dropdown appears immediately below, listing all ranges configured in
+  Schema → Service → Price Ranges (label + formatted low–high).
+- Selecting a range assigns the newly generated post ID to that range's `post_ids[]` array
+  in `myls_service_price_ranges` after post creation, so the **Pricing section renders
+  it automatically** without any manual schema re-save.
+- If no price ranges are configured yet, a yellow info banner with a direct link to
+  Service Schema → Price Ranges is shown instead.
+- Selection is preserved in setup snapshots (save/restore).
+- Dropdown is hidden for all non-service post types.
+- AJAX handler logs: `💲 Price range "Label" assigned to post ID N.`
+
+**Files changed:** `admin/tabs/utilities/subtab-elementor.php`,
+`inc/ajax/ai-elementor-builder.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.48] — 2026-03-06
+
+### Fixed — Trust Bar now uses correct 3-level grid structure
+- Rebuilt `myls_elb_build_trust_bar()` to match the exact hierarchy of Feature Cards
+  and How It Works: L1 full-width outer container → L2 CSS Grid 4 cols × 1 row (boxed,
+  isInner) → L3 flex container per stat cell (isInner) → L4 icon_box widget at 100% width.
+- Previous flat flex-row layout was structurally inconsistent with the rest of the page.
+
+### Added — Rich Content section (`id: rich_content`)
+- New section placed between Feature Cards and How It Works.
+- Structure: L1 full-width outer container (white) → L2 boxed inner container (isInner) →
+  L3 text_editor widget with pre-formatted HTML.
+- AI generates 200–300 words: one `<h3>` question sub-heading + two wiki-voice paragraphs
+  (60–80 words each) + one `<ul>` of 4–5 `<li>` items with specific facts (technique names,
+  measurements, materials, local relevance). Every paragraph and list item passes the
+  Island Test — fully self-contained, no dangling pronouns.
+- JSON key: `rich_content.html`. Skipped silently if AI returns no content.
+- Added to `SECTION_DEFS`, `DEFAULT_SECTIONS` (JS UI), both `sections_order` PHP defaults,
+  dispatch switch, system prompt key list, and `elementor-builder.txt` writing rules.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `assets/prompts/elementor-builder.txt`,
+`admin/tabs/utilities/subtab-elementor.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.47] — 2026-03-05
+
+### Fixed — PHP fatal error on Trust Bar generation
+- `myls_elb_build_trust_bar()` was calling `myls_elb_icon_box_widget()` with an `array`
+  as argument 4, but the function signature declares `string $icon_color`. This caused a
+  PHP TypeError on every generation attempt, returning HTML instead of JSON and producing
+  the "Unexpected token '<'" error in the browser.
+- Fix: pass `'#d97706'` (string) and `25` (int) as args 4/5. The amber title/description
+  colour overrides are now applied directly to `$widget['settings']` after construction.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.46] — 2026-03-05
+
+### Added — Phase 2 GEO Sections (Elementor Builder)
+Three new AI-generated sections added to every builder page, visible in the Section Order list:
+
+- **🟢 TL;DR Block** (`id: tldr`) — Placed immediately after Hero. A single 40–60 word
+  entity-anchored summary sentence in italic text with a green left-border accent.
+  This is the first content AI crawlers extract; the AI populates it from the Business
+  Profile block with service + city + measurable fact + business name. JSON key: `tldr.text`.
+- **🟡 Trust Bar** (`id: trust_bar`) — Full-width amber stats strip of exactly 4 icon-box
+  widgets (rating, review count, award, credential). Each stat is a discrete structured
+  entity the AI reads separately. AI populates from real Business Profile data.
+  JSON key: `trust_bar.stats[4]`.
+- **💜 Pricing Section** (`id: pricing`) — Placed between Process and CTA. Reads directly
+  from `myls_service_price_ranges` (configured in v7.8.43 Service Schema tab) — no AI
+  content, pure structured data. Outputs a purple-tinted HTML price table with `<th>` headers
+  (Service / Starting At / Up To). Skipped silently if no price ranges are configured.
+  AI provides heading question + caveat sentence only. JSON key: `pricing.heading` + `pricing.caveat`.
+
+### Added — Service Schema: Service Output field
+- New `myls_service_output` text field added to Schema → Service tab.
+- Accepts a noun-phrase describing the tangible deliverable (e.g. "Clean, mold-free driveway surface").
+- If blank, a smart keyword-matched noun phrase is auto-derived from the page title (20 service
+  keywords mapped: wash, seal, pressure, paver, concrete, driveway, etc.).
+- `serviceOutput` is now **always** present in Service schema output.
+
+### Fixed — serviceOutput was a copy of description
+- `serviceOutput.name` was previously set to the post excerpt — a process-description sentence
+  that is semantically incorrect for the `serviceOutput` property (Schema.org definition:
+  "the tangible thing generated by the service"). This caused duplicate signals and schema
+  validator warnings. Now uses the dedicated field with smart noun-phrase fallback.
+
+### Changed — Elementor Builder prompt + system message
+- System prompt updated to declare all 8 JSON keys: `hero, tldr, trust_bar, intro, features, process, pricing, cta`.
+- `elementor-builder.txt` prompt updated with Phase 2 writing rules for TL;DR, Trust Bar, and Pricing heading.
+- `post_id` now passed in `$section_flags` so Pricing builder can match per-post price ranges.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `assets/prompts/elementor-builder.txt`,
+`admin/tabs/utilities/subtab-elementor.php`, `admin/tabs/schema/subtab-service.php`,
+`inc/schema/providers/build-service-schema.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.45] — 2026-03-05
+
+### Added
+- **Elementor Builder — "Preview Page" button** added next to the "Edit in Elementor"
+  button in the Results row. Appears after a successful page generation alongside the
+  existing Edit link. Opens the page's public permalink in a new tab so you can preview
+  the generated content without leaving the admin. The permalink was already present in
+  the AJAX response (`view_url`) — this change wires it to a new `<a>` tag
+  (`id="myls_elb_preview_url"`) displayed inside the same `myls_elb_edit_link` span.
+
+**Files changed:** `admin/tabs/utilities/subtab-elementor.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.44] — 2026-03-05
+
+### Fixed
+- **Schema → Service — bottom "Save Settings" button now fires correctly.**
+  Root cause: `subtab-service.php` wrapped its content in a second `<form>` tag. The
+  HTML5 parser ignores nested `<form>` tags, but the inner `</form>` still closed the
+  **outer** form rendered by `tab-schema.php`. This left the outer form's bottom
+  "Save Settings" button orphaned outside any `<form>`, so clicking it had no effect.
+  Fix: replaced the inner `<form method="post" class="myls-svc-wrap">` with
+  `<div class="myls-svc-wrap">` and removed the inner `</form>` and duplicate nonce
+  field. The outer form in `tab-schema.php` (nonce: `myls_schema_save`) now correctly
+  wraps all subtab content including the Price Ranges block. The top "Save Settings"
+  button inside the left column and the bottom one both submit the same form.
+
+**Files changed:** `admin/tabs/schema/subtab-service.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.43] — 2026-03-05
+
+### Added
+- **Schema → Service — Price Ranges repeater.** New "Service Price Ranges" block in the
+  Service Schema subtab. Each range stores: Label, Low Price, High Price, Currency (USD/EUR/
+  GBP/CAD). Ranges are assigned to individual posts/pages/service CPTs using the same
+  chip-filter + search + multi-select pattern as the existing service page assignment.
+  State is serialised to a single JSON hidden input (`myls_price_ranges_json`) and saved as
+  the `myls_service_price_ranges` option. Activation is row-based: clicking "Assign Posts →"
+  highlights the row and enables the right-panel selector; switching rows auto-saves the
+  previous assignment.
+- **Schema → Service — `offers → PriceSpecification` in Service schema output.**
+  `build-service-schema.php` now looks up `myls_service_price_ranges` for the current post.
+  If a matching range is found, a `"offers"` node is appended to the Service schema containing
+  an `Offer` with `PriceSpecification` (`minPrice`, `maxPrice`, `priceCurrency`). First
+  matching range wins; posts with no assigned range emit no offers node (backward compatible).
+
+**Files changed:** `admin/tabs/schema/subtab-service.php`,
+`inc/schema/providers/build-service-schema.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`, `plugin-docs/tabs.md`
+
+## [7.8.42] — 2026-03-05
+
+### Changed
+- **Elementor Builder — GEO Writing Rules added to prompt.** `elementor-builder.txt` now
+  includes a `GEO WRITING RULES` block enforcing: wiki-voice declarative prose, fact density
+  (specific data over vague quantifiers), Island Test (every paragraph self-contained),
+  brand name repetition, and at least 2 question-format section headings.
+- **Elementor Builder — Business Profile usage instructions added to prompt.** The prompt
+  now explicitly instructs the AI to reference the star rating, review count, awards, and
+  certifications already appended via the `$schema_ctx_parts` block — in hero subtitle,
+  feature cards, and CTA copy. Previously this data reached the AI but the prompt gave
+  no instruction to use it.
+- **Elementor Builder — FAQ section removed from generation pipeline.** `faq` key removed
+  from `elementor-builder.txt` JSON structure, `SECTION_DEFS`, and `DEFAULT_SECTIONS` in
+  `subtab-elementor.php`. Removed from both `sections_order` fallback arrays in
+  `ai-elementor-builder.php`. AI system prompt updated — required keys now:
+  `hero, intro, features, process, cta`. FAQs are exclusively managed by the FAQ Builder tab.
+- **Elementor Builder — `_myls_faq_items` no longer deleted on regeneration.** Removed the
+  `else { delete_post_meta(...) }` branch that wiped FAQ data when re-running the builder.
+  The FAQ Builder tab is now the sole owner of `_myls_faq_items`.
+- **`elementor-builder.txt` — banned phrases expanded.** Added: `"we believe"`,
+  `"we are proud"`, `"passion for"`.
+
+**Files changed:** `assets/prompts/elementor-builder.txt`,
+`admin/tabs/utilities/subtab-elementor.php`,
+`inc/ajax/ai-elementor-builder.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`, `plugin-docs/tabs.md`
+
 ## [7.8.23] — 2026-03-04
 
 ### Fixed
@@ -2388,3 +2599,195 @@ from the plugin admin and display them on the front end with valid structured da
 ### Fixed
 - **Stop deleting `_wp_page_template`**: Confirmed both working and broken posts have it set to "default" — it is not involved in the nav drawer issue. Removed all `delete_post_meta` calls for this key.
 - **No metas deleted at all**: Plugin no longer deletes any Elementor metas. The only action taken is stamping the correct `astra_sites_*` page settings from a reference post onto newly generated posts.
+
+## [7.8.52] — 2026-03-06
+
+### Added — `[myls_pricing_table]` shortcode (live pricing, no regeneration needed)
+- New `modules/shortcodes/pricing-table.php` registers `[myls_pricing_table post_id="N"]`.
+- Reads `myls_service_price_ranges` at PHP render time on every page view — any price
+  range added or edited in Service Schema → Price Ranges is reflected immediately without
+  regenerating the Elementor page.
+- Shortcode accepts `post_id` attribute: shows global ranges (no post assignment) plus
+  ranges assigned to that specific post. Defaults to `get_the_ID()` when `post_id` is
+  `__current__` (the value baked in at generation time).
+- Returns empty string when no matching ranges exist — heading and caveat still render.
+
+### Changed — Pricing section Elementor builder
+- `myls_elb_build_pricing()` now writes `myls_elb_shortcode_widget('[myls_pricing_table
+  post_id="N"]')` instead of a static HTML widget. The post_id is resolved at generation
+  time; the table contents are resolved at render time.
+- Removed the dead `$rows` loop from the builder function (table logic now lives entirely
+  in the shortcode).
+- Removed the `price_ranges_opt` guard from the dispatch case — the pricing section always
+  renders (empty state is handled gracefully by the shortcode).
+
+**Files changed:** `modules/shortcodes/pricing-table.php` (new),
+`inc/ajax/ai-elementor-builder.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.53] — 2026-03-06
+
+### Added — Contact / CTA Button URL setting
+- New persistent option `myls_elb_contact_url` replaces all hardcoded `/contact/` fallbacks
+  throughout the Elementor Builder pipeline.
+
+**Where to set it:**
+- Elementor Builder → Business Variables panel → "Contact / CTA Button URL" field.
+- Saved automatically on every page generation. Persists across sessions.
+- Also available as `{{contact_url}}` token in custom prompt templates.
+
+**Resolution priority (highest → lowest):**
+  1. Value typed in the builder UI field for this generation session
+  2. Saved `myls_elb_contact_url` option (set by any previous generation)
+  3. `/contact/` ultimate fallback if option is blank
+
+**Files changed:**
+- `admin/tabs/utilities/subtab-elementor.php` — Contact URL field added to Business Variables
+  panel; added to `getSetupSnapshot()` save, `applySetupSnapshot()` restore, and `fd.append()`
+  in the generate call.
+- `inc/ajax/ai-elementor-builder.php` — `$contact_url` resolved from POST + option in handler;
+  added to `$vars` (token) and `$section_flags` (passed to `parse_and_build`); extracted inside
+  `myls_elb_parse_and_build()` from section_flags + option fallback; all 4 hardcoded
+  `'/contact/'` button_url fallbacks replaced with `$contact_url`; `myls_elb_button_widget()`
+  default parameter changed from `'/contact/'` to `''` with option-read fallback.
+
+## [7.8.54] — 2026-03-06
+
+### Changed — Contact URL: single canonical source (myls_contact_page_id)
+- Removed the duplicate `myls_elb_contact_url` text field and option added in v7.8.53.
+- All CTA / hero button URL resolution now reads from `myls_contact_page_id` — the same
+  option already used by AI Content → FAQ Builder. One setting, two features.
+
+**Where to set it:** AI Content → FAQ Builder → Contact Page selector.
+
+**New helper function** `myls_get_contact_url()` added to `ai-elementor-builder.php`:
+- Reads `myls_contact_page_id`, calls `get_permalink()` for the correct URL.
+- Auto-detects `/contact-us/` or `/contact/` pages on first call if option not set.
+- Falls back to `home_url('/contact-us/')` if no contact page exists.
+- Used by: `myls_elb_button_widget()` default, `myls_elb_parse_and_build()` resolution,
+  and the AJAX handler `$contact_url` variable.
+
+**Builder UI:** Business Variables panel now shows the resolved URL read-only with a direct
+link to AI Content → FAQ Builder to change it. No editable text field.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `admin/tabs/utilities/subtab-elementor.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.55] — 2026-03-06
+
+### Fixed — Service area shortcodes: remove empty state messages
+- All service area shortcodes now return `''` (empty string) when no results are found,
+  instead of rendering a visible "No service areas found." message.
+- Affected: `service-area-lists.php` (2 instances), `service-area-grid.php`,
+  `service-area-children.php` (default empty_text + return), `service-area-roots-children.php`.
+
+**Files changed:** `modules/shortcodes/service-area-lists.php`,
+`modules/shortcodes/service-area-grid.php`, `modules/shortcodes/service-area-children.php`,
+`modules/shortcodes/service-area-roots-children.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.56] — 2026-03-06
+
+### Changed — FAQ Builder prompt: GEO-aligned rewrite (v3)
+
+Four concrete improvements aligned with the 2026 AI Visibility Checklist:
+
+**1. Answer block scoped to 40–60 words (AI grab-and-go)**
+The Implementation Guide is explicit: answers over 60 words get summarised by AI, not quoted.
+The opening `<p><strong>Answer:</strong>` block is now capped at 40–60 words — complete,
+standalone, and directly citable. Supporting detail moves into the body paragraphs.
+
+**2. Wiki-voice rule added**
+All factual answer sentences must be written in neutral, third-person, encyclopedic tone.
+No "we/our/I think/we believe." Declarative: "The standard procedure is X" not "We do X."
+AI models cite content that sounds like a reference source, not a sales page.
+
+**3. Island Test enforced**
+Every sentence must make sense if extracted with no surrounding context. Pronouns (it/they/this)
+replaced with real nouns. AI systems chunk content — this ensures every chunk is citable.
+
+**4. Fact density rule added**
+Specific measurements, percentages, temperatures, and timeframes required throughout.
+"AI models hallucinate less when grounded in numbers." Vague qualifiers disallowed.
+
+**Also added:** at least 2 comparison/"vs" questions per FAQ set — AI users frequently ask
+comparative questions and AI systems cite comparative content at a higher citation rate.
+
+**Migration:** Option key bumped v2 → v3. Existing custom prompts are preserved automatically.
+Sites using the default prompt silently upgrade to v3 on next page load.
+
+**Files changed:** `assets/prompts/faqs-builder.txt`, `admin/tabs/ai/subtab-faqs.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## [7.8.57] — 2026-03-06
+
+### Changed — All AI prompts rewritten with consistent GEO standards
+
+Every prompt file updated to apply the same four core GEO principles from the 2026 AI Visibility Checklist:
+
+**WIKI-VOICE** — All prompts now require neutral, third-person, declarative prose. First-person ("we/our/us"), subjective phrases ("amazing", "world-class"), and marketing language are banned across all outputs. Content reads like a reference source, which AI systems cite at a higher rate than promotional copy.
+
+**ISLAND TEST** — Every sentence in every output must make sense when extracted with no surrounding context. Pronouns must be replaced with the actual noun. Applied to: meta descriptions, excerpts, about-area sections, FAQ answers, GEO rewrite, llms.txt, page builder, and Elementor builder.
+
+**FACT DENSITY** — Specific measurements, percentages, temperatures, named materials, and timeframes are required wherever accurate. Vague qualifiers banned. AI models hallucinate less when grounded in specific data and cite specific facts more frequently than general claims.
+
+**40–60 WORD STANDALONE ANSWER BLOCKS** — Applied to FAQ answers (already done in v7.8.56), GEO rewrite "Quick Answer" and FAQ sections, and llms.txt FAQ answers. Opening sentences must fully answer their question independently at 40–60 words maximum.
+
+**Files updated:** `assets/prompts/meta-title.txt`, `meta-description.txt`, `excerpt.txt`, `html-excerpt.txt`, `taglines.txt`, `about-area.txt`, `about-area-retry.txt`, `geo-rewrite.txt`, `llms-txt.txt`, `page-builder.txt`. `faqs-builder.txt` and `elementor-builder.txt` were already updated in v7.8.56.
+
+### Added — One-time prompt reset migration
+On update to v7.8.57, all 13 saved prompt options are deleted from the database so every prompt tab loads the new GEO-aligned file defaults. Migration runs once via `plugins_loaded` priority 5 and sets flag `myls_prompts_reset_v78570` to prevent re-running.
+
+**Affected option keys cleared:** `myls_ai_prompt_title`, `myls_ai_prompt_desc`, `myls_ai_prompt_excerpt`, `myls_ai_prompt_html_excerpt`, `myls_ai_taglines_prompt_template`, `myls_ai_about_prompt_template`, `myls_ai_geo_prompt_template`, `myls_ai_llms_txt_prompt_template`, `myls_pb_prompt_template`, `myls_elb_prompt_template`, `myls_ai_faqs_prompt_template`, `myls_ai_faqs_prompt_template_v2`, `myls_ai_faqs_prompt_template_v3`.
+
+**Note:** Any custom prompts you have saved will be cleared. Copy them from the admin UI before updating if you want to preserve them.
+
+**Files changed:** All `assets/prompts/*.txt`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.8.59 — 2026-03-06
+
+### Fixed — Cookie Consent admin preview not rendering
+
+**Root cause:** `cookie-consent-admin.js` was applying CSS class names
+(`.ccb-theme-dark` etc.) to the preview elements, but those classes are only
+defined in `cookie-consent-frontend.css` which is **not loaded on admin pages**.
+The preview rendered empty (no colours, no layout).
+
+**Fix:** Rewrote `cookie-consent-admin.js` to build both preview frames
+(desktop + mobile) entirely with **inline styles** using a `THEMES` colour map.
+No CSS file dependency — previews render correctly regardless of which
+stylesheets are loaded on the page.
+
+### Fixed — Mobile banner layout
+
+`cookie-consent-frontend.css` mobile block (`@media max-width:600px`) updated:
+- Banner switches to `flex-direction:column` — text row above button row
+- Text: `font-size:11px`, centred, tight line-height — slim and unobtrusive
+- Buttons: `flex-direction:row`, each `flex:1 1 0` (exactly 50% width), `min-height:34px`
+- Removed old column-stacked full-width button styles
+
+### No changes
+
+WP Consent API is **not** required. The module is fully self-contained:
+sets its own `myls_cookie_consent` cookie, fires `ccb:accepted`/`ccb:declined`
+custom events, and provides `window.mylsCCBUnblock()` for script blocking.
+
+## 7.8.60 — 2026-03-06
+
+### Changed — Cookie Consent: Privacy Policy field is now a native WordPress page picker
+
+**`admin/tabs/tab-cookie-consent.php`**
+- Replaced `<input type="url">` with a `<select>` populated by `get_pages()` —
+  all published WordPress pages listed alphabetically with a "— None —" default
+- Backward-compatible: existing URL string values are reverse-looked-up to a
+  page ID via `url_to_postid()` and pre-selected on first load
+- Selected page's permalink shown as a live preview link below the dropdown
+
+**`modules/cookie-consent/cookie-consent.php`**
+- Sanitization: `privacy_url` now stored as `absint( $page_id )` instead of
+  `esc_url_raw()`. Legacy URL strings are preserved as-is for backward compat.
+- Frontend output: resolves stored page ID to `get_permalink( $id )` at render
+  time. Legacy URL strings fall through unchanged.
+
+**`modules/cookie-consent/cookie-consent-admin.js`**
+- `privacyLink()` helper updated: treats `"0"` or empty string as "no page
+  selected" (was checking for empty URL string). Non-zero page ID = show link.

@@ -30,9 +30,10 @@ $spec = [
       'RealEstateAgent','ITService',
     ];
 
-    $enabled      = get_option('myls_service_enabled','0');
-    $default_type = get_option('myls_service_default_type','');
-    $subtype      = get_option('myls_service_subtype','');
+    $enabled        = get_option('myls_service_enabled','0');
+    $default_type   = get_option('myls_service_default_type','');
+    $subtype        = get_option('myls_service_subtype','');
+    $service_output = get_option('myls_service_output','');
 
     // Detect optional CPTs
     $has_service_cpt       = post_type_exists('service');
@@ -40,6 +41,19 @@ $spec = [
 
     // Selected IDs (saved)
     $selected_ids = array_values(array_unique(array_map('absint', (array) get_option('myls_service_pages', []))));
+
+    // Price ranges — stored as array of {label, low, high, currency, post_ids[]}
+    $price_ranges = (array) get_option( 'myls_service_price_ranges', [] );
+    // Ensure each entry is a well-formed array with defaults
+    $price_ranges = array_values( array_map( function( $r ) {
+      return [
+        'label'    => sanitize_text_field( $r['label']    ?? '' ),
+        'low'      => sanitize_text_field( $r['low']      ?? '' ),
+        'high'     => sanitize_text_field( $r['high']     ?? '' ),
+        'currency' => sanitize_text_field( $r['currency'] ?? 'USD' ),
+        'post_ids' => array_values( array_map( 'absint', (array) ( $r['post_ids'] ?? [] ) ) ),
+      ];
+    }, $price_ranges ) );
 
     // --- Build hierarchical "Pages"
     $pages = get_pages([
@@ -146,8 +160,11 @@ $spec = [
       #myls-service-pages-hidden { display:none; }
     </style>
 
-    <form method="post" class="myls-svc-wrap">
-      <?php wp_nonce_field('myls_schema_save','myls_schema_nonce'); ?>
+    <div class="myls-svc-wrap">
+      <!-- NOTE: No inner <form> here. The outer form in tab-schema.php wraps this
+           entire subtab and handles POST submission + nonce verification.
+           Adding a second <form> here causes the browser to close the outer form early,
+           orphaning the bottom "Save Settings" button outside any form. -->
 
       <div class="myls-svc-grid">
         <!-- LEFT (75%) -->
@@ -184,6 +201,20 @@ $spec = [
                        placeholder="Example: Paver Sealing, Dryer Vent Cleaning, Emergency Leak Repair">
                 <div class="form-text">
                   Outputs in schema as <code>serviceType</code> (as a secondary value) after the primary title-based <code>serviceType</code>.
+                </div>
+              </div>
+
+              <div class="myls-col col-12">
+                <label class="form-label">Service Output (optional)</label>
+                <input type="text"
+                       name="myls_service_output"
+                       value="<?php echo esc_attr($service_output); ?>"
+                       placeholder="e.g. Clean, mold-free driveway surface">
+                <div class="form-text">
+                  The <strong>tangible deliverable</strong> the customer receives — a noun phrase, not a process description.
+                  Outputs as <code>serviceOutput.name</code> in Service schema.
+                  If left blank, a smart default is derived from the service type.
+                  <strong>Do not use a sentence here</strong> — e.g. "Professionally cleaned exterior surfaces", not "We clean surfaces."
                 </div>
               </div>
             </div>
@@ -293,8 +324,370 @@ $spec = [
             -->
           </div>
         </div>
-      </div>
-    </form>
+
+        <!-- PRICE RANGES BLOCK (full-width, below the two-column grid) -->
+        <div style="margin-top:8px;width:100%;">
+          <div class="myls-block">
+            <div class="myls-block-title">💲 Service Price Ranges
+              <span class="form-text" style="font-weight:400;display:inline;margin-left:.5rem;">
+                Assign a low/high price range to specific posts. Outputs in Service schema as
+                <code>offers → PriceSpecification</code> (minPrice / maxPrice).
+              </span>
+            </div>
+
+            <!-- Full serialised state written here by JS before submit -->
+            <input type="hidden" id="myls-price-ranges-json" name="myls_price_ranges_json"
+                   value="<?php echo esc_attr( wp_json_encode( $price_ranges ) ); ?>">
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-top:10px;">
+
+              <!-- LEFT: Repeater -->
+              <div style="flex:3 1 480px;min-width:300px;">
+                <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem;">
+                  <strong>Price Ranges</strong>
+                  <button type="button" class="myls-btn myls-btn-primary" id="myls-add-range">+ Add Range</button>
+                </div>
+                <div id="myls-ranges-list"></div>
+                <p class="form-text" style="margin-top:.5rem;">
+                  Click <strong>Assign Posts →</strong> on any row to pick which posts use that price range.
+                </p>
+              </div>
+
+              <!-- RIGHT: Assignment panel for the active range -->
+              <div style="flex:1 1 260px;min-width:240px;">
+                <div class="myls-block" style="border-color:#0d6efd;">
+                  <div class="myls-block-title" id="myls-price-assign-title" style="color:#0d6efd;margin-bottom:.5rem;">
+                    ← Select a range to assign posts
+                  </div>
+
+                  <!-- Post type chips -->
+                  <div class="myls-actions myls-filter" style="margin-bottom:.5rem;">
+                    <label class="chip"><input type="checkbox" class="myls-price-ptype" value="page" checked> Pages</label>
+                    <label class="chip"><input type="checkbox" class="myls-price-ptype" value="post" checked> Posts</label>
+                    <?php if ( $has_service_cpt ): ?>
+                      <label class="chip"><input type="checkbox" class="myls-price-ptype" value="service" checked> Service</label>
+                    <?php endif; ?>
+                    <?php if ( $has_service_area_cpt ): ?>
+                      <label class="chip"><input type="checkbox" class="myls-price-ptype" value="service_area" checked> Svc Area</label>
+                    <?php endif; ?>
+                    <button type="button" class="myls-btn myls-btn-outline" id="myls-price-select-all">All</button>
+                    <button type="button" class="myls-btn myls-btn-outline" id="myls-price-clear-sel">Clear</button>
+                  </div>
+
+                  <!-- Title search -->
+                  <input type="text" id="myls-price-search" placeholder="Filter titles..." style="margin-bottom:.4rem;">
+
+                  <!-- Multi-select post list — disabled until a range is active -->
+                  <select id="myls-price-posts" class="myls-select" multiple size="16" disabled>
+                    <optgroup label="Pages">
+                      <?php $render_page_options(0, 0); ?>
+                    </optgroup>
+                    <optgroup label="Posts">
+                      <?php foreach ( $posts as $p ):
+                        printf('<option data-ptype="post" value="%d">%s</option>',
+                          (int)$p->ID, esc_html($p->post_title));
+                      endforeach; ?>
+                    </optgroup>
+                    <?php if ( $has_service_cpt ): ?>
+                      <optgroup label="Service">
+                        <?php foreach ( $services as $p ):
+                          printf('<option data-ptype="service" value="%d">%s</option>',
+                            (int)$p->ID, esc_html($p->post_title));
+                        endforeach; ?>
+                      </optgroup>
+                    <?php endif; ?>
+                    <?php if ( $has_service_area_cpt ): ?>
+                      <optgroup label="Service Area">
+                        <?php foreach ( $service_areas as $p ):
+                          printf('<option data-ptype="service_area" value="%d">%s</option>',
+                            (int)$p->ID, esc_html($p->post_title));
+                        endforeach; ?>
+                      </optgroup>
+                    <?php endif; ?>
+                  </select>
+                  <div class="form-text" style="margin-top:.4rem;">
+                    Hold <strong>Ctrl/Cmd</strong> to multi-select. Assignments save automatically when you switch ranges or submit.
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- /flex -->
+          </div><!-- /myls-block price ranges -->
+        </div><!-- /price ranges block -->
+
+      </div><!-- /myls-svc-grid -->
+    </div><!-- /myls-svc-wrap -->
+
+    <script>
+/* =========================================================================
+ * PRICE RANGES REPEATER — AIntelligize Service Schema Tab
+ * =========================================================================
+ * State:
+ *   priceRanges[]  — master array of {label, low, high, currency, postIds: Set}
+ *   activeIdx      — index of the range whose posts are shown on the right
+ *
+ * Flow:
+ *   1. Seed from PHP JSON (myls_price_ranges_json hidden input).
+ *   2. Render repeater rows from priceRanges.
+ *   3. Clicking "Assign Posts →" sets activeIdx, syncs right panel.
+ *   4. Right panel post select reads/writes postIds of the active range.
+ *   5. On form submit, serialize priceRanges to the hidden JSON input.
+ * ========================================================================= */
+(function(){
+  'use strict';
+
+  /* ---------- elements ---------- */
+  const jsonInput   = document.getElementById('myls-price-ranges-json');
+  const rangesList  = document.getElementById('myls-ranges-list');
+  const addBtn      = document.getElementById('myls-add-range');
+  const assignTitle = document.getElementById('myls-price-assign-title');
+  const postSel     = document.getElementById('myls-price-posts');
+  const priceSearch = document.getElementById('myls-price-search');
+  const priceChips  = document.querySelectorAll('.myls-price-ptype');
+  const selectAllBtn= document.getElementById('myls-price-select-all');
+  const clearSelBtn = document.getElementById('myls-price-clear-sel');
+
+  if ( !jsonInput || !rangesList || !postSel ) return;
+
+  /* ---------- state ---------- */
+  let priceRanges = [];  // [{label,low,high,currency,postIds:Set}, ...]
+  let activeIdx   = -1;  // which range's posts are shown in right panel
+
+  /* ---------- seed from PHP ---------- */
+  try {
+    const raw = JSON.parse( jsonInput.value || '[]' );
+    priceRanges = (Array.isArray(raw) ? raw : []).map(r => ({
+      label    : String(r.label    || ''),
+      low      : String(r.low      || ''),
+      high     : String(r.high     || ''),
+      currency : String(r.currency || 'USD'),
+      postIds  : new Set( (r.post_ids || []).map(Number) ),
+    }));
+  } catch(e) { priceRanges = []; }
+
+  /* ---------- helpers ---------- */
+  function norm(s){ return String(s||'').toLowerCase().trim(); }
+
+  function serializeToJson(){
+    // Write full state to hidden input so PHP receives it on form submit
+    const arr = priceRanges.map(r => ({
+      label    : r.label,
+      low      : r.low,
+      high     : r.high,
+      currency : r.currency,
+      post_ids : Array.from(r.postIds),
+    }));
+    jsonInput.value = JSON.stringify(arr);
+  }
+
+  /* ---------- right panel — post assignment ---------- */
+
+  function applyFilters(){
+    const allowed = new Set(
+      Array.from(priceChips).filter(c => c.checked).map(c => c.value)
+    );
+    const q = norm(priceSearch ? priceSearch.value : '');
+    for (const opt of postSel.querySelectorAll('option')) {
+      const ptype = opt.getAttribute('data-ptype') || 'page';
+      const text  = norm(opt.textContent);
+      opt.hidden  = !allowed.has(ptype) || (q !== '' && text.indexOf(q) === -1);
+    }
+  }
+
+  function syncRightPanelToRange(idx){
+    if (idx < 0 || idx >= priceRanges.length) {
+      // No active range — disable and reset panel
+      postSel.disabled = true;
+      assignTitle.textContent = '← Select a range to assign posts';
+      for (const opt of postSel.querySelectorAll('option')) opt.selected = false;
+      return;
+    }
+    const r = priceRanges[idx];
+    postSel.disabled = false;
+    const label = r.label || ('Range ' + (idx + 1));
+    assignTitle.textContent = '📌 Assigning: ' + label;
+
+    // Apply selections from this range's postIds Set
+    for (const opt of postSel.querySelectorAll('option')) {
+      opt.selected = r.postIds.has( Number(opt.value) );
+    }
+    applyFilters();
+  }
+
+  function captureRightPanelToRange(idx){
+    // Write current UI selections back into priceRanges[idx].postIds
+    if (idx < 0 || idx >= priceRanges.length) return;
+    const ids = new Set();
+    for (const opt of postSel.querySelectorAll('option')) {
+      if (opt.selected) ids.add( Number(opt.value) );
+    }
+    priceRanges[idx].postIds = ids;
+    serializeToJson();
+    updateAssignBadge(idx);
+  }
+
+  function updateAssignBadge(idx){
+    const row = rangesList.querySelector('[data-range-idx="' + idx + '"]');
+    if (!row) return;
+    const badge = row.querySelector('.myls-range-badge');
+    if (badge) badge.textContent = priceRanges[idx].postIds.size + ' posts';
+  }
+
+  /* ---------- repeater render ---------- */
+
+  function renderRow(r, idx){
+    const isActive = (idx === activeIdx);
+    const row = document.createElement('div');
+    row.setAttribute('data-range-idx', idx);
+    row.style.cssText = [
+      'display:flex;gap:6px;align-items:center;flex-wrap:wrap;',
+      'padding:8px;margin-bottom:6px;border-radius:1em;border:1px solid',
+      isActive ? ' #0d6efd;background:#e8f0fe;' : ' #000;background:#fff;',
+    ].join('');
+
+    row.innerHTML = [
+      '<input type="text" placeholder="Label (e.g. House Washing)"',
+      '  style="flex:2 1 140px;min-width:100px;"',
+      '  class="myls-range-label" value="' + esc(r.label) + '">',
+
+      '<input type="text" placeholder="Low $" ',
+      '  style="width:68px;flex:0 0 68px;" class="myls-range-low" value="' + esc(r.low) + '">',
+
+      '<input type="text" placeholder="High $"',
+      '  style="width:68px;flex:0 0 68px;" class="myls-range-high" value="' + esc(r.high) + '">',
+
+      '<select class="myls-range-currency" style="width:68px;flex:0 0 68px;">',
+        '<option value="USD"' + (r.currency==='USD'?' selected':'') + '>USD</option>',
+        '<option value="EUR"' + (r.currency==='EUR'?' selected':'') + '>EUR</option>',
+        '<option value="GBP"' + (r.currency==='GBP'?' selected':'') + '>GBP</option>',
+        '<option value="CAD"' + (r.currency==='CAD'?' selected':'') + '>CAD</option>',
+      '</select>',
+
+      '<button type="button" class="myls-btn ' + (isActive ? 'myls-btn-primary' : 'myls-btn-outline') + ' myls-range-assign">',
+        isActive ? '✅ Assigning' : 'Assign Posts →',
+      '</button>',
+      '<span class="myls-range-badge form-text" style="white-space:nowrap;">',
+        r.postIds.size + ' posts',
+      '</span>',
+
+      '<button type="button" class="myls-btn myls-btn-outline myls-range-remove"',
+      '  style="color:#dc3545;border-color:#dc3545;" title="Remove this range">🗑</button>',
+    ].join('');
+
+    /* -- field → state sync -- */
+    row.querySelector('.myls-range-label').addEventListener('input', function(){
+      priceRanges[idx].label = this.value;
+      if (activeIdx === idx) assignTitle.textContent = '📌 Assigning: ' + (this.value || 'Range '+(idx+1));
+      serializeToJson();
+    });
+    row.querySelector('.myls-range-low').addEventListener('input', function(){
+      priceRanges[idx].low = this.value;
+      serializeToJson();
+    });
+    row.querySelector('.myls-range-high').addEventListener('input', function(){
+      priceRanges[idx].high = this.value;
+      serializeToJson();
+    });
+    row.querySelector('.myls-range-currency').addEventListener('change', function(){
+      priceRanges[idx].currency = this.value;
+      serializeToJson();
+    });
+
+    /* -- Assign Posts button -- */
+    row.querySelector('.myls-range-assign').addEventListener('click', function(){
+      if (activeIdx === idx) {
+        // Toggle off — deselect
+        captureRightPanelToRange(activeIdx);
+        activeIdx = -1;
+      } else {
+        // Save previous panel before switching
+        if (activeIdx >= 0) captureRightPanelToRange(activeIdx);
+        activeIdx = idx;
+      }
+      renderRepeater();
+      syncRightPanelToRange(activeIdx);
+    });
+
+    /* -- Remove button -- */
+    row.querySelector('.myls-range-remove').addEventListener('click', function(){
+      if (!confirm('Remove this price range?')) return;
+      if (activeIdx === idx) { activeIdx = -1; syncRightPanelToRange(-1); }
+      else if (activeIdx > idx) activeIdx--;
+      priceRanges.splice(idx, 1);
+      renderRepeater();
+      serializeToJson();
+    });
+
+    return row;
+  }
+
+  function esc(s){ return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+  function renderRepeater(){
+    rangesList.innerHTML = '';
+    if (priceRanges.length === 0) {
+      rangesList.innerHTML = '<p class="form-text">No price ranges yet. Click <strong>+ Add Range</strong> to create one.</p>';
+      return;
+    }
+    priceRanges.forEach((r, idx) => rangesList.appendChild(renderRow(r, idx)));
+  }
+
+  /* ---------- post list interactions ---------- */
+
+  // Capture on every change of the select
+  postSel.addEventListener('change', function(){
+    if (activeIdx >= 0) captureRightPanelToRange(activeIdx);
+  });
+
+  priceChips.forEach(ch => ch.addEventListener('change', applyFilters));
+  if (priceSearch) priceSearch.addEventListener('input', applyFilters);
+
+  selectAllBtn && selectAllBtn.addEventListener('click', function(){
+    if (activeIdx < 0) return;
+    for (const opt of postSel.querySelectorAll('option')) {
+      if (!opt.hidden) opt.selected = true;
+    }
+    captureRightPanelToRange(activeIdx);
+  });
+
+  clearSelBtn && clearSelBtn.addEventListener('click', function(){
+    if (activeIdx < 0) return;
+    for (const opt of postSel.querySelectorAll('option')) {
+      if (!opt.hidden) opt.selected = false;
+    }
+    captureRightPanelToRange(activeIdx);
+  });
+
+  /* ---------- Add Range button ---------- */
+  addBtn.addEventListener('click', function(){
+    // Save active panel before adding
+    if (activeIdx >= 0) captureRightPanelToRange(activeIdx);
+    priceRanges.push({ label:'', low:'', high:'', currency:'USD', postIds: new Set() });
+    activeIdx = priceRanges.length - 1; // auto-activate the new row
+    renderRepeater();
+    syncRightPanelToRange(activeIdx);
+    serializeToJson();
+    // Scroll new row into view
+    const rows = rangesList.querySelectorAll('[data-range-idx]');
+    if (rows.length) rows[rows.length-1].scrollIntoView({ behavior:'smooth', block:'nearest' });
+  });
+
+  /* ---------- Serialize before submit ---------- */
+  // Capture final panel state when form submits
+  const form = jsonInput.closest('form');
+  if (form) {
+    form.addEventListener('submit', function(){
+      if (activeIdx >= 0) captureRightPanelToRange(activeIdx);
+      serializeToJson();
+    });
+  }
+
+  /* ---------- Init ---------- */
+  renderRepeater();
+  syncRightPanelToRange(activeIdx); // -1 → disabled panel
+
+})();
+</script>
 
     <script>
 (function(){
@@ -467,6 +860,7 @@ $spec = [
     update_option('myls_service_enabled',       sanitize_text_field($_POST['myls_service_enabled'] ?? '0'));
     update_option('myls_service_default_type',  sanitize_text_field($_POST['myls_service_default_type'] ?? ''));
     update_option('myls_service_subtype',       sanitize_text_field($_POST['myls_service_subtype'] ?? ''));
+    update_option('myls_service_output',        sanitize_text_field($_POST['myls_service_output'] ?? ''));
 
     /**
      * Persisted selections:
@@ -481,9 +875,34 @@ $spec = [
       $ids = array_map('absint', $_POST['myls_service_pages']);
     }
 
-    // Clean + store
+    // Clean + store service page assignments
     $ids = array_values(array_filter(array_unique($ids)));
     update_option('myls_service_pages', $ids);
+
+    // ── Price Ranges ──────────────────────────────────────────────────────
+    // JS serialises the full repeater state (label, low, high, currency, post_ids[])
+    // to a single JSON string in the hidden input myls_price_ranges_json.
+    $raw_json = stripslashes( $_POST['myls_price_ranges_json'] ?? '[]' );
+    $decoded  = json_decode( $raw_json, true );
+
+    if ( is_array( $decoded ) ) {
+      $clean_ranges = [];
+      foreach ( $decoded as $r ) {
+        if ( ! is_array($r) ) continue;
+
+        $label    = sanitize_text_field( $r['label']    ?? '' );
+        $low      = preg_replace( '/[^0-9.]/', '', (string) ( $r['low']  ?? '' ) );
+        $high     = preg_replace( '/[^0-9.]/', '', (string) ( $r['high'] ?? '' ) );
+        $currency = strtoupper( sanitize_text_field( $r['currency'] ?? 'USD' ) );
+        $post_ids = array_values( array_filter( array_map( 'absint', (array) ( $r['post_ids'] ?? [] ) ) ) );
+
+        // Allow ranges that have at least a label OR a price value
+        if ( $label !== '' || $low !== '' || $high !== '' ) {
+          $clean_ranges[] = compact( 'label', 'low', 'high', 'currency', 'post_ids' );
+        }
+      }
+      update_option( 'myls_service_price_ranges', $clean_ranges );
+    }
   }
 ];
 

@@ -67,7 +67,7 @@ add_shortcode('service_area_grid', function( $atts ) {
 
 	$q = new WP_Query($args);
 	if ( ! $q->have_posts() ) {
-		return '<div class="container ssseo-service-area-grid '. esc_attr($a['class']) .'"><div class="alert alert-info">No service areas found.</div></div>';
+		return '';
 	}
 
 	$map_tag = shortcode_exists('myls_map_embed') ? 'myls_map_embed' : 'ssseo_map_embed';
