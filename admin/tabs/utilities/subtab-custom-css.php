@@ -30,6 +30,9 @@ return [
 
         $custom_css_len = strlen($css);
 
+        // Read frontend.css source for the source viewer tab
+        $frontend_css_source = file_exists($frontend_css_path) ? file_get_contents($frontend_css_path) : '/* File not found */';
+
         // Preview pages
         $preview_pages = [];
         $preview_pages[] = ['url' => home_url('/'), 'label' => 'Homepage'];
@@ -132,15 +135,33 @@ return [
             .myls-se-snippet-item .sel  { font-family: monospace; color: #7c3aed; font-weight: 500; }
             .myls-se-snippet-item .desc { color: #94a3b8; font-size: 11px; }
 
-            /* Code textarea */
-            #myls_se_textarea {
+            /* Editor tab switcher */
+            .myls-se-tabs { display: flex; gap: 0; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+            .myls-se-tab {
+                padding: 8px 16px; font-size: 12px; font-weight: 600; cursor: pointer;
+                border: none; background: none; color: #64748b;
+                border-bottom: 2px solid transparent; transition: all .15s;
+            }
+            .myls-se-tab:hover { color: #334155; }
+            .myls-se-tab.active { color: #0d6efd; border-bottom-color: #0d6efd; }
+            .myls-se-tab .myls-se-tab-badge {
+                display: inline-block; padding: 1px 6px; margin-left: 6px;
+                font-size: 10px; font-weight: 500; border-radius: 4px;
+                background: #e2e8f0; color: #64748b;
+            }
+            .myls-se-tab.active .myls-se-tab-badge { background: #dbeafe; color: #2563eb; }
+
+            /* Code textareas (shared base) */
+            .myls-se-code {
                 flex: 1; width: 100%; border: none; resize: none; padding: 14px;
                 font-family: 'SF Mono','Monaco','Menlo','Consolas','Liberation Mono', monospace;
                 font-size: 13px; line-height: 1.7; tab-size: 2;
                 background: #1e1e2e; color: #cdd6f4; outline: none;
             }
-            #myls_se_textarea::placeholder { color: #585b70; }
-            #myls_se_textarea::selection   { background: #45475a; }
+            .myls-se-code::placeholder { color: #585b70; }
+            .myls-se-code::selection   { background: #45475a; }
+            .myls-se-code.readonly { background: #1a1b26; color: #a9b1d6; cursor: default; }
+            .myls-se-code[style*="display: none"] { flex: 0; }
 
             /* Status bar */
             .myls-se-status { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 11px; }
@@ -259,7 +280,18 @@ return [
 
             <!-- LEFT: CSS Editor -->
             <div class="myls-se-editor">
-                <div class="myls-se-toolbar">
+                <!-- Tab switcher -->
+                <div class="myls-se-tabs">
+                    <button type="button" class="myls-se-tab active" data-tab="overrides">
+                        Custom Overrides
+                    </button>
+                    <button type="button" class="myls-se-tab" data-tab="frontend-src">
+                        Frontend Source <span class="myls-se-tab-badge">read-only</span>
+                    </button>
+                </div>
+
+                <!-- Toolbar (visible for overrides tab) -->
+                <div class="myls-se-toolbar" id="myls_se_toolbar_overrides">
                     <span class="myls-se-title">Custom CSS Overrides</span>
                     <span class="spacer"></span>
 
@@ -285,17 +317,43 @@ return [
                     <button type="button" class="btn btn-sm btn-primary" id="myls_se_save" style="padding:5px 14px;font-size:12px;">Save</button>
                 </div>
 
-                <textarea id="myls_se_textarea"
+                <!-- Toolbar (visible for frontend source tab) -->
+                <div class="myls-se-toolbar" id="myls_se_toolbar_source" style="display:none;">
+                    <span class="myls-se-title">assets/frontend.css</span>
+                    <span class="spacer"></span>
+                    <span style="font-size:11px;color:#94a3b8;">Read-only &mdash; edit via code editor or plugin update</span>
+                </div>
+
+                <!-- Overrides textarea (editable) -->
+                <textarea id="myls_se_textarea" class="myls-se-code"
                     placeholder="/* Custom CSS Overrides */&#10;/* Tip: Use 'Insert Selector' above for quick access to plugin CSS classes */&#10;&#10;.service-box {&#10;  border-radius: 12px;&#10;  box-shadow: 0 2px 8px rgba(0,0,0,0.08);&#10;}"
                     spellcheck="false"><?php echo esc_textarea($css); ?></textarea>
 
-                <div class="myls-se-hints">
+                <!-- Frontend source textarea (read-only) -->
+                <textarea id="myls_se_source" class="myls-se-code readonly"
+                    readonly spellcheck="false"
+                    style="display:none;"><?php echo esc_textarea($frontend_css_source); ?></textarea>
+
+                <!-- Hints (overrides tab) -->
+                <div class="myls-se-hints" id="myls_se_hints_overrides">
                     <kbd>Tab</kbd> indent &middot; <kbd>Ctrl+S</kbd> save &middot; CSS loads after theme with high priority
                 </div>
 
-                <div class="myls-se-status">
+                <!-- Hints (source tab) -->
+                <div class="myls-se-hints" id="myls_se_hints_source" style="display:none;">
+                    Plugin frontend stylesheet &mdash; shortcode grid styles, card layouts, responsive rules
+                </div>
+
+                <!-- Status bar (overrides tab) -->
+                <div class="myls-se-status" id="myls_se_status_overrides">
                     <span id="myls_se_status" class="saved">Saved</span>
                     <span class="info"><span id="myls_se_chars"><?php echo $custom_css_len; ?></span> chars</span>
+                </div>
+
+                <!-- Status bar (source tab) -->
+                <div class="myls-se-status" id="myls_se_status_source" style="display:none;">
+                    <span class="info"><?php echo esc_html($frontend_css_size); ?></span>
+                    <span class="info"><?php echo strlen($frontend_css_source); ?> chars</span>
                 </div>
 
                 <input type="hidden" id="myls_se_nonce"     value="<?php echo esc_attr($nonce); ?>">
@@ -462,6 +520,32 @@ return [
                 }
             });
 
+            /* ── Editor tab switching ── */
+            const sourceTextarea   = document.getElementById('myls_se_source');
+            const toolbarOverrides = document.getElementById('myls_se_toolbar_overrides');
+            const toolbarSource    = document.getElementById('myls_se_toolbar_source');
+            const hintsOverrides   = document.getElementById('myls_se_hints_overrides');
+            const hintsSource      = document.getElementById('myls_se_hints_source');
+            const statusOverrides  = document.getElementById('myls_se_status_overrides');
+            const statusSource     = document.getElementById('myls_se_status_source');
+
+            document.querySelectorAll('.myls-se-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.myls-se-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    const isSource = tab.dataset.tab === 'frontend-src';
+
+                    textarea.style.display         = isSource ? 'none' : '';
+                    sourceTextarea.style.display    = isSource ? '' : 'none';
+                    toolbarOverrides.style.display  = isSource ? 'none' : '';
+                    toolbarSource.style.display     = isSource ? '' : 'none';
+                    hintsOverrides.style.display    = isSource ? 'none' : '';
+                    hintsSource.style.display       = isSource ? '' : 'none';
+                    statusOverrides.style.display   = isSource ? 'none' : '';
+                    statusSource.style.display      = isSource ? '' : 'none';
+                });
+            });
+
             /* ── Snippet dropdown ── */
             const snippetMenu = document.getElementById('myls_se_snippet_menu');
             document.getElementById('myls_se_snippet_toggle')?.addEventListener('click', (e) => {
@@ -471,6 +555,11 @@ return [
             document.addEventListener('click', () => snippetMenu?.classList.remove('open'));
 
             function insertSelector(selector) {
+                // Switch to overrides tab if viewing source
+                const overridesTab = document.querySelector('.myls-se-tab[data-tab="overrides"]');
+                if (!overridesTab.classList.contains('active')) {
+                    overridesTab.click();
+                }
                 const snippet = '\n' + selector + ' {\n  \n}\n';
                 const pos = textarea.selectionStart;
                 textarea.value = textarea.value.substring(0, pos) + snippet + textarea.value.substring(textarea.selectionEnd);

@@ -1,3 +1,14 @@
+## 7.8.79 — 2026-03-08
+
+### New — Frontend Source viewer tab in Style Editor
+
+Added a "Frontend Source" read-only tab to the Style Editor panel. Users can now
+toggle between "Custom Overrides" (editable) and "Frontend Source" to view the
+full `assets/frontend.css` contents — shortcode grid styles, card layouts, and
+responsive rules — right next to where they write overrides. Clicking a selector
+from the CSS Reference or Insert Selector dropdown while viewing source
+automatically switches back to the overrides tab.
+
 ## 7.8.78 — 2026-03-08
 
 ### New — Style Editor replaces Custom CSS subtab
