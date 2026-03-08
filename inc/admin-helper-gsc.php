@@ -106,15 +106,8 @@ add_action('admin_enqueue_scripts', function($hook){
         'hasToken' => $has_token,
     ]);
 
-    // Minimal CSS for status dot
-    $css = '
-    .myls-status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#c4c4c4;margin-right:8px;vertical-align:middle}
-    .myls-status-dot.is-checking{background:#aaa}
-    .myls-status-dot.is-ok{background:#2bbf6a}
-    .myls-status-dot.is-bad{background:#e55353}
-    .myls-status-dot.is-unknown{background:#999}';
-    // piggyback a core style handle so inline CSS prints
-    wp_add_inline_style('wp-components', $css);
+    // Status dot CSS now lives in assets/css/admin.css
+    wp_enqueue_style('myls-admin-css', myls_asset_url('assets/css/admin.css'), [], MYLS_VERSION);
 });
 
 /**

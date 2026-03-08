@@ -1,3 +1,45 @@
+## 7.8.77 — 2026-03-08
+
+### Fixed — production debug constants, SSL verification, duplicate requires
+
+**Debug constants:** `MYLS_SCHEMA_DEBUG`, `MYLS_DEBUG_ORG`, `MYLS_DEBUG_LB` now
+default to `false`. Previously defaulted to `true`, causing debug output on
+production sites.
+
+**SSL verification:** Removed `'sslverify' => false` from the Google Places API
+cron call in `aintelligize.php`. The request now uses WordPress default SSL
+verification.
+
+**Duplicate code:** Removed duplicate `require_once` for
+`admin/api-integration-tests.php` (was loaded twice — once unconditionally and
+once inside `is_admin()`). Removed duplicate `ABSPATH` exit guard.
+
+### Refactored — inline CSS moved to enqueued stylesheet files
+
+All static inline CSS has been moved to proper enqueued files for easier editing
+and better browser caching:
+
+- **Admin styles** → `assets/css/admin.css`: tab navigation, Bootstrap/WP admin
+  shim, GSC status dot colors
+- **Frontend styles** → `assets/frontend.css`: Service Posts grid, Service Grid,
+  Divi 5-column layout
+
+Shortcode files (`service-posts.php`, `service-grid.php`, `divi-child-posts.php`)
+now use `wp_enqueue_style('myls-frontend', ...)` instead of `echo '<style>'` or
+`wp_add_inline_style()`.
+
+### Cleanup — deleted 5 duplicate/unused CSS files
+
+- `assets/admin.css` (superseded by `assets/css/admin.css`)
+- `assets/utilities.css` (superseded by `assets/css/utilities.css`)
+- `assets/variables.css` (superseded by `assets/css/variables.css`)
+- `assets/dark.css` (legacy, not enqueued)
+- `assets/default-styles.css` (empty placeholder)
+
+**Files changed:** `aintelligize.php`, `inc/assets.php`, `inc/admin-helper-gsc.php`,
+`modules/shortcodes/service-posts.php`, `modules/shortcodes/service-grid.php`,
+`modules/shortcodes/divi-child-posts.php`, `assets/css/admin.css`, `assets/frontend.css`
+
 ## 7.8.68 — 2026-03-07
 
 ### Fixed — awards, certifications, and aggregateRating missing from Service schema provider on unassigned pages
