@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.8.77
+Stable tag: 7.8.78
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -160,6 +160,9 @@ FAQ Quick Editor now supports multi-post batch save and WYSIWYG answers.
 Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
+
+= 7.8.78 =
+* NEW: Replaced Custom CSS subtab with Style Editor — modern UI with CSS file info cards, Insert Selector dropdown for shortcode CSS classes, live preview with device simulation, and collapsible CSS class reference panel.
 
 = 7.8.77 =
 * FIX: Debug constants (MYLS_SCHEMA_DEBUG, MYLS_DEBUG_ORG, MYLS_DEBUG_LB) now default to false instead of true in production.
