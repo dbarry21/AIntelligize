@@ -3,7 +3,7 @@
  * Plugin Name:       AIntelligize
  * Plugin URI:        https://aintelligize.com/
  * Description:       Modular local SEO toolkit with schema, AI tools, bulk operations, and shortcode utilities.
- * Version: 7.8.76
+ * Version: 7.8.77
  * Author:            Dave Barry
  * Author URI:        https://davebarry.io/
  * Text Domain:       aintelligize
@@ -16,7 +16,7 @@ if ( ! defined('ABSPATH') ) exit;
  * Canonical constants & helpers (single source of truth)
  * ───────────────────────────────────────────────────────────────────────── */
 // Keep in sync with plugin header above.
-if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.8.76');
+if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.8.77');
 if ( ! defined('MYLS_MAIN_FILE') )   define('MYLS_MAIN_FILE', __FILE__);
 if ( ! defined('MYLS_PATH') )        define('MYLS_PATH', plugin_dir_path(MYLS_MAIN_FILE));
 if ( ! defined('MYLS_URL') )         define('MYLS_URL',  plugins_url('', MYLS_MAIN_FILE));
@@ -29,10 +29,10 @@ if ( ! defined('MYLS_PLUGIN_URL') )      define('MYLS_PLUGIN_URL', trailingslash
 if ( ! defined('MYLS_PLUGIN_BASENAME') ) define('MYLS_PLUGIN_BASENAME', MYLS_BASENAME);
 if ( ! defined('MYLS_PLUGIN_VERSION') )  define('MYLS_PLUGIN_VERSION', MYLS_VERSION);
 
-/** Debug toggles (as in your original) */
-if ( ! defined('MYLS_SCHEMA_DEBUG') ) define('MYLS_SCHEMA_DEBUG', true);
-if ( ! defined('MYLS_DEBUG_ORG') )    define('MYLS_DEBUG_ORG', true);
-if ( ! defined('MYLS_DEBUG_LB') )     define('MYLS_DEBUG_LB', true);
+/** Debug toggles — default off in production; override in wp-config.php to enable */
+if ( ! defined('MYLS_SCHEMA_DEBUG') ) define('MYLS_SCHEMA_DEBUG', false);
+if ( ! defined('MYLS_DEBUG_ORG') )    define('MYLS_DEBUG_ORG', false);
+if ( ! defined('MYLS_DEBUG_LB') )     define('MYLS_DEBUG_LB', false);
 
 /** Helpers */
 if ( ! function_exists('myls_asset_url') ) {
@@ -135,7 +135,6 @@ require_once MYLS_PATH . 'inc/schema/providers/build-service-schema.php';
 require_once MYLS_PATH . 'inc/schema/providers/video-archive.php';
 require_once MYLS_PATH . 'inc/schema/providers/video-schema.php';
 require_once MYLS_PATH . 'inc/schema/providers/video-object-detector.php';
-require_once MYLS_PATH . 'admin/api-integration-tests.php';
 require_once MYLS_PATH . 'inc/schema/providers/video-collection-head.php';
 require_once MYLS_PATH . 'inc/schema/providers/faq.php';
 require_once MYLS_PATH . 'inc/schema/providers/service-faq-page.php';
@@ -253,7 +252,7 @@ add_action( 'myls_refresh_places_rating', function() {
 		'key'      => $key,
 	], 'https://maps.googleapis.com/maps/api/place/details/json' );
 
-	$r = wp_remote_get( $url, [ 'timeout' => 15, 'sslverify' => false ] );
+	$r = wp_remote_get( $url, [ 'timeout' => 15 ] );
 	if ( is_wp_error($r) ) return;
 
 	$body   = json_decode( wp_remote_retrieve_body($r), true );
@@ -321,22 +320,10 @@ add_filter('myls_admin_tabs_nav_classes', function( $classes, $tabs = [], $curre
   return trim($classes . ' myls-tabs');
 }, 10, 3);
 
-/** Ensure dashicons + attach inline CSS only on our page. */
+/** Ensure dashicons are available on our page. Tab nav CSS now in assets/css/admin.css */
 add_action('admin_enqueue_scripts', function(){
 	if ( ! myls_is_our_admin_page() ) return;
-
 	wp_enqueue_style('dashicons');
-
-	$css = <<<CSS
-.myls-tabs { background:#fff; padding:8px 0; border-bottom:1px solid #e5e7eb; }
-.myls-tabs .nav-tab { display:inline-flex; align-items:center; gap:6px; padding:10px 14px; font-weight:600; border-radius:10px 10px 0 0; border:1px solid transparent; color:#334155; }
-.myls-tabs .nav-tab .dashicons { font-size:18px; width:18px; height:18px; line-height:18px; }
-.myls-tabs .nav-tab:hover { color:#0ea5e9; text-decoration:none; }
-.myls-tabs .nav-tab.nav-tab-active { color:#0f172a; background:#fff; border-color:#e5e7eb #e5e7eb #fff; box-shadow:0 2px 0 0 #fff, 0 -1px 0 0 #e5e7eb, 0 -6px 14px rgba(15,23,42,.04); }
-@media (max-width:782px){ .myls-tabs .nav-tab{ padding:8px 10px; gap:4px; } }
-CSS;
-
-	wp_add_inline_style('myls-admin-css', $css);
 });
 
 add_action('wp_enqueue_scripts', function() {
@@ -487,10 +474,7 @@ JS;
 
 /**
  * Force Elementor Text Editor widget to run shortcodes.
- */
-if ( ! defined('ABSPATH') ) exit;
-
-/**
+ *
  * 1) Elementor frontend content filter (broad, but usually safe).
  */
 add_filter( 'elementor/frontend/the_content', function( $content ) {

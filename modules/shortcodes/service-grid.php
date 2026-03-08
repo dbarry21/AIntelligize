@@ -142,36 +142,8 @@ if ( ! function_exists('ssseo_service_grid_shortcode_v2') ) {
 
     if ( $q->have_posts() ) {
 
-      // ------ Inline CSS (printed once) ------
-      static $css_printed = false;
-      if ( ! $css_printed ) {
-        $css_printed = true;
-        echo '<style>
-/* === AIntelligize – Service Grid === */
-.myls-service-grid{--bs-gutter-x:10px;--bs-gutter-y:10px}
-.myls-service-grid .service-box{display:flex;flex-direction:column}
-.myls-service-grid .myls-sg-img-link{display:block;overflow:hidden;border-radius:.375rem}
-.myls-service-grid .myls-sg-img{width:100%;height:auto;display:block;border-radius:.375rem;transition:transform .3s ease}
-.myls-service-grid .myls-sg-img-link:hover .myls-sg-img{transform:scale(1.03)}
-
-/* Aspect-ratio mode */
-.myls-sg-has-ratio .myls-sg-img{aspect-ratio:var(--myls-sg-ratio,auto);object-fit:cover;height:auto!important}
-
-/* Cropped-image mode (fixed height) */
-.myls-sg-crop .myls-sg-img{height:var(--myls-img-h,220px);object-fit:cover}
-
-/* Title links */
-.myls-service-grid .myls-sg-title a{text-decoration:none;color:inherit}
-.myls-service-grid .myls-sg-title a:hover{opacity:.8}
-
-/* Tagline / excerpt */
-.myls-service-grid .myls-sg-tagline,
-.myls-service-grid .myls-sg-excerpt{font-size:.92em;opacity:.85}
-
-/* Featured first card */
-.myls-sg-featured-first .col-md-6.col-lg-6:first-child .myls-sg-img{min-height:280px;object-fit:cover}
-</style>';
-      }
+      // Service Grid CSS now lives in assets/frontend.css
+      wp_enqueue_style('myls-frontend', plugins_url('assets/frontend.css', MYLS_MAIN_FILE), [], MYLS_VERSION);
 
       // Build inline style with CSS variables
       $inline_vars = '--myls-img-h:' . esc_attr($img_h) . 'px;';

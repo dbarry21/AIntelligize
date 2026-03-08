@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.8.76
+Stable tag: 7.8.77
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -160,6 +160,14 @@ FAQ Quick Editor now supports multi-post batch save and WYSIWYG answers.
 Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
+
+= 7.8.77 =
+* FIX: Debug constants (MYLS_SCHEMA_DEBUG, MYLS_DEBUG_ORG, MYLS_DEBUG_LB) now default to false instead of true in production.
+* FIX: Removed `sslverify => false` from Google Places API cron call — now uses WordPress default SSL verification.
+* FIX: Removed duplicate require_once for admin/api-integration-tests.php.
+* FIX: Removed duplicate ABSPATH exit guard.
+* REFACTOR: Moved all static inline CSS to enqueued stylesheet files for easier editing and better caching. Admin tab nav, Bootstrap shim, and GSC status dot styles moved to assets/css/admin.css. Service Posts, Service Grid, and Divi child posts shortcode styles moved to assets/frontend.css.
+* CLEANUP: Deleted 5 duplicate/unused CSS files (assets/admin.css, assets/dark.css, assets/default-styles.css, assets/utilities.css, assets/variables.css) superseded by assets/css/ equivalents.
 
 = 7.8.76 =
 * FIX: VideoObject schema now correctly generates on pages with Elementor Theme Builder templates containing videos. Root cause: _elementor_conditions is stored as a flat array of slash-delimited strings like ["include/general", "include/singular/front_page"] — not associative arrays. myls_elementor_condition_matches_post() completely rewritten to parse the string format; both string and array formats supported for forward/backward compat. Also removed erroneous json_decode() call — get_post_meta() auto-unserializes. Added include/singular/front_page and include/singular/home as explicit sub_id matches within the singular branch.

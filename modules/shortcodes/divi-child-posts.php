@@ -94,14 +94,8 @@ if (!function_exists('mlseo_divi_child_posts_shortcode')) {
         // ── Render ────────────────────────────────────────────────────
         ob_start();
 
-        // 5-column custom CSS (matches service_posts)
-        if ($columns === 5) {
-            echo '<style>
-                @media (min-width: 768px) {
-                    .col-md-custom-5 { flex: 0 0 20%; max-width: 20%; }
-                }
-            </style>';
-        }
+        // 5-column CSS now lives in assets/frontend.css
+        wp_enqueue_style('myls-frontend', plugins_url('assets/frontend.css', MYLS_MAIN_FILE), [], MYLS_VERSION);
 
         echo '<div class="mlseo-service-posts-grid">';
 

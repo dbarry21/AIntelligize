@@ -50,20 +50,7 @@ add_action('admin_enqueue_scripts', function( $hook ) {
         true
     );
 
-    // --- Minimal admin shim so Bootstrap + WP admin styles play nicely
-    $shim = "
-    /* Space the content a bit and keep Bootstrap cards readable in wp-admin */
-    .myls-admin-wrap .card { border-radius: .5rem; }
-    .myls-admin-wrap .card .card-header { font-weight: 600; }
-    .myls-admin-wrap .form-control, .myls-admin-wrap .form-select { max-width: 100%; }
-    .myls-admin-wrap .container-fluid { padding-left: 0; padding-right: 0; }
-    .myls-admin-wrap details summary { cursor: pointer; }
-    /* Keep WP nav tabs unchanged; our tab bodies can still use Bootstrap */
-    .myls-admin-content .row { margin-left: 0; margin-right: 0; }
-    ";
-    wp_register_style('myls-admin-inline', false);
-    wp_enqueue_style('myls-admin-inline');
-    wp_add_inline_style('myls-admin-inline', $shim);
+    // Bootstrap/WP admin shim CSS now lives in assets/css/admin.css
 
     // --- Prompt History Toolbar JS (shared across all AI tabs)
     $pt_ver = defined('MYLS_VERSION') ? MYLS_VERSION : time();

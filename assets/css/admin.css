@@ -315,14 +315,77 @@
   .myls-card {
     padding: var(--myls-spacer-3);
   }
-  
+
   .myls-actions {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .myls-actions > * {
     width: 100%;
   }
 }
+
+/* ===== Tab Navigation (moved from inline CSS) ===== */
+.myls-tabs {
+  background: #fff;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+.myls-tabs .nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-weight: 600;
+  border-radius: 10px 10px 0 0;
+  border: 1px solid transparent;
+  color: #334155;
+}
+.myls-tabs .nav-tab .dashicons {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+}
+.myls-tabs .nav-tab:hover {
+  color: #0ea5e9;
+  text-decoration: none;
+}
+.myls-tabs .nav-tab.nav-tab-active {
+  color: #0f172a;
+  background: #fff;
+  border-color: #e5e7eb #e5e7eb #fff;
+  box-shadow: 0 2px 0 0 #fff, 0 -1px 0 0 #e5e7eb, 0 -6px 14px rgba(15, 23, 42, .04);
+}
+@media (max-width: 782px) {
+  .myls-tabs .nav-tab {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+}
+
+/* ===== Bootstrap/WP Admin Integration Shim (moved from inline CSS) ===== */
+.myls-admin-wrap .card { border-radius: .5rem; }
+.myls-admin-wrap .card .card-header { font-weight: 600; }
+.myls-admin-wrap .form-control,
+.myls-admin-wrap .form-select { max-width: 100%; }
+.myls-admin-wrap .container-fluid { padding-left: 0; padding-right: 0; }
+.myls-admin-wrap details summary { cursor: pointer; }
+.myls-admin-content .row { margin-left: 0; margin-right: 0; }
+
+/* ===== GSC Status Dot (moved from inline CSS) ===== */
+.myls-status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #c4c4c4;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.myls-status-dot.is-checking { background: #aaa; }
+.myls-status-dot.is-ok { background: #2bbf6a; }
+.myls-status-dot.is-bad { background: #e55353; }
+.myls-status-dot.is-unknown { background: #999; }
 
