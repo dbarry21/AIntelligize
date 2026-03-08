@@ -1,3 +1,18 @@
+## 7.8.78 — 2026-03-08
+
+### New — Style Editor replaces Custom CSS subtab
+
+The Utilities > Custom CSS subtab has been replaced with a full Style Editor UI:
+
+- **Info cards** showing frontend CSS, admin CSS, and custom override stats
+- **Insert Selector dropdown** with pre-built CSS selectors for all plugin
+  shortcodes (Service Grid, Service Posts, Child Posts)
+- **Live preview** with page selector and desktop/tablet/mobile device simulation
+- **CSS Class Reference** — collapsible accordion showing all available CSS
+  selectors organized by shortcode, with click-to-insert
+- Dark-themed code editor with Tab indent, Ctrl+S save, and live injection
+- Saves to the same `myls_custom_css` DB option (no migration needed)
+
 ## 7.8.77 — 2026-03-08
 
 ### Fixed — production debug constants, SSL verification, duplicate requires
