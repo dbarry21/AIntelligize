@@ -75,6 +75,12 @@ myls_register_admin_tab([
 			update_option( 'myls_google_places_api_key',      sanitize_text_field( $_POST['myls_google_places_api_key']      ?? '' ) );
 			update_option( 'myls_google_places_place_id',     sanitize_text_field( $_POST['myls_google_places_place_id']     ?? '' ) );
 
+			// reviewCount manual override — written text reviews only (ratingCount is auto-fetched).
+			$rc_manual = trim( sanitize_text_field( $_POST['myls_google_places_review_count_manual'] ?? '' ) );
+			if ( $rc_manual === '' || ( is_numeric( $rc_manual ) && (int) $rc_manual >= 0 ) ) {
+				update_option( 'myls_google_places_review_count_manual', $rc_manual );
+			}
+
 			// Google Static Maps
 			update_option( 'myls_google_static_maps_api_key', sanitize_text_field( $_POST['myls_google_static_maps_api_key'] ?? '' ) );
 
@@ -216,30 +222,50 @@ myls_register_admin_tab([
 							<hr style="margin:16px 0;">
 
 							<label class="form-label">Google Rating &amp; Review Count</label>
-							<p class="description" style="margin-bottom:8px;">Auto-fetched from the Places API every 4 hours via WP-Cron. Used for <code>aggregateRating</code> on LocalBusiness, Organization, and Service schemas.</p>
+							<p class="description" style="margin-bottom:8px;">
+								<strong>ratingCount</strong> = total star ratings (auto-fetched from Places API every 4 hours). &nbsp;
+								<strong>reviewCount</strong> = written text reviews only (manual — Places API caps at 5). Both output in <code>aggregateRating</code> schema.
+							</p>
 							<div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
 								<div id="myls-places-rating-display" style="font-size:.9rem; color:#1d2327;">
 									<?php
 									$_r    = get_option('myls_google_places_rating', '');
-									$_c    = get_option('myls_google_places_review_count', '');
+									$_rc   = get_option('myls_google_places_rating_count', get_option('myls_google_places_review_count', ''));
 									$_t    = get_option('myls_places_rating_fetched_at', '');
 									$_next = wp_next_scheduled('myls_refresh_places_rating');
-									if ( $_r !== '' && $_c !== '' ) {
-										echo '<strong>' . esc_html($_r) . ' stars</strong> &nbsp;·&nbsp; <strong>' . esc_html($_c) . ' reviews</strong>';
+									if ( $_r !== '' && $_rc !== '' ) {
+										echo '<strong>' . esc_html($_r) . ' stars</strong> &nbsp;Â·&nbsp; <strong>' . esc_html($_rc) . ' ratings (ratingCount)</strong>';
 										if ( $_t ) echo ' &nbsp;<span style="color:#6b7280;font-size:.8rem;">fetched ' . esc_html($_t) . '</span>';
 									} else {
-										echo '<span style="color:#6b7280;">Not yet fetched — click Fetch Now or wait for cron</span>';
+										echo '<span style="color:#6b7280;">Not yet fetched â click Fetch Now or wait for cron</span>';
 									}
 									if ( $_next ) {
 										$diff = $_next - time();
 										$hrs  = floor($diff / 3600);
 										$mins = floor(($diff % 3600) / 60);
-										echo ' &nbsp;<span style="color:#6b7280;font-size:.8rem;">· next auto-refresh in ' . esc_html("{$hrs}h {$mins}m") . '</span>';
+										echo ' &nbsp;<span style="color:#6b7280;font-size:.8rem;">Â· next auto-refresh in ' . esc_html("{$hrs}h {$mins}m") . '</span>';
 									}
 									?>
 								</div>
 								<button type="button" class="button" id="myls-fetch-places-rating" data-nonce="<?php echo esc_attr($ajax_nonce); ?>">Fetch Now</button>
 							</div>
+
+							<!-- Manual reviewCount field -->
+							<div style="margin-top:10px;">
+								<label class="form-label" for="myls_google_places_review_count_manual">
+									reviewCount (Written Reviews) <span style="font-weight:400;color:#6b7280;">optional manual override</span>
+								</label>
+								<input type="number" min="0" id="myls_google_places_review_count_manual"
+									   name="myls_google_places_review_count_manual"
+									   value="<?php echo esc_attr( get_option('myls_google_places_review_count_manual', '') ); ?>"
+									   placeholder="e.g. 124"
+									   style="width:140px;">
+								<p class="description" style="margin-top:4px;">
+									Enter the number of written reviews from your Google Business Profile dashboard.
+									Leave blank to use <code>ratingCount</code> as the fallback value for <code>reviewCount</code>.
+								</p>
+							</div>
+
 							<div id="myls-places-rating-result" class="notice inline" style="margin-top:8px;"></div>
 						</div>
 					</div>

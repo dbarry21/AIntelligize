@@ -21,11 +21,42 @@ Landing page with quick links to key features, system status checks (API keys, s
 Manages all structured data output for the site.
 
 **Subtabs:**
-- **Organization** — Business name, logo, address, phone, social profiles, awards, certifications. Outputs Organization and LocalBusiness schema.
+- **Organization** — Business name, logo, address, phone, social profiles, awards, certifications.
+  - **Org Image URL field** *(v7.8.70)*: Direct image URL input with Media Library picker (Select Image / ✕ / thumbnail preview). Used as tertiary fallback in LocalBusiness image chain.
+  - Awards and certifications: double-escaping fixed in v7.8.72 — `wp_unslash()` applied at save, no re-sanitize on read.
+  - Outputs Organization and LocalBusiness schema.
+
 - **Person** — Multi-person E-E-A-T schema with Wikidata/Wikipedia expertise linking, LinkedIn import, PDF export. Supports multiple person profiles.
-- **Service** — Service schema markup for service pages and the Service CPT. Includes a **Price Ranges** repeater: assign low/high price ranges to specific posts; outputs as `offers → PriceSpecification` (minPrice/maxPrice) in the Service schema JSON-LD. Option key: `myls_service_price_ranges`.
+
+- **Service** — Service schema markup for service pages and the Service CPT.
+  - **Price Ranges** repeater: assign low/high price ranges to specific posts; outputs as `offers → PriceSpecification` (minPrice/maxPrice). Option key: `myls_service_price_ranges`.
+  - Provider node enrichment *(v7.8.68)*: fallback `$org_provider` (for pages not assigned to a location) now includes `award`, `hasCertification`, and `aggregateRating`.
+  - `aggregateRating` removed from Service node *(v7.8.66)* — not valid per Google's spec; remains on LocalBusiness.
+  - `areaServed` typed as `AdministrativeArea` objects *(v7.8.69)*.
+
+- **LocalBusiness** — Location-specific schema.
+  - **Site-wide Defaults block** *(v7.8.67)*: priceRange default (`myls_lb_default_price_range`) and live image fallback chain status showing which level resolves.
+  - **Image fallback chain** *(v7.8.67)*: per-location Business Image URL → org logo attachment (`myls_org_logo_id`) → org image direct URL (`myls_org_image_url`).
+  - **priceRange fallback chain** *(v7.8.67)*: per-location → site-wide default.
+  - **Media library picker** for Business Image URL on each location row *(v7.8.71)*. Delegated event listener covers dynamically added rows.
+  - **knowsAbout opt-in block** *(v7.8.64)*: select Service CPT posts + optional service subtype sentinel (`__subtype__`). Ctrl/Cmd multi-select. Empty = omitted. Option: `myls_lb_knows_about_include`.
+  - **AggregateRating** *(v7.8.65)*: `ratingCount` = Google Places `user_ratings_total`; `reviewCount` = manual written review count (`myls_google_places_review_count_manual`). Falls back to `ratingCount` if manual value absent.
+  - **Fallback node enrichment** *(v7.8.69)*: service pages not assigned to a location get a fully enriched fallback LocalBusiness node (image, priceRange, openingHoursSpecification, aggregateRating, award, hasCertification).
+
 - **FAQ** — FAQ schema settings and accordion configuration.
+
 - **About Page** — AboutPage schema for company/about pages.
+
+- **VideoObject Auto-Detector** *(v7.8.74)*: no UI — auto-runs on every singular page.
+  - **File:** `inc/schema/providers/video-object-detector.php`
+  - Detects videos across: Elementor widget (`video`, `video-playlist`, background), Elementor HTML widget / Text Editor iframes *(v7.8.75)*, Elementor Theme Builder templates (conditions matched via `_elementor_conditions`), Beaver Builder video module, Divi `[et_pb_video]`, WPBakery `[vc_video]`, Gutenberg `wp:embed` / `wp:video`, Classic editor `<iframe>` + bare URLs.
+  - YouTube duration fetched from YouTube Data API v3, cached 30 days per video ID (`myls_yt_dur_{id}` transient).
+  - Theme Builder condition matching *(fixed v7.8.76)*: parses Elementor's actual slash-delimited string format (`"include/general"`, `"include/singular/front_page"`) — not the associative array format that was previously expected.
+  - Deduplicates by video_id/URL across all sources.
+  - Skips `video` CPT (handled by existing `video-schema.php`).
+  - Emits single `VideoObject` object or `@graph` array depending on count.
+  - **Filters:** `myls_video_object_detector_enabled`, `myls_detected_video_items`, `myls_video_object_node`
+  - **Requires:** YouTube Data API key in API Integration tab for duration metadata (optional — schema emits without it).
 
 ---
 
@@ -166,8 +197,12 @@ Configure external API connections.
 **Sections:**
 - **OpenAI / Anthropic** — API key, model selection, temperature, max tokens.
 - **Google Maps** — Maps API key for embed shortcodes and service area grids.
+- **Google Places** — Places API key for open/closed status and review data.
+  - **Star Rating** — auto-fetched from Google Places on every cron/manual fetch; stored as `myls_google_places_rating`.
+  - **ratingCount** *(v7.8.65)* — total star ratings (Google Places `user_ratings_total`); stored as `myls_google_places_rating_count`.
+  - **reviewCount (Written Reviews)** *(v7.8.65)* — manual field (`myls_google_places_review_count_manual`). Enter the written review count from your GBP dashboard. Leave blank to fall back to `ratingCount`.
 - **Google Search Console** — OAuth 2.0 connect/disconnect/test. Site property selection with auto-detection.
-- **YouTube Data API** — API key for video blog and transcript features.
+- **YouTube Data API** — API key for video blog, transcript features, and VideoObject duration auto-fetch (v7.8.74).
 
 ---
 
@@ -267,6 +302,14 @@ document.addEventListener('ccb:declined', () => { /* suppress tracking */ });
 ```
 
 **WP Consent API:** Not required. The module is fully self-contained.
+
+**Admin & Editor Suppression:** The banner is automatically hidden when:
+- The current user has `manage_options` (admins) — suppressed on all front-end pages
+- Elementor editor or preview (`?elementor-preview`, `?elementor_library`)
+- WordPress Block Editor iframe preview (`?iframe=1&preview=1`)
+- WordPress Customizer (`is_customize_preview()`)
+- Divi Visual Builder (`?et_fb`)
+- Beaver Builder / generic builder preview (`?fl_builder`, `?preview_id`)
 
 ---
 

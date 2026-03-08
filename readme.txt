@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.8.60
+Stable tag: 7.8.76
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,6 +35,12 @@ This plugin provides a modular admin toolkit for local SEO workflows including s
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 
 == Upgrade Notice ==
+
+= 7.8.76 =
+Critical fix for VideoObject schema on sites using Elementor Theme Builder. Elementor conditions were not matching due to format mismatch — VideoObject schema now generates correctly on all pages with Template Builder-applied video content.
+
+= 7.8.74 =
+New VideoObject auto-detector: automatically emits VideoObject schema on any page containing video, across Elementor, Beaver Builder, Divi, WPBakery, Gutenberg, and Classic editor. Requires YouTube Data API key (already in API Integration) for duration metadata.
 
 = 7.0.2 =
 New shortcodes: [google_reviews_slider] (Google Places API reviews in glassmorphism Swiper slider with caching), [social_links] (branded circular icons auto-detected from Organization schema sameAs URLs). Enhanced [service_grid] with aspect_ratio attribute and complete CSS foundation. All three shortcodes include inline CSS — no external stylesheet dependencies.
@@ -154,6 +160,68 @@ FAQ Quick Editor now supports multi-post batch save and WYSIWYG answers.
 Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
+
+= 7.8.76 =
+* FIX: VideoObject schema now correctly generates on pages with Elementor Theme Builder templates containing videos. Root cause: _elementor_conditions is stored as a flat array of slash-delimited strings like ["include/general", "include/singular/front_page"] — not associative arrays. myls_elementor_condition_matches_post() completely rewritten to parse the string format; both string and array formats supported for forward/backward compat. Also removed erroneous json_decode() call — get_post_meta() auto-unserializes. Added include/singular/front_page and include/singular/home as explicit sub_id matches within the singular branch.
+
+= 7.8.75 =
+* FIX: Elementor HTML widget and Text Editor widget iframes now detected by VideoObject auto-detector. Catches manually embedded YouTube/Vimeo iframes in Theme Builder templates (e.g. footer template with raw iframe embed) that were previously invisible to the video widget scanner.
+
+= 7.8.74 =
+* NEW: VideoObject Auto-Detector — new inc/schema/providers/video-object-detector.php emits VideoObject JSON-LD on any singular page where videos are detected, across all major page builders: Elementor (video widget, video-playlist, background video), Elementor Theme Builder (scans applied templates via _elementor_conditions matching), Beaver Builder (video module), Divi ([et_pb_video]), WPBakery ([vc_video]), Gutenberg (wp:embed, wp:video blocks), Classic/fallback (iframe scan + bare URLs)
+* NEW: YouTube duration auto-fetch from YouTube Data API v3 using myls_youtube_api_key. Cached 30 days per video ID to preserve quota. 
+* NEW: Deduplication — videos appearing in both page content and Theme Builder templates are deduplicated by video ID/URL.
+* Filters: myls_video_object_detector_enabled, myls_detected_video_items, myls_video_object_node
+
+= 7.8.73 =
+* FIX: LB tab media picker Select button did nothing — wp_enqueue_media() was never called in the LocalBusiness subtab render function, leaving wp.media undefined. Added wp_enqueue_media() at top of render, matching Organization subtab pattern.
+
+= 7.8.72 =
+* FIX: Awards and certifications double-escaping — two root causes: (1) Save path: wp_unslash() now applied before sanitize_text_field() on $_POST values; WP slashes all $_POST input so without unslash, apostrophes were stored with literal backslashes. (2) Read path: removed redundant array_map('sanitize_text_field') on DB values — re-sanitizing already-clean data caused a second encoding pass.
+
+= 7.8.71 =
+* NEW: Media library picker for Org Image URL field in Schema → Organization — Select Image / ✕ buttons + thumbnail preview.
+* NEW: Media library picker for per-location Business Image URL in Schema → LocalBusiness — delegated event listener handles dynamically added location rows.
+
+= 7.8.70 =
+* FIX: Org Image URL field missing from Schema → Organization subtab. myls_org_image_url was referenced in the LB image fallback chain but had no input or save handler — status indicator always showed ❌. Added text input under Logo section with esc_url_raw save.
+
+= 7.8.69 =
+* FIX: Fallback LocalBusiness node (service pages not assigned to a location) was thin — only name/url/phone/address populated. Now fully enriched: image (per-location → org logo attachment → org image URL), priceRange (per-location → site-wide default), openingHoursSpecification, aggregateRating, award, hasCertification.
+* FIX: areaServed now emits typed AdministrativeArea objects {"@type":"AdministrativeArea","name":"..."} instead of bare strings at both fallback assignment paths. New helper myls_wrap_areas_as_admin_area().
+
+= 7.8.68 =
+* FIX: Service schema fallback provider node was missing awards, certifications, and aggregateRating on unassigned pages. The fallback $org_provider now includes award (myls_org_awards), hasCertification (myls_org_certifications), and aggregateRating from myls_schema_build_aggregate_rating().
+
+= 7.8.67 =
+* FIX: LocalBusiness "Missing field priceRange" warning — added myls_lb_default_price_range site-wide option with fallback chain: per-location → site-wide default. New Site-wide Defaults block in LB tab.
+* FIX: LocalBusiness "Missing field image" warning — extended image fallback chain to three levels: per-location image URL → org logo attachment (myls_org_logo_id) → org image URL (myls_org_image_url).
+* NEW: Site-wide Defaults block in LocalBusiness tab with live fallback chain status display showing which level currently resolves.
+
+= 7.8.66 =
+* FIX: "Invalid object type for field <parent_node>" in Google Rich Results Test — removed aggregateRating from Service schema node. aggregateRating is not valid on @type: Service per Google's spec. Remains correctly on LocalBusiness where it is fully valid.
+
+= 7.8.65 =
+* FIX: Corrected ratingCount vs reviewCount semantic distinction — ratingCount = total star ratings (Google Places user_ratings_total), reviewCount = written text reviews only (new manual field).
+* NEW: myls_google_places_rating_count option auto-populated on every Places API fetch. Legacy myls_google_places_review_count preserved for backward compat.
+* NEW: "reviewCount (Written Reviews)" manual field in API Integration → Google Places. Leave blank to fall back to ratingCount.
+
+= 7.8.64 =
+* CHANGED: knowsAbout switched from auto-pull to deliberate opt-in selection. New knowsAbout block in LocalBusiness tab — hold Ctrl/Cmd to select services. Empty selection omits knowsAbout entirely.
+* Data model: myls_lb_knows_about_include stores array of post IDs + '__subtype__' sentinel for the service schema name field.
+
+= 7.8.63 =
+* NEW: knowsAbout auto-populate on LocalBusiness and Organization schema — queries published Service CPT posts + myls_service_subtype. Static cache prevents double WP_Query. Filter myls_knows_about available.
+* NEW: myls_get_knows_about() helper in inc/schema/helpers.php.
+
+= 7.8.62 =
+* FIX: areaServed not populating on Service schema — option key mismatch in fallback chain. Fixed order: myls_org_areas → ssseo_organization_areas_served → ssseo_areas_served.
+* FIX: myls_parse_areas_served() sub-split fix — array items now sub-split by comma/newline before dedup, preventing comma-separated entries from being treated as single strings.
+
+= 7.8.61 =
+* Cookie Consent: banner now suppressed for logged-in administrators (manage_options) on front-end
+* Cookie Consent: banner suppressed inside Elementor editor, Divi Visual Builder, WP Customizer, Block Editor iframe preview, Beaver Builder
+* Added ccb_should_suppress() helper — both wp_enqueue_scripts and wp_footer hooks check before rendering
 
 = 7.8.60 =
 * Cookie Consent: Privacy Policy URL field replaced with native WordPress page picker (get_pages() dropdown)

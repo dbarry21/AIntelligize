@@ -110,24 +110,118 @@ if ( ! function_exists('myls_build_tagline_credentials') ) {
  * @return array|null
  */
 if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
+	/**
+	 * Build an AggregateRating node for LocalBusiness and Service schema.
+	 *
+	 * ratingCount  — total number of star ratings (with or without written text).
+	 *                Auto-populated from Google Places user_ratings_total via
+	 *                myls_google_places_rating_count. Accepts override.
+	 *
+	 * reviewCount  — number of written text reviews only.
+	 *                Stored separately as myls_google_places_review_count_manual
+	 *                (admin-entered) because the Places API caps returned reviews
+	 *                at 5 and doesn't expose the full text-review count.
+	 *                Falls back to ratingCount when no manual value is set
+	 *                (safe — Google treats them interchangeably for ranking).
+	 *
+	 * @param string $rating_override  Override ratingValue (optional).
+	 * @param string $count_override   Override ratingCount (optional).
+	 * @return array|null  AggregateRating node, or null if data is missing/invalid.
+	 */
 	function myls_schema_build_aggregate_rating( string $rating_override = '', string $count_override = '' ) : ?array {
 		$rating = $rating_override !== '' ? $rating_override : trim( (string) get_option( 'myls_google_places_rating', '' ) );
-		$count  = $count_override  !== '' ? $count_override  : trim( (string) get_option( 'myls_google_places_review_count', '' ) );
 
-		if ( $rating === '' || $count === '' ) return null;
-		if ( ! is_numeric( $rating ) || ! is_numeric( $count ) ) return null;
+		// ratingCount: auto-fetched user_ratings_total. Falls back to legacy option key.
+		$rating_count = $count_override !== ''
+			? $count_override
+			: trim( (string) get_option( 'myls_google_places_rating_count',
+				get_option( 'myls_google_places_review_count', '' )
+			) );
 
-		$r = (float) $rating;
-		$c = (int)   $count;
+		// reviewCount: manual field (text reviews only). Falls back to ratingCount.
+		$review_count_manual = trim( (string) get_option( 'myls_google_places_review_count_manual', '' ) );
+		$review_count = ( $review_count_manual !== '' && is_numeric( $review_count_manual ) )
+			? (int) $review_count_manual
+			: null; // null = fall back to ratingCount in output
 
-		if ( $r < 1.0 || $r > 5.0 || $c < 1 ) return null;
+		if ( $rating === '' || $rating_count === '' ) return null;
+		if ( ! is_numeric( $rating ) || ! is_numeric( $rating_count ) ) return null;
 
-		return [
+		$r  = (float) $rating;
+		$rc = (int)   $rating_count;
+
+		if ( $r < 1.0 || $r > 5.0 || $rc < 1 ) return null;
+
+		$node = [
 			'@type'       => 'AggregateRating',
 			'ratingValue' => number_format( $r, 1 ),
-			'reviewCount' => $c,
+			'ratingCount' => $rc,
+			'reviewCount' => $review_count !== null ? $review_count : $rc,
 			'bestRating'  => '5',
 			'worstRating' => '1',
 		];
+
+		return $node;
+	}
+}
+
+if ( ! function_exists('myls_get_knows_about') ) {
+	/**
+	 * Build the knowsAbout array for LocalBusiness and Organization schema nodes.
+	 *
+	 * Opt-in: only items explicitly selected in the LocalBusiness tab are included.
+	 * The include list (myls_lb_knows_about_include) stores a mix of:
+	 *   - int post IDs  — resolved to the Service CPT post title at runtime
+	 *   - '__subtype__' — resolved to the myls_service_subtype option value
+	 *
+	 * Results are request-cached via static variable so both LocalBusiness and
+	 * Organization providers share a single option read per page load.
+	 *
+	 * @return array  Array of ['@type' => 'Thing', 'name' => string], or [].
+	 */
+	function myls_get_knows_about() : array {
+		static $cache = null;
+		if ( $cache !== null ) return $cache;
+
+		// Load the saved opt-in list.
+		$include = (array) get_option( 'myls_lb_knows_about_include', [] );
+		if ( empty( $include ) ) {
+			$cache = [];
+			return $cache;
+		}
+
+		$out  = [];
+		$seen = [];
+
+		foreach ( $include as $item ) {
+			$name = '';
+
+			if ( $item === '__subtype__' ) {
+				// Resolve the Service schema name field.
+				$name = trim( wp_strip_all_tags( (string) get_option( 'myls_service_subtype', '' ) ) );
+
+			} elseif ( is_numeric( $item ) && (int) $item > 0 ) {
+				// Resolve Service CPT post ID to its title.
+				$post = get_post( (int) $item );
+				if ( $post && $post->post_status === 'publish' ) {
+					$name = trim( wp_strip_all_tags( get_the_title( $post ) ) );
+				}
+			}
+
+			if ( $name === '' ) continue;
+
+			// Case-insensitive deduplicate, preserve selection order.
+			$key = strtolower( $name );
+			if ( isset( $seen[ $key ] ) ) continue;
+			$seen[ $key ] = true;
+
+			$out[] = [ '@type' => 'Thing', 'name' => $name ];
+		}
+
+		// Allow last-mile additions or removals via filter.
+		$out = apply_filters( 'myls_knows_about', $out );
+
+		$cache = is_array( $out ) ? $out : [];
+		return $cache;
 	}
 }

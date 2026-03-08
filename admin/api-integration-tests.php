@@ -189,7 +189,8 @@ add_action('wp_ajax_myls_fetch_places_rating', function(){
   }
 
   update_option('myls_google_places_rating',       $rating);
-  update_option('myls_google_places_review_count', $review_count);
+  update_option('myls_google_places_review_count', $review_count); // backward compat
+  update_option('myls_google_places_rating_count', $review_count); // schema.org ratingCount
   update_option('myls_places_rating_fetched_at',   current_time('mysql'));
 
   wp_send_json_success([

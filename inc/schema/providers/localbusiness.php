@@ -63,12 +63,26 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 		if ( ! is_array($certs) ) $certs = [];
 		$certs = array_values(array_filter(array_map('sanitize_text_field', $certs)));
 
-		// Resolve only these two (in order): Business Image URL -> Org Logo
+		// Image fallback chain (first non-empty wins):
+		//   1. Per-location Business Image URL
+		//   2. Org logo (WordPress attachment)
+		//   3. Org image URL (direct URL field from Organization settings)
 		$loc_img  = trim( (string) ( $loc['image_url'] ?? '' ) );
 		$logo_id  = (int) get_option( 'myls_org_logo_id', 0 );
 		$logo_url = $logo_id ? wp_get_attachment_image_url( $logo_id, 'full' ) : '';
+		$org_image_url = trim( (string) get_option( 'myls_org_image_url', '' ) );
 
-		$image_prop = $loc_img ? esc_url( $loc_img ) : ( $logo_url ? esc_url( $logo_url ) : null );
+		$image_prop = null;
+		if ( $loc_img !== '' )        $image_prop = esc_url( $loc_img );
+		elseif ( $logo_url !== '' )   $image_prop = esc_url( $logo_url );
+		elseif ( $org_image_url !== '' ) $image_prop = esc_url( $org_image_url );
+
+		// priceRange fallback chain:
+		//   1. Per-location price field
+		//   2. Site-wide default (myls_lb_default_price_range)
+		$loc_price     = sanitize_text_field( $loc['price'] ?? '' );
+		$default_price = trim( (string) get_option( 'myls_lb_default_price_range', '' ) );
+		$price_prop    = $loc_price !== '' ? $loc_price : $default_price;
 
 		// Opening hours
 		$hours = [];
@@ -88,6 +102,10 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 
 		$org_url = get_option( 'myls_org_url', home_url('/') );
 
+		// knowsAbout: merged Service CPT titles + Service schema name field.
+		// Tells AI crawlers exactly which topics/services this business covers.
+		$knows_about = function_exists('myls_get_knows_about') ? myls_get_knows_about() : [];
+
 		return array_filter( [
 			'@context' => 'https://schema.org',
 			'@type'    => 'LocalBusiness',
@@ -98,9 +116,10 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 
 			'name'       => sanitize_text_field( $loc['name'] ?? $org_name ),
 			'telephone'  => sanitize_text_field( $loc['phone'] ?? '' ),
-			'priceRange' => sanitize_text_field( $loc['price'] ?? '' ),
+			'priceRange' => $price_prop,
 			'award'      => ( $awards ? $awards : null ),
 			'hasCertification' => ( $certs ? array_map(function($c){ return ['@type'=>'Certification','name'=>$c]; }, $certs) : null ),
+			'knowsAbout' => $knows_about ?: null,
 			'memberOf' => myls_lb_build_member_of(),
 			'address'  => array_filter( [
 				'@type'           => 'PostalAddress',

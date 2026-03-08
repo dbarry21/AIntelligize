@@ -56,13 +56,11 @@ $spec = [
 		$socials  = (array) get_option('myls_org_social_profiles', (array) get_option('ssseo_organization_social_profiles', []));
 		if ( empty($socials) ) { $socials = ['']; }
 
-		$awards  = (array) get_option('myls_org_awards', []);
-		$awards  = array_values(array_filter(array_map('sanitize_text_field', $awards)));
+		// Values are sanitized at save time — do NOT re-sanitize on read or entities will double-encode.
+		$awards  = array_values(array_filter((array) get_option('myls_org_awards', [])));
 		if ( empty($awards) ) { $awards = ['']; }
 
-
-		$certs  = (array) get_option('myls_org_certifications', []);
-		$certs  = array_values(array_filter(array_map('sanitize_text_field', $certs)));
+		$certs  = array_values(array_filter((array) get_option('myls_org_certifications', [])));
 		if ( empty($certs) ) { $certs = ['']; }
 
 		$sel_pages = array_map('absint', (array) get_option('myls_org_pages', (array) get_option('ssseo_organization_schema_pages', [])));
@@ -203,6 +201,33 @@ $spec = [
 					<div class="myls-org-actions">
 						<button type="button" class="myls-btn myls-btn-outline" id="myls-org-logo-btn">Select Logo</button>
 						<button type="button" class="myls-btn myls-btn-danger" id="myls-org-logo-remove">Remove</button>
+					</div>
+					<div style="margin-top:12px;">
+						<label class="form-label" for="myls_org_image_url">
+							Org Image URL
+							<span style="font-weight:400;color:#6b7280;font-size:.85em;"> — fallback when no media library logo is set</span>
+						</label>
+						<div style="display:flex;gap:.5rem;align-items:center;max-width:540px;">
+							<input type="url" id="myls_org_image_url" name="myls_org_image_url"
+								value="<?php echo esc_attr( get_option('myls_org_image_url', '') ); ?>"
+								placeholder="https://example.com/your-org-image.jpg"
+								style="flex:1;">
+							<button type="button" class="myls-btn myls-btn-outline" id="myls-org-image-url-btn">Select Image</button>
+							<button type="button" class="myls-btn myls-btn-danger" id="myls-org-image-url-remove">✕</button>
+						</div>
+						<?php
+						$org_img_preview = trim( (string) get_option('myls_org_image_url', '') );
+						if ( $org_img_preview ) : ?>
+							<div id="myls-org-image-url-preview" style="margin-top:6px;">
+								<img src="<?php echo esc_url($org_img_preview); ?>" alt="" style="height:48px;border-radius:4px;border:1px solid #e5e7eb;">
+							</div>
+						<?php else : ?>
+							<div id="myls-org-image-url-preview" style="margin-top:6px;display:none;"></div>
+						<?php endif; ?>
+						<p class="form-text" style="margin-top:4px;opacity:.75;">
+							Used as the third fallback in the image chain on LocalBusiness schema when no per-location image and no logo attachment is set.
+							Appears in the Image Fallback Chain status under Schema → LocalBusiness → Site-wide Defaults.
+						</p>
 					</div>
 				</div>
 
@@ -472,6 +497,35 @@ $spec = [
 		  });
 		})();
 
+		// Org Image URL media picker
+		(function(){
+		  const btn  = document.getElementById('myls-org-image-url-btn');
+		  const rmv  = document.getElementById('myls-org-image-url-remove');
+		  const inp  = document.getElementById('myls_org_image_url');
+		  const prev = document.getElementById('myls-org-image-url-preview');
+		  let frame;
+
+		  btn?.addEventListener('click', function(e){
+			e.preventDefault();
+			if (frame){ frame.open(); return; }
+			frame = wp.media({ title: 'Select Org Image', button: { text: 'Use this image' }, multiple: false, library: { type: 'image' } });
+			frame.on('select', function(){
+			  const att = frame.state().get('selection').first().toJSON();
+			  const url = (att.sizes && att.sizes.medium ? att.sizes.medium.url : att.url);
+			  inp.value = att.url; // always store full-size URL
+			  prev.innerHTML = '<img src="'+ url +'" alt="" style="height:48px;border-radius:4px;border:1px solid #e5e7eb;">';
+			  prev.style.display = 'block';
+			});
+			frame.open();
+		  });
+
+		  rmv?.addEventListener('click', function(){
+			inp.value = '';
+			prev.innerHTML = '';
+			prev.style.display = 'none';
+		  });
+		})();
+
 		// Social rows
 		(function(){
 		  const wrap = document.getElementById('myls-org-socials');
@@ -713,6 +767,7 @@ $spec = [
 
 		// Logo
 		update_option('myls_org_logo_id', absint($_POST['myls_org_logo_id'] ?? 0));
+		update_option('myls_org_image_url', esc_url_raw(wp_unslash($_POST['myls_org_image_url'] ?? '')));
 
 		// Address & Geo
 		update_option('myls_org_street',   sanitize_text_field($_POST['myls_org_street'] ?? ''));
@@ -733,15 +788,18 @@ $spec = [
 		update_option('myls_org_social_profiles', $raw_socials);
 
 
-		// Awards
-		$raw_awards = (isset($_POST['myls_org_awards']) && is_array($_POST['myls_org_awards']))
-			? array_map('sanitize_text_field', $_POST['myls_org_awards']) : [];
+		// Awards — wp_unslash first: WordPress slashes $_POST values and sanitize_text_field
+		// does NOT strip slashes, causing stored values to contain literal backslashes.
+		$raw_awards = isset($_POST['myls_org_awards']) && is_array($_POST['myls_org_awards'])
+			? array_map('sanitize_text_field', array_map('wp_unslash', $_POST['myls_org_awards']))
+			: [];
 		$raw_awards = array_values(array_filter($raw_awards));
 		update_option('myls_org_awards', $raw_awards);
 
-		// Certifications
-		$raw_certs = (isset($_POST['myls_org_certifications']) && is_array($_POST['myls_org_certifications']))
-			? array_map('sanitize_text_field', $_POST['myls_org_certifications']) : [];
+		// Certifications — same wp_unslash pattern.
+		$raw_certs = isset($_POST['myls_org_certifications']) && is_array($_POST['myls_org_certifications'])
+			? array_map('sanitize_text_field', array_map('wp_unslash', $_POST['myls_org_certifications']))
+			: [];
 		$raw_certs = array_values(array_filter($raw_certs));
 		update_option('myls_org_certifications', $raw_certs);
 

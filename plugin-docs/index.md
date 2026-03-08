@@ -20,11 +20,12 @@ AIntelligize is a comprehensive WordPress plugin designed for local businesses a
 - **Service Schema**: Automatic Service schema markup for Google
 
 ### Schema & SEO
-- **Organization Schema**: Business information with multiple locations
-- **Local Business Schema**: Location-specific schema markup
-- **Service Schema**: Service-specific schema with provider information
+- **Organization Schema**: Business information with multiple locations, awards, certifications, `knowsAbout` opt-in topics
+- **Local Business Schema**: Location-specific schema with enriched fallback chain — image (3-level: per-location → org logo → org image URL), priceRange (site-wide default fallback), openingHoursSpecification, aggregateRating, awards, certifications. Site-wide Defaults block with live fallback chain status display.
+- **Service Schema**: Service-specific schema with fully enriched provider node (awards, certifications, aggregateRating on both assigned and unassigned pages). `areaServed` typed as `AdministrativeArea` objects.
 - **FAQ Schema**: Structured FAQ data for rich snippets
 - **About Page Schema**: AboutPage schema for company pages
+- **VideoObject Schema** *(v7.8.74+)*: Automatic video detection and `VideoObject` JSON-LD emission on any singular page with video content. Detects across Elementor (video widget, video-playlist, background video, HTML widget iframes, Theme Builder templates), Beaver Builder, Divi, WPBakery, Gutenberg, and Classic editor. YouTube duration auto-fetched from YouTube Data API v3 and cached 30 days per video.
 
 ### Location Features
 - **Dynamic Location Tags**: [city_state], [city_only], [county] shortcodes

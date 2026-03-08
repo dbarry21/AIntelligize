@@ -101,6 +101,11 @@ add_filter('myls_schema_graph', function(array $graph) {
 	if ( $awards )       $node['award']       = $awards;
 	if ( $certs )        $node['hasCertification'] = array_map(function($c){ return ['@type'=>'Certification','name'=>$c]; }, $certs);
 
+	// knowsAbout: merged Service CPT titles + Service schema name field.
+	// Signals to AI crawlers which topics/services this organization covers.
+	$knows_about = function_exists('myls_get_knows_about') ? myls_get_knows_about() : [];
+	if ( ! empty( $knows_about ) ) $node['knowsAbout'] = $knows_about;
+
 	// Memberships → memberOf
 	$memberships = get_option('myls_org_memberships', []);
 	if ( is_array($memberships) && ! empty($memberships) ) {

@@ -1,3 +1,196 @@
+## 7.8.68 — 2026-03-07
+
+### Fixed — awards, certifications, and aggregateRating missing from Service schema provider on unassigned pages
+
+When a service page is assigned to a LocalBusiness location, the `provider`
+node in Service schema is an `@id` reference — Google resolves the full
+LocalBusiness node (with awards, certifications, aggregateRating) from the
+graph automatically. No change needed for that path.
+
+When a service page is NOT assigned to a location, the inline `$org_provider`
+fallback fires instead. That fallback only carried `name`, `url`, `telephone`,
+`logo`, `address`, and `sameAs`. Awards, certifications, and aggregateRating
+were silently dropped.
+
+Fix: the fallback provider node now includes:
+- `award` — from `myls_org_awards`
+- `hasCertification` — from `myls_org_certifications` (as Certification objects)
+- `aggregateRating` — from `myls_schema_build_aggregate_rating()` (ratingValue,
+  ratingCount, reviewCount, bestRating, worstRating)
+
+**File changed:** `inc/schema/providers/build-service-schema.php`
+
+## 7.8.67 — 2026-03-07
+
+### Fixed — LocalBusiness "Missing field priceRange" and "Missing field image" warnings
+
+**priceRange:**
+- Added `myls_lb_default_price_range` site-wide option (new field in LB tab → Site-wide Defaults).
+- Fallback chain: per-location Price Range → site-wide default. No per-location changes needed.
+
+**image:**
+- Extended fallback chain to three levels:
+  1. Per-location Business Image URL
+  2. Org logo WordPress attachment (`myls_org_logo_id`)
+  3. Org image URL direct field (`myls_org_image_url`) — previously ignored by LB schema
+
+**Admin UI:** New "Site-wide Defaults" block added to the LocalBusiness tab (above knowsAbout).
+Includes the priceRange input and a live read-only image fallback chain status showing which
+level is currently resolving and whether the image warning will be eliminated.
+
+**Files changed:**
+- `inc/schema/providers/localbusiness.php` — extended fallback chains for both fields
+- `admin/tabs/schema/subtab-localbusiness.php` — Site-wide Defaults UI block + save
+
+## 7.8.66 — 2026-03-07
+
+### Fixed — "Invalid object type for field <parent_node>" on Service schema aggregateRating
+
+Removed `aggregateRating` from the `Service` schema node.
+
+**Root cause:** `aggregateRating` is not a valid property on `@type: Service`
+per Google's Rich Results spec. Only types like `LocalBusiness`, `Product`,
+`Recipe`, `Book`, and `CreativeWork` support it. Adding it to a `Service` node
+triggers the "Invalid object type for field <parent_node>" error in the Rich
+Results Test and in Google Search Console schema reports.
+
+`aggregateRating` remains correctly on `LocalBusiness` (localbusiness.php)
+where it is fully valid and generates the star-rating rich result.
+
+**File changed:** `inc/schema/providers/build-service-schema.php`
+
+## 7.8.65 — 2026-03-07
+
+### Added — ratingCount + reviewCount in AggregateRating schema
+
+Adds both `ratingCount` and `reviewCount` to the `aggregateRating` node output
+on LocalBusiness and Service schema, and corrects the semantic meaning of each.
+
+**Schema.org distinction:**
+- `ratingCount` = total star ratings (with or without written text) — this is
+  what Google Places `user_ratings_total` actually represents. Previously this
+  value was stored and output only as `reviewCount`, which was semantically wrong.
+- `reviewCount` = written text reviews only. Google's Places API caps returned
+  reviews at 5 so it cannot be auto-fetched reliably; a separate manual field
+  is now available in API Integration settings.
+
+**Fallback behavior:** If no manual `reviewCount` is entered, the schema falls
+back to using `ratingCount` for `reviewCount` — matching Google's own practice
+and keeping existing schema valid with no configuration change required.
+
+**New option:** `myls_google_places_rating_count` — auto-populated alongside
+the existing `myls_google_places_review_count` on every fetch (cron + manual).
+Legacy option preserved for backward compatibility.
+
+**New admin field:** API Integration tab → "reviewCount (Written Reviews)"
+number input. Enter the count from your Google Business Profile dashboard.
+Leave blank to use ratingCount as fallback.
+
+**Files changed:**
+- `inc/schema/helpers.php` — `myls_schema_build_aggregate_rating()` rewritten
+- `aintelligize.php` — cron handler saves `myls_google_places_rating_count`
+- `admin/api-integration-tests.php` — AJAX fetch saves `myls_google_places_rating_count`
+- `admin/tabs/api-integration.php` — UI updated, manual reviewCount field added
+
+## 7.8.64 — 2026-03-07
+
+### Changed — knowsAbout switched to opt-in include list
+
+Replaces the auto-pull behaviour introduced in v7.8.63 with a deliberate
+opt-in selection. This prevents non-service content like "Book Your Service Now"
+CTA posts from appearing as `knowsAbout` schema topics.
+
+**How it works:**
+A new **knowsAbout — Schema Topics** block at the bottom of the LocalBusiness
+tab lists all published Service posts plus the Service schema name field
+(if set). Hold Ctrl/Cmd to select multiple items. Only selected items are
+written to schema — nothing is included automatically.
+
+**Data model:** `myls_lb_knows_about_include` (WP option, array) stores a mix of:
+- Integer post IDs — resolved to the Service CPT post title at render time
+- String `'__subtype__'` sentinel — resolved to `myls_service_subtype` value
+
+**Behavior:** Empty selection = `knowsAbout` omitted entirely from both
+LocalBusiness and Organization schema (no empty array output).
+
+**Files changed:**
+- `inc/schema/helpers.php` — `myls_get_knows_about()` rewritten for opt-in
+- `admin/tabs/schema/subtab-localbusiness.php` — UI block + save handler added
+
+## 7.8.63 — 2026-03-07
+
+### Added — knowsAbout on LocalBusiness and Organization schema
+
+Adds the `knowsAbout` property to both the **LocalBusiness** and **Organization**
+schema nodes. This signals to AI crawlers (ChatGPT, Gemini, Perplexity, Google AI
+Overviews) exactly which topics and services the business covers — a key GEO/SEvO
+citation signal.
+
+**Data sources (merged, deduplicated):**
+1. Published **Service CPT posts** (`post_type = service`) — titles are used as-is
+   since they are already SEO-optimized. Adding or removing a service post
+   automatically updates the schema with no admin intervention.
+2. **Service schema name field** (`myls_service_subtype`) — the manually set
+   override name from Schema → Service. Included when non-empty and not already
+   present from a CPT title (case-insensitive dedup).
+
+Each entry is output as a `schema.org/Thing` object (`{"@type":"Thing","name":"..."}`)
+so AI tools can resolve services as named entities, not plain strings.
+
+Results are cached via a static variable so both providers on the same page share
+a single WP_Query call.
+
+A `myls_knows_about` filter is provided for last-mile customisation:
+```php
+add_filter('myls_knows_about', function(array $items): array {
+    $items[] = ['@type' => 'Thing', 'name' => 'Custom Topic'];
+    return $items;
+});
+```
+
+**Files changed:**
+- `inc/schema/helpers.php` — new `myls_get_knows_about()` helper
+- `inc/schema/providers/localbusiness.php` — adds `knowsAbout` to location build
+- `inc/schema/providers/organization.php` — adds `knowsAbout` to org node
+
+## 7.8.62 — 2026-03-07
+
+### Fixed — areaServed: Lithia and Wesley Chapel no longer fused into one entry
+
+**Root cause (two bugs, same symptom):**
+
+1. **Option key mismatch** — `build-service-schema.php` was reading
+   `myls_org_areas_served` but the Organization subtab saves areas to `myls_org_areas`.
+   Because the correct key was never found the code fell through to legacy
+   `ssseo_organization_areas_served` / `ssseo_areas_served` options, which on
+   some installs stored multiple cities in a single comma-joined string
+   (e.g. `"Lithia, Wesley Chapel"`), causing them to appear fused in schema output.
+   Fix: read `myls_org_areas` first, then fall back to the legacy keys.
+
+2. **`myls_parse_areas_served()` did not sub-split array items** — when the raw
+   option value was an array, individual elements that still contained commas
+   (legacy format) were returned unsplit.
+   Fix: when input is an array, each element is now additionally split on
+   comma/newline before deduplication, ensuring every city becomes its own
+   separate `AdministrativeArea` node.
+
+**Files changed:** `inc/schema/providers/build-service-schema.php`
+
+## 7.8.61 — 2026-03-07
+
+### Fixed — Cookie Consent banner suppressed for admins and page editors
+
+Added `ccb_should_suppress()` helper in `modules/cookie-consent/cookie-consent.php`.
+Both the `wp_enqueue_scripts` and `wp_footer` hooks call this check before rendering.
+
+**Suppressed when any of the following are true:**
+- Logged-in user has `manage_options` capability (admins/super-admins) — banner never shows while editing or previewing the site
+- Elementor editor active (`?elementor-preview` or `?elementor_library` query args)
+- WordPress Block Editor iframe preview (`?iframe=1&preview=1`)
+- WordPress Customizer (`is_customize_preview()`)
+- Divi Visual Builder active (`?et_fb` query arg)
+- Beaver Builder or generic builder preview (`?fl_builder`, `?preview_id`)
+
 ## [7.8.51] — 2026-03-06
 
 ### Fixed — Trust Bar 4-column overlap on mobile
@@ -2791,3 +2984,52 @@ custom events, and provides `window.mylsCCBUnblock()` for script blocking.
 **`modules/cookie-consent/cookie-consent-admin.js`**
 - `privacyLink()` helper updated: treats `"0"` or empty string as "no page
   selected" (was checking for empty URL string). Non-zero page ID = show link.
+
+## [7.8.69] - 2026-03-07
+### Fixed
+- **Fallback LocalBusiness node enriched** — `myls_build_primary_localbusiness_node_fallback()` now pulls `image` (per-location → org logo attachment → org image URL), `priceRange` (per-location → site-wide default), `openingHoursSpecification` (from location #0 hours), `aggregateRating`, `award`, and `hasCertification` into the fallback node. Previously only name/url/phone/address were populated, causing thin schema on service pages not assigned to a location.
+- **`areaServed` typed as `AdministrativeArea` objects** — `myls_wrap_areas_as_admin_area()` helper added; both `$org_areas_served` fallback assignment paths now emit `{"@type":"AdministrativeArea","name":"..."}` objects instead of bare strings. The ACF single-city path was already correct.
+
+## [7.8.70] - 2026-03-07
+### Fixed
+- **Org Image URL field missing from org subtab** — `myls_org_image_url` was referenced in the LB image fallback chain (v7.8.67) but never had an input field or save handler in the Organization subtab, causing the status display to always show ❌ even when a value existed in the database. Added "Org Image URL" text input under Logo section in Schema → Organization, with `esc_url_raw` save and descriptive help text. Status display in Schema → LocalBusiness → Site-wide Defaults now correctly reflects the saved value.
+
+## [7.8.71] - 2026-03-07
+### Added
+- **Media library picker for Org Image URL** — "Select Image" + "✕" buttons added next to the Org Image URL field in Schema → Organization. Opens WordPress media library, populates URL on selection, shows thumbnail preview below field. Matches the existing logo picker UX.
+- **Media library picker for per-location Business Image URL** — "Select" + "✕" buttons added to the Business Image URL field on each location row in Schema → LocalBusiness. Uses delegated event listener so dynamically added location rows also get the picker without additional JS.
+
+## [7.8.72] - 2026-03-07
+### Fixed
+- **Awards & certifications double-escaping** — two root causes fixed in `subtab-organization.php`:
+  1. **Save path:** `wp_unslash()` now applied before `sanitize_text_field()` on `$_POST` values for both `myls_org_awards` and `myls_org_certifications`. WordPress automatically slashes all `$_POST` input; without unslashing first, apostrophes and quotes were stored with literal backslashes (e.g. `People\'s Choice`).
+  2. **Read path:** Removed redundant `array_map('sanitize_text_field', ...)` call when loading values from the DB for display. Values are already sanitized at save time — re-sanitizing on read caused a second encoding pass which visually double-escaped any special characters in the field inputs.
+
+## [7.8.73] - 2026-03-07
+### Fixed
+- **LB tab image picker not firing** — `wp_enqueue_media()` was never called in the LocalBusiness subtab render function, so `wp.media` was undefined and the Select button silently did nothing. Added `wp_enqueue_media()` at the top of the LB subtab render, matching the pattern already used in the Organization subtab.
+
+## [7.8.74] - 2026-03-07
+### Added
+- **Video Object Auto-Detector** — new `inc/schema/providers/video-object-detector.php` emits `VideoObject` JSON-LD on any singular page where videos are detected, across all major page builders:
+  - **Elementor** — `video` widget (YouTube/Vimeo/hosted/Dailymotion), `video-playlist` Pro widget, section/container background video
+  - **Elementor Theme Builder** — queries `elementor_library`, matches `_elementor_conditions` against current page context (general, singular, page, front_page, archive, category, tag, specific post ID), and scans matched templates
+  - **Beaver Builder** — `_fl_builder_data` video module (YouTube/Vimeo/media library)
+  - **Divi** — `[et_pb_video]` and `[et_pb_video_slider_item]` shortcodes
+  - **WPBakery** — `[vc_video]` shortcodes
+  - **Gutenberg** — `<!-- wp:embed -->` blocks and `<!-- wp:video -->` blocks
+  - **Classic/fallback** — `<iframe>` src scan + bare YouTube/Vimeo URLs on their own line
+- **YouTube duration auto-fetch** — fetches ISO 8601 duration from YouTube Data API v3 using `myls_youtube_api_key`. Cached in 30-day transient `myls_yt_dur_{video_id}` to preserve API quota. No-key sentinel cached 24h to avoid repeated failed calls.
+- **De-duplication** — videos appearing in both page data and Template Builder templates are deduplicated by video_id/URL so each video only gets one schema node.
+- Filter `myls_video_object_detector_enabled` to disable globally.
+- Filter `myls_detected_video_items` to override/extend detected items per post.
+- Filter `myls_video_object_node` to modify individual VideoObject nodes before output.
+- Skips `video` CPT (handled by existing `video-schema.php`).
+
+## [7.8.75] - 2026-03-07
+### Fixed
+- **Elementor HTML widget iframe detection** — `myls_extract_videos_elementor_data()` now scans `settings['html']` (HTML widget) and `settings['editor']` (Text Editor widget) for `<iframe>` src attributes. Catches manually embedded YouTube/Vimeo iframes in Theme Builder templates (e.g. a footer template with a raw iframe embed) that were previously invisible to the video widget detector. The YouTube ID is extracted from the embed URL and the full VideoObject schema is generated including duration via YouTube API.
+
+## [7.8.76] - 2026-03-07
+### Fixed
+- **Elementor Theme Builder conditions not matching** — root cause of VideoObject schema not generating on pages with videos in applied Theme Builder templates (e.g. a footer with an embedded iframe). `_elementor_conditions` is stored by Elementor as a flat PHP array of slash-delimited strings like `["include/general", "include/singular/front_page"]`, not as associative arrays with `type/sub_type/sub_id` keys. `myls_elementor_condition_matches_post()` completely rewritten to parse the string format. Both string and array formats are now handled for forward/backward compatibility. Removed erroneous `json_decode()` call in `myls_get_applicable_elementor_templates()` — `get_post_meta()` auto-unserializes the value. Also added `include/singular/front_page` and `include/singular/home` as explicit sub_id values within the singular branch, covering homepage footer/header templates.

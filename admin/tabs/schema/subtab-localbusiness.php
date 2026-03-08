@@ -17,6 +17,11 @@ $spec = [
 
   'render'=> function () {
 
+    // Enqueue WP media library for image URL pickers on location rows.
+    if ( function_exists('wp_enqueue_media') ) {
+      wp_enqueue_media();
+    }
+
     // ---------- US states & Countries ----------
     $us_states = [
       'AL'=>'Alabama','AK'=>'Alaska','AZ'=>'Arizona','AR'=>'Arkansas','CA'=>'California','CO'=>'Colorado','CT'=>'Connecticut',
@@ -169,6 +174,23 @@ $spec = [
 
     $org_all_blank = (trim($org_defaults['name'].$org_defaults['street'].$org_defaults['city'].$org_defaults['state'].$org_defaults['zip']) === '');
 
+    // ---------- knowsAbout include list ----------
+    // Opt-in: only explicitly selected items appear in knowsAbout schema output.
+    // Stored as an array of post IDs (ints) plus the sentinel '__subtype__' for
+    // the Service schema name field (myls_service_subtype).
+    $service_posts_all = post_type_exists('service') ? get_posts([
+      'post_type'      => 'service',
+      'post_status'    => 'publish',
+      'numberposts'    => 200,
+      'orderby'        => 'menu_order title',
+      'order'          => 'ASC',
+    ]) : [];
+
+    $service_subtype_val = trim( (string) get_option('myls_service_subtype', '') );
+
+    // Saved include list: mix of int post IDs and '__subtype__' sentinel.
+    $knows_about_include = (array) get_option('myls_lb_knows_about_include', []);
+
     // ---------- Assignable content ----------
     $assignable = get_posts([
       'post_type'   => ['page','post','service_area'],
@@ -285,7 +307,11 @@ $spec = [
 
                   <div class="myls-col col-6">
                     <label class="form-label">Business Image URL</label>
-                    <input type="url" name="myls_locations[<?php echo $i; ?>][image_url]" value="<?php echo esc_attr($loc['image_url'] ?? ''); ?>" placeholder="https://example.com/path/to/image.jpg">
+                    <div style="display:flex;gap:.4rem;align-items:center;">
+                      <input type="url" class="myls-loc-image-url" name="myls_locations[<?php echo $i; ?>][image_url]" value="<?php echo esc_attr($loc['image_url'] ?? ''); ?>" placeholder="https://example.com/path/to/image.jpg" style="flex:1;">
+                      <button type="button" class="myls-btn myls-btn-outline myls-loc-image-pick" style="white-space:nowrap;">Select</button>
+                      <button type="button" class="myls-btn myls-btn-danger myls-loc-image-clear" style="padding:0 8px;">✕</button>
+                    </div>
                   </div>
 
                   <div class="myls-col col-6">
@@ -410,6 +436,107 @@ $spec = [
         <div class="myls-block-title">Tips</div>
         <p>Use clear <em>Location Label</em> names (e.g., “Downtown Tampa”).</p>
         <p><strong>Note:</strong> Location #1 is the default when a page doesn’t match any assigned location.</p>
+      </div>
+
+      <!-- Site-wide defaults for optional LocalBusiness fields -->
+      <div class="myls-block" style="margin-top:8px;">
+        <div class="myls-block-title">Site-wide Defaults</div>
+        <p style="margin:0 0 10px;">
+          These values apply to <strong>all locations</strong> as a fallback when the per-location field is blank.
+          Filling them eliminates the optional warnings in Google's Rich Results Test.
+        </p>
+
+        <div class="myls-row">
+          <div class="myls-col col-6">
+            <label class="form-label" for="myls_lb_default_price_range">
+              Default Price Range
+              <span style="font-weight:400;color:#6b7280;"> — used when no per-location Price Range is set</span>
+            </label>
+            <input type="text"
+                   id="myls_lb_default_price_range"
+                   name="myls_lb_default_price_range"
+                   value="<?php echo esc_attr( get_option('myls_lb_default_price_range', '') ); ?>"
+                   placeholder="e.g. $$ or $150–$500">
+            <p class="form-text" style="margin-top:4px;opacity:.75;">
+              Schema.org accepts a free-text string. Common formats: <code>$$</code>, <code>$–$$$</code>, or a dollar range like <code>$150–$500</code>.
+            </p>
+          </div>
+
+          <div class="myls-col col-6">
+            <label class="form-label">
+              Image Fallback Chain
+              <span style="font-weight:400;color:#6b7280;"> — read-only reference</span>
+            </label>
+            <p style="margin:4px 0 0;font-size:.875rem;line-height:1.6;">
+              <?php
+              $fb_loc   = '❌ Not set (per-location field)';
+              $fb_logo  = '❌ Not set (Org logo attachment)';
+              $fb_img   = '❌ Not set (Org image URL)';
+              $logo_id_v = (int) get_option('myls_org_logo_id', 0);
+              if ( $logo_id_v ) {
+                $u = wp_get_attachment_image_url($logo_id_v, 'thumbnail');
+                $fb_logo = $u ? '✅ Org logo: <img src="'.esc_url($u).'" style="height:28px;vertical-align:middle;margin-left:4px;">' : '⚠️ Logo ID set but URL unavailable';
+              }
+              $img_url_v = trim((string) get_option('myls_org_image_url', ''));
+              if ( $img_url_v ) $fb_img = '✅ Org image URL set';
+              echo '<strong>1.</strong> Per-location Business Image URL<br>';
+              echo '<strong>2.</strong> '.$fb_logo.'<br>';
+              echo '<strong>3.</strong> '.$fb_img;
+              ?>
+            </p>
+            <p class="form-text" style="margin-top:6px;opacity:.75;">
+              Set Org Logo under Schema → Organization, or Org Image URL in the Organization settings to resolve the image warning.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- knowsAbout include list — global, not per-location -->
+      <div class="myls-block" style="margin-top:8px;">
+        <div class="myls-block-title">knowsAbout — Schema Topics (opt-in)</div>
+        <p style="margin:0 0 8px;">
+          Select which Service posts (and optionally the Service schema name) should appear
+          as <code>knowsAbout</code> entries on your LocalBusiness and Organization schema.
+          Only selected items are included — nothing is added automatically.
+        </p>
+
+        <?php if ( empty($service_posts_all) && empty($service_subtype_val) ) : ?>
+          <p style="color:#888;font-style:italic;">
+            No published Service posts found and no Service schema name is set.
+            Publish Service posts or set a name under Schema → Service to populate this list.
+          </p>
+        <?php else : ?>
+          <label class="form-label" for="myls-knows-about-select">
+            Hold <strong>Ctrl / Cmd</strong> to select multiple items.
+          </label>
+          <select id="myls-knows-about-select"
+                  name="myls_lb_knows_about_include[]"
+                  multiple
+                  size="<?php echo max(4, min(12, count($service_posts_all) + ($service_subtype_val ? 1 : 0))); ?>"
+                  style="width:100%;">
+
+            <?php if ( $service_subtype_val !== '' ) :
+              $sub_selected = in_array('__subtype__', $knows_about_include, true) ? ' selected' : '';
+            ?>
+              <option value="__subtype__"<?php echo $sub_selected; ?>>
+                [Service Schema Name] <?php echo esc_html($service_subtype_val); ?>
+              </option>
+            <?php endif; ?>
+
+            <?php foreach ( $service_posts_all as $sp ) :
+              $sel = in_array( (int) $sp->ID, array_map('intval', $knows_about_include), true ) ? ' selected' : '';
+            ?>
+              <option value="<?php echo absint($sp->ID); ?>"<?php echo $sel; ?>>
+                <?php echo esc_html( $sp->post_title ); ?>
+              </option>
+            <?php endforeach; ?>
+
+          </select>
+          <p class="form-text" style="margin-top:4px;opacity:.75;">
+            <?php echo count($service_posts_all); ?> service post<?php echo count($service_posts_all) !== 1 ? 's' : ''; ?> available.
+            Selected items appear as <code>{"@type":"Thing","name":"..."}</code> in both LocalBusiness and Organization schema.
+          </p>
+        <?php endif; ?>
       </div>
     </div>
 
@@ -600,6 +727,39 @@ $spec = [
   });
 
 })();
+
+// Per-location image URL media pickers — delegated to handle dynamic rows
+(function(){
+  // Use event delegation on the location list so dynamically added rows also work.
+  const list = document.getElementById('myls-location-list');
+  if (!list) return;
+
+  list.addEventListener('click', function(e){
+    // Select button
+    const pickBtn = e.target.closest('.myls-loc-image-pick');
+    if (pickBtn) {
+      e.preventDefault();
+      const row = pickBtn.closest('.myls-col');
+      const inp = row ? row.querySelector('.myls-loc-image-url') : null;
+      if (!inp) return;
+      // Re-use cached frame per-input using a data attribute key
+      const frame = wp.media({ title: 'Select Location Image', button: { text: 'Use this image' }, multiple: false, library: { type: 'image' } });
+      frame.on('select', function(){
+        const att = frame.state().get('selection').first().toJSON();
+        inp.value = att.url;
+      });
+      frame.open();
+      return;
+    }
+    // Clear button
+    const clearBtn = e.target.closest('.myls-loc-image-clear');
+    if (clearBtn) {
+      const row = clearBtn.closest('.myls-col');
+      const inp = row ? row.querySelector('.myls-loc-image-url') : null;
+      if (inp) inp.value = '';
+    }
+  });
+})();
 </script>
 
     <?php
@@ -660,6 +820,24 @@ $spec = [
     }
 
     update_option('myls_lb_locations', $clean);
+
+    // Save site-wide defaults.
+    update_option('myls_lb_default_price_range', sanitize_text_field($_POST['myls_lb_default_price_range'] ?? ''));
+
+    // Save knowsAbout include list.
+    // Values are either int post IDs or the '__subtype__' sentinel string.
+    $raw_include = isset($_POST['myls_lb_knows_about_include']) && is_array($_POST['myls_lb_knows_about_include'])
+      ? $_POST['myls_lb_knows_about_include']
+      : [];
+    $clean_include = [];
+    foreach ( $raw_include as $v ) {
+      if ( $v === '__subtype__' ) {
+        $clean_include[] = '__subtype__';
+      } elseif ( is_numeric($v) && (int) $v > 0 ) {
+        $clean_include[] = (int) $v;
+      }
+    }
+    update_option('myls_lb_knows_about_include', $clean_include);
 
     // Persist assignments to post meta for quick lookup + durability
     if ( function_exists('myls_lb_sync_postmeta_from_locations') ) {

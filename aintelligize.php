@@ -3,7 +3,7 @@
  * Plugin Name:       AIntelligize
  * Plugin URI:        https://aintelligize.com/
  * Description:       Modular local SEO toolkit with schema, AI tools, bulk operations, and shortcode utilities.
- * Version: 7.8.60
+ * Version: 7.8.76
  * Author:            Dave Barry
  * Author URI:        https://davebarry.io/
  * Text Domain:       aintelligize
@@ -16,7 +16,7 @@ if ( ! defined('ABSPATH') ) exit;
  * Canonical constants & helpers (single source of truth)
  * ───────────────────────────────────────────────────────────────────────── */
 // Keep in sync with plugin header above.
-if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.8.60');
+if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.8.76');
 if ( ! defined('MYLS_MAIN_FILE') )   define('MYLS_MAIN_FILE', __FILE__);
 if ( ! defined('MYLS_PATH') )        define('MYLS_PATH', plugin_dir_path(MYLS_MAIN_FILE));
 if ( ! defined('MYLS_URL') )         define('MYLS_URL',  plugins_url('', MYLS_MAIN_FILE));
@@ -134,6 +134,7 @@ require_once MYLS_PATH . 'inc/schema/providers/about-page.php';
 require_once MYLS_PATH . 'inc/schema/providers/build-service-schema.php';
 require_once MYLS_PATH . 'inc/schema/providers/video-archive.php';
 require_once MYLS_PATH . 'inc/schema/providers/video-schema.php';
+require_once MYLS_PATH . 'inc/schema/providers/video-object-detector.php';
 require_once MYLS_PATH . 'admin/api-integration-tests.php';
 require_once MYLS_PATH . 'inc/schema/providers/video-collection-head.php';
 require_once MYLS_PATH . 'inc/schema/providers/faq.php';
@@ -263,9 +264,10 @@ add_action( 'myls_refresh_places_rating', function() {
 	$count  = (string) ( $body['result']['user_ratings_total'] ?? '' );
 	if ( $rating === '' || $count === '' ) return;
 
-	update_option( 'myls_google_places_rating',       $rating );
-	update_option( 'myls_google_places_review_count', $count  );
-	update_option( 'myls_places_rating_fetched_at',   current_time('mysql') );
+	update_option( 'myls_google_places_rating',        $rating );
+	update_option( 'myls_google_places_review_count',  $count  ); // backward compat
+	update_option( 'myls_google_places_rating_count',  $count  ); // schema.org ratingCount (= user_ratings_total)
+	update_option( 'myls_places_rating_fetched_at',    current_time('mysql') );
 } );
 
 /** Self-healing: ensure cron is scheduled on every request */

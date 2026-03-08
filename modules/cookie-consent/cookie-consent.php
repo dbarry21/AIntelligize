@@ -94,10 +94,65 @@ function ccb_sanitize_settings( $input ): array {
     return $sanitized;
 }
 
+
+/**
+ * Determine whether the banner should be suppressed on this page load.
+ *
+ * Suppressed when ANY of the following are true:
+ *  1. Current user can manage_options (admin/editor viewing front-end)
+ *  2. Elementor editor is active (elementor-preview query arg or ELEMENTOR_LOADED + editor mode)
+ *  3. WordPress Block Editor / Gutenberg iframe preview (iframe=1 in query)
+ *  4. WordPress Customizer preview
+ *  5. Divi Visual Builder is active (et_fb query arg)
+ *  6. Page builder "preview" mode from any builder (preview_id, fl_builder query args)
+ *
+ * @return bool  True = suppress banner.
+ */
+function ccb_should_suppress(): bool {
+    // 1. Logged-in admin/editor — suppress on front-end entirely
+    if ( current_user_can( 'manage_options' ) ) {
+        return true;
+    }
+
+    // 2. Elementor editor or preview
+    if ( isset( $_GET['elementor-preview'] ) ) {
+        return true;
+    }
+    // Elementor 3.x: editor loads in an iframe, sets this query arg
+    if ( isset( $_GET['elementor_library'] ) ) {
+        return true;
+    }
+
+    // 3. WordPress Block Editor iframe preview (Gutenberg)
+    if ( isset( $_GET['iframe'] ) && isset( $_GET['preview'] ) ) {
+        return true;
+    }
+
+    // 4. WordPress Customizer
+    if ( is_customize_preview() ) {
+        return true;
+    }
+
+    // 5. Divi Visual Builder
+    if ( isset( $_GET['et_fb'] ) ) {
+        return true;
+    }
+
+    // 6. Generic builder preview query args (Beaver Builder, Brizy, etc.)
+    if ( isset( $_GET['fl_builder'] ) || isset( $_GET['preview_id'] ) ) {
+        return true;
+    }
+
+    return false;
+}
+
 /* ── Frontend: Enqueue assets ──────────────────────────────────── */
 add_action( 'wp_enqueue_scripts', function () {
     if ( is_admin() ) return;
     if ( ccb_get('enabled') !== '1' ) return;
+
+    // Suppress for logged-in admins viewing the site backend or editing pages
+    if ( ccb_should_suppress() ) return;
 
     $ver = CCB_VERSION;
     $url = trailingslashit(MYLS_URL) . 'modules/cookie-consent/';
@@ -130,6 +185,9 @@ add_action( 'wp_enqueue_scripts', function () {
 add_action( 'wp_footer', function () {
     if ( is_admin() ) return;
     if ( ccb_get('enabled') !== '1' ) return;
+
+    // Suppress for logged-in admins viewing the site backend or editing pages
+    if ( ccb_should_suppress() ) return;
 
     $s       = ccb_get_settings();
     $theme   = esc_attr( $s['theme'] );
