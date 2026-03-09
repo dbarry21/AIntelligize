@@ -13,6 +13,7 @@
  *
  * @since 7.8.77
  * @updated 7.8.83 — Supadata API as primary, page-scrape + timedtext as fallbacks
+ * @updated 7.8.87 — Timestamp-based paragraph formatting for readability
  */
 
 if ( ! defined('ABSPATH') ) exit;
@@ -92,20 +93,43 @@ function _myls_fetch_transcript_supadata( string $video_id ) : ?string {
 		return null;
 	}
 
-	$lines = [];
+	// Group segments into ~30-second paragraphs for readability
+	$paragraphs    = [];
+	$current_lines = [];
+	$para_start    = null;
+	$interval      = 30; // seconds per paragraph
+
 	foreach ( $data['content'] as $segment ) {
 		$text = trim( (string) ( $segment['text'] ?? '' ) );
-		if ( $text !== '' ) {
-			$lines[] = $text;
+		if ( $text === '' ) continue;
+
+		// Try common timestamp fields (seconds)
+		$ts = $segment['offset'] ?? $segment['start'] ?? $segment['startTime'] ?? null;
+		if ( $ts !== null ) {
+			$ts = (float) $ts;
+			if ( $para_start === null ) {
+				$para_start = $ts;
+			}
+			// Start new paragraph every ~30s
+			if ( $ts - $para_start >= $interval && ! empty( $current_lines ) ) {
+				$paragraphs[]  = trim( preg_replace( '/\s+/', ' ', implode( ' ', $current_lines ) ) );
+				$current_lines = [];
+				$para_start    = $ts;
+			}
 		}
+		$current_lines[] = $text;
 	}
 
-	if ( empty( $lines ) ) {
+	// Flush remaining
+	if ( ! empty( $current_lines ) ) {
+		$paragraphs[] = trim( preg_replace( '/\s+/', ' ', implode( ' ', $current_lines ) ) );
+	}
+
+	if ( empty( $paragraphs ) ) {
 		return null;
 	}
 
-	$transcript = implode( ' ', $lines );
-	return trim( preg_replace( '/\s+/', ' ', $transcript ) );
+	return implode( "\n\n", $paragraphs );
 }
 
 /**
@@ -177,7 +201,8 @@ function _myls_get_caption_url_from_timedtext( string $video_id ) : ?string {
 }
 
 /**
- * Fetch caption XML/JSON from a baseUrl and return clean plain text.
+ * Fetch caption XML/JSON from a baseUrl and return clean text with paragraph breaks.
+ * Groups caption segments into ~30-second paragraphs using timestamps.
  */
 function _myls_fetch_caption_xml( string $url ) : ?string {
 	if ( strpos( $url, 'fmt=' ) === false ) {
@@ -193,40 +218,77 @@ function _myls_fetch_caption_xml( string $url ) : ?string {
 		return null;
 	}
 
-	$body = wp_remote_retrieve_body( $response );
+	$body     = wp_remote_retrieve_body( $response );
+	$interval = 30; // seconds per paragraph
 
-	// XML format (srv1)
+	// XML format (srv1) — <text start="12.34" dur="3.21">Hello world</text>
 	$text_xml = @simplexml_load_string( $body );
 	if ( $text_xml ) {
-		$lines = [];
+		$paragraphs    = [];
+		$current_lines = [];
+		$para_start    = null;
+
 		foreach ( $text_xml->text as $text ) {
 			$line = html_entity_decode( (string) $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 			$line = wp_strip_all_tags( $line );
 			$line = trim( $line );
-			if ( $line !== '' ) {
-				$lines[] = $line;
+			if ( $line === '' ) continue;
+
+			$ts = isset( $text['start'] ) ? (float) $text['start'] : null;
+			if ( $ts !== null ) {
+				if ( $para_start === null ) {
+					$para_start = $ts;
+				}
+				if ( $ts - $para_start >= $interval && ! empty( $current_lines ) ) {
+					$paragraphs[]  = trim( preg_replace( '/\s+/', ' ', implode( ' ', $current_lines ) ) );
+					$current_lines = [];
+					$para_start    = $ts;
+				}
 			}
+			$current_lines[] = $line;
 		}
-		if ( ! empty( $lines ) ) {
-			return trim( preg_replace( '/\s+/', ' ', implode( ' ', $lines ) ) );
+		if ( ! empty( $current_lines ) ) {
+			$paragraphs[] = trim( preg_replace( '/\s+/', ' ', implode( ' ', $current_lines ) ) );
+		}
+		if ( ! empty( $paragraphs ) ) {
+			return implode( "\n\n", $paragraphs );
 		}
 	}
 
-	// JSON format (srv3)
+	// JSON format (srv3) — events[].tStartMs, events[].segs[].utf8
 	$json = json_decode( $body, true );
 	if ( is_array( $json ) && ! empty( $json['events'] ) ) {
-		$lines = [];
+		$paragraphs    = [];
+		$current_lines = [];
+		$para_start    = null;
+
 		foreach ( $json['events'] as $event ) {
 			if ( empty( $event['segs'] ) ) continue;
+
+			$ts = isset( $event['tStartMs'] ) ? (float) $event['tStartMs'] / 1000 : null;
+			if ( $ts !== null ) {
+				if ( $para_start === null ) {
+					$para_start = $ts;
+				}
+				if ( $ts - $para_start >= $interval && ! empty( $current_lines ) ) {
+					$paragraphs[]  = trim( preg_replace( '/\s+/', ' ', implode( ' ', $current_lines ) ) );
+					$current_lines = [];
+					$para_start    = $ts;
+				}
+			}
+
 			foreach ( $event['segs'] as $seg ) {
 				$text = trim( $seg['utf8'] ?? '' );
 				if ( $text !== '' && $text !== "\n" ) {
-					$lines[] = $text;
+					$current_lines[] = $text;
 				}
 			}
 		}
-		if ( ! empty( $lines ) ) {
-			return trim( preg_replace( '/\s+/', ' ', implode( ' ', $lines ) ) );
+		if ( ! empty( $current_lines ) ) {
+			$paragraphs[] = trim( preg_replace( '/\s+/', ' ', implode( ' ', $current_lines ) ) );
+		}
+		if ( ! empty( $paragraphs ) ) {
+			return implode( "\n\n", $paragraphs );
 		}
 	}
 

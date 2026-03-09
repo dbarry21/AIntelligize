@@ -1,3 +1,16 @@
+## 7.8.87 — 2026-03-09
+
+### Improved — Timestamp-based transcript paragraphs
+
+Transcripts are now formatted with paragraph breaks every ~30 seconds
+using timestamp data from Supadata segments, caption XML (`start` attr),
+and caption JSON (`tStartMs`). Frontend accordion renders paragraphs via
+`wpautop()`. Re-fetch existing transcripts to apply new formatting.
+
+**Files:** `inc/ajax/fetch-youtube-transcript.php`, `inc/video-transcript-frontend.php`
+
+---
+
 ## 7.8.86 — 2026-03-09
 
 ### Added — Video Transcript Cache system
