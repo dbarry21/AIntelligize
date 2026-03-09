@@ -789,19 +789,6 @@ if ( ! function_exists('myls_detect_videos_in_post') ) {
 		// manually embedded iframes, auto-embed URLs, etc.).
 		$merge( myls_extract_videos_content($raw_content, $post_id) );
 
-		// ── Cross-validate against rendered output ────────────────────────
-		// Removes phantom videos stored in builder data but not actually
-		// rendered on the page (e.g. hidden/deleted Elementor widgets).
-		if ( apply_filters( 'myls_video_detection_validate_against_rendered', true ) && ! empty( $all ) ) {
-			$rendered = apply_filters( 'the_content', get_post_field( 'post_content', $post_id ) );
-			$all = array_values( array_filter( $all, function ( $item ) use ( $rendered ) {
-				// Self-hosted videos without an ID — skip validation, keep them
-				if ( $item['video_id'] === '' ) return true;
-				// Check if the video_id appears anywhere in the rendered output
-				return strpos( $rendered, $item['video_id'] ) !== false;
-			} ) );
-		}
-
 		return apply_filters('myls_detected_video_items', $all, $post_id);
 	}
 }
