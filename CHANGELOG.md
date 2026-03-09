@@ -1,3 +1,18 @@
+## 7.8.83 — 2026-03-08
+
+### Fixed — Phantom VideoObject from orphaned Elementor widget data
+
+Restored cross-validation of detected videos against rendered page output.
+Now uses Elementor's own front-end renderer (`get_builder_content`) for
+Elementor pages instead of raw `post_content`. Orphaned video widgets
+(deleted in editor but persisted in `_elementor_data`) are correctly
+filtered out. Also skips elements with `_element_hidden` flag during
+Elementor data walk.
+
+**File:** `inc/schema/providers/video-object-detector.php`
+
+---
+
 ## 7.8.82 — 2026-03-08
 
 ### Fixed — VideoObject schema missing on Elementor pages
