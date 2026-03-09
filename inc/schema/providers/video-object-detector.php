@@ -267,8 +267,11 @@ if ( ! function_exists('myls_extract_videos_elementor_data') ) {
 		foreach ( $elements as $el ) {
 			if ( ! is_array($el) ) continue;
 
-			$widget_type = (string) ($el['widgetType'] ?? '');
+			// Skip elements hidden in Elementor (deleted widget data can persist)
 			$settings    = is_array($el['settings'] ?? null) ? $el['settings'] : [];
+			if ( ! empty( $settings['_element_hidden'] ) ) continue;
+
+			$widget_type = (string) ($el['widgetType'] ?? '');
 
 			// ── Video widget ─────────────────────────────────────────────
 			if ( $widget_type === 'video' ) {
@@ -788,6 +791,35 @@ if ( ! function_exists('myls_detect_videos_in_post') ) {
 		// Catches any remaining embeds not handled above (mixed builders,
 		// manually embedded iframes, auto-embed URLs, etc.).
 		$merge( myls_extract_videos_content($raw_content, $post_id) );
+
+		// ── Cross-validate against rendered front-end output ──────────────
+		// Removes phantom videos stored in builder data but not actually
+		// rendered on the page (e.g. orphaned Elementor widget data).
+		// Uses Elementor's own renderer for Elementor pages, standard
+		// the_content filter for everything else.
+		if ( apply_filters( 'myls_video_detection_validate_against_rendered', true ) && ! empty( $all ) ) {
+			$rendered = '';
+
+			// Elementor: use its front-end renderer (CSS disabled to avoid side-effects)
+			if ( class_exists( '\Elementor\Plugin' ) ) {
+				$doc = \Elementor\Plugin::$instance->documents->get( $post_id );
+				if ( $doc && $doc->is_built_with_elementor() ) {
+					$rendered = \Elementor\Plugin::$instance->frontend->get_builder_content( $post_id, false );
+				}
+			}
+
+			// Fallback: standard WordPress content rendering
+			if ( $rendered === '' || $rendered === false ) {
+				$rendered = apply_filters( 'the_content', get_post_field( 'post_content', $post_id ) );
+			}
+
+			if ( is_string( $rendered ) && $rendered !== '' ) {
+				$all = array_values( array_filter( $all, function ( $item ) use ( $rendered ) {
+					if ( $item['video_id'] === '' ) return true;
+					return strpos( $rendered, $item['video_id'] ) !== false;
+				} ) );
+			}
+		}
 
 		return apply_filters('myls_detected_video_items', $all, $post_id);
 	}
