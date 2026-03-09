@@ -1,3 +1,15 @@
+## 7.8.82 — 2026-03-08
+
+### Fixed — VideoObject schema missing on Elementor pages
+
+Removed cross-validation that checked detected video IDs against rendered
+`post_content`. Elementor stores videos in `_elementor_data` meta, not in
+`post_content`, so the validation was filtering out all Elementor videos.
+
+**File:** `inc/schema/providers/video-object-detector.php`
+
+---
+
 ## 7.8.81 — 2026-03-08
 
 ### Fixed — YouTube transcript fetch
