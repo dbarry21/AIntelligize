@@ -15,6 +15,7 @@
  * @updated 7.8.83 — Supadata API as primary, page-scrape + timedtext as fallbacks
  * @updated 7.8.87 — Timestamp-based paragraph formatting for readability
  * @updated 7.8.88 — Sentence-count fallback when no timestamps; visible [M:SS] markers
+ * @updated 7.8.89 — Fix Supadata offset (milliseconds → seconds conversion)
  */
 
 if ( ! defined('ABSPATH') ) exit;
@@ -147,10 +148,16 @@ function _myls_fetch_transcript_supadata( string $video_id ) : ?string {
 		$text = trim( (string) ( $segment['text'] ?? '' ) );
 		if ( $text === '' ) continue;
 
-		// Try common timestamp fields (seconds)
-		$ts = $segment['offset'] ?? $segment['start'] ?? $segment['startTime'] ?? null;
+		// Try common timestamp fields — offset is milliseconds (Supadata), others are seconds
+		$ts = null;
+		if ( isset( $segment['offset'] ) ) {
+			$ts = (float) $segment['offset'] / 1000; // Supadata: ms → s
+		} elseif ( isset( $segment['start'] ) ) {
+			$ts = (float) $segment['start'];
+		} elseif ( isset( $segment['startTime'] ) ) {
+			$ts = (float) $segment['startTime'];
+		}
 		if ( $ts !== null ) {
-			$ts = (float) $ts;
 			$has_timestamps = true;
 			if ( $para_start === null ) {
 				$para_start = $ts;

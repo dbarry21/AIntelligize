@@ -1,3 +1,15 @@
+## 7.8.89 — 2026-03-09
+
+### Fixed — Supadata timestamp conversion (ms → s)
+
+Supadata API returns `offset` in milliseconds, but it was treated as seconds,
+causing wildly wrong `[M:SS]` markers and paragraph breaks on every segment.
+Now correctly divides by 1000. Re-fetch transcripts to fix.
+
+**Files:** `inc/ajax/fetch-youtube-transcript.php`
+
+---
+
 ## 7.8.88 — 2026-03-09
 
 ### Improved — Sentence-count fallback & timestamp markers
