@@ -21,6 +21,26 @@ if ( ! function_exists('myls_sanitize_csv') ) {
 }
 
 /**
+ * Strip 'Answer:' prefix from FAQ answer text for schema output.
+ *
+ * AI citation engines read schema text literally — the prefix is noise.
+ * Strips both HTML bold-wrapped and plain text variants.
+ *
+ * @param  string $text  Raw answer text (may contain HTML).
+ * @return string        Cleaned text.
+ * @since  7.8.77
+ */
+if ( ! function_exists('myls_strip_answer_prefix') ) {
+	function myls_strip_answer_prefix( string $text ) : string {
+		// Strip <strong>Answer:</strong> (with optional whitespace)
+		$text = preg_replace( '/<strong>\s*Answer:\s*<\/strong>\s*/i', '', $text );
+		// Strip plain text "Answer:" at the beginning
+		$text = preg_replace( '/^\s*Answer:\s*/i', '', $text );
+		return $text;
+	}
+}
+
+/**
  * Build a flat, pipe-separated credential string from Organization + LocalBusiness schema options.
  *
  * Sources (in priority order):

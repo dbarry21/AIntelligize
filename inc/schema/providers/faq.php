@@ -82,12 +82,13 @@ if ( ! function_exists('myls_faq_items_to_main_entity') ) {
 			$a = trim( (string)($row['a'] ?? '') );
 			if ( $q === '' || $a === '' ) continue;
 
+			$schema_text = function_exists('myls_strip_answer_prefix') ? myls_strip_answer_prefix( $a ) : $a;
 			$main[] = [
 				'@type'          => 'Question',
 				'name'           => $q,
 				'acceptedAnswer' => [
 					'@type' => 'Answer',
-					'text'  => $a,
+					'text'  => $schema_text,
 				],
 			];
 		}

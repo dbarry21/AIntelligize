@@ -789,6 +789,19 @@ if ( ! function_exists('myls_detect_videos_in_post') ) {
 		// manually embedded iframes, auto-embed URLs, etc.).
 		$merge( myls_extract_videos_content($raw_content, $post_id) );
 
+		// ── Cross-validate against rendered output ────────────────────────
+		// Removes phantom videos stored in builder data but not actually
+		// rendered on the page (e.g. hidden/deleted Elementor widgets).
+		if ( apply_filters( 'myls_video_detection_validate_against_rendered', true ) && ! empty( $all ) ) {
+			$rendered = apply_filters( 'the_content', get_post_field( 'post_content', $post_id ) );
+			$all = array_values( array_filter( $all, function ( $item ) use ( $rendered ) {
+				// Self-hosted videos without an ID — skip validation, keep them
+				if ( $item['video_id'] === '' ) return true;
+				// Check if the video_id appears anywhere in the rendered output
+				return strpos( $rendered, $item['video_id'] ) !== false;
+			} ) );
+		}
+
 		return apply_filters('myls_detected_video_items', $all, $post_id);
 	}
 }
@@ -814,8 +827,30 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 	function myls_build_video_object_node( array $item, int $post_id, int $index = 0 ) : array {
 		$post_title = (string) get_the_title($post_id);
 
-		// Name: widget caption → post title → generic fallback.
-		$name = $item['caption'] !== '' ? $item['caption'] : ( $post_title ?: 'Video' );
+		// Look up admin-configured name and transcript for this video
+		$admin_entries = get_option( 'myls_video_entries', [] );
+		$admin_name    = '';
+		$admin_trans   = '';
+		if ( is_array( $admin_entries ) && $item['video_id'] !== '' ) {
+			foreach ( $admin_entries as $ae ) {
+				if ( ! is_array( $ae ) ) continue;
+				if ( ( $ae['video_id'] ?? '' ) === $item['video_id'] ) {
+					$admin_name  = trim( $ae['name'] ?? '' );
+					$admin_trans = trim( $ae['transcript'] ?? '' );
+					break;
+				}
+			}
+		}
+
+		// Name priority: admin entry → widget caption → post title (with index for uniqueness)
+		$name = $admin_name;
+		if ( $name === '' ) {
+			$name = $item['caption'] !== '' ? $item['caption'] : ( $post_title ?: 'Video' );
+		}
+		// Ensure uniqueness on multi-video pages when falling back to post title
+		if ( $name === $post_title && $index > 0 ) {
+			$name .= ' — Video ' . ( $index + 1 );
+		}
 
 		// Description: widget description → post excerpt → name.
 		$desc = $item['description'];
@@ -844,6 +879,11 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 
 		if ( $item['embed_url'] !== '' ) $node['embedUrl']  = $item['embed_url'];
 		if ( $item['duration']  !== '' ) $node['duration']  = $item['duration'];
+
+		// Transcript from admin entry
+		if ( $admin_trans !== '' ) {
+			$node['transcript'] = $admin_trans;
+		}
 
 		// Publisher — from org options, consistent with other nodes.
 		$org_name   = trim((string) get_option('myls_org_name', get_bloginfo('name')));
