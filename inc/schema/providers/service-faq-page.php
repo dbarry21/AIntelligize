@@ -81,12 +81,13 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 			if ( $key === '' || isset( $seen[ $key ] ) ) continue;
 			$seen[ $key ] = true;
 
+			$schema_text = function_exists('myls_strip_answer_prefix') ? myls_strip_answer_prefix( $row['a'] ) : $row['a'];
 			$main_entity[] = [
 				'@type'          => 'Question',
 				'name'           => $row['q'],
 				'acceptedAnswer' => [
 					'@type' => 'Answer',
-					'text'  => $row['a'],
+					'text'  => $schema_text,
 				],
 			];
 		}

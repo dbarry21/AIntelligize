@@ -3,7 +3,7 @@
  * Plugin Name:       AIntelligize
  * Plugin URI:        https://aintelligize.com/
  * Description:       Modular local SEO toolkit with schema, AI tools, bulk operations, and shortcode utilities.
- * Version: 7.8.79
+ * Version: 7.8.80
  * Author:            Dave Barry
  * Author URI:        https://davebarry.io/
  * Text Domain:       aintelligize
@@ -16,7 +16,7 @@ if ( ! defined('ABSPATH') ) exit;
  * Canonical constants & helpers (single source of truth)
  * ───────────────────────────────────────────────────────────────────────── */
 // Keep in sync with plugin header above.
-if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.8.79');
+if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.8.80');
 if ( ! defined('MYLS_MAIN_FILE') )   define('MYLS_MAIN_FILE', __FILE__);
 if ( ! defined('MYLS_PATH') )        define('MYLS_PATH', plugin_dir_path(MYLS_MAIN_FILE));
 if ( ! defined('MYLS_URL') )         define('MYLS_URL',  plugins_url('', MYLS_MAIN_FILE));
@@ -130,6 +130,7 @@ require_once MYLS_PATH . 'inc/schema/registry.php';
 require_once MYLS_PATH . 'inc/schema/providers/organization.php';
 require_once MYLS_PATH . 'inc/schema/providers/localbusiness.php';
 require_once MYLS_PATH . 'inc/schema/providers/person.php';
+require_once MYLS_PATH . 'inc/schema/providers/webpage.php';
 require_once MYLS_PATH . 'inc/schema/providers/about-page.php';
 require_once MYLS_PATH . 'inc/schema/providers/build-service-schema.php';
 require_once MYLS_PATH . 'inc/schema/providers/video-archive.php';
@@ -197,6 +198,9 @@ require_once MYLS_PATH . 'inc/ajax/generate-memberships-page.php';
 
 /** Google Maps bulk generation AJAX */
 require_once MYLS_PATH . 'inc/ajax/google-maps.php';
+
+/** YouTube transcript fetch AJAX */
+require_once MYLS_PATH . 'inc/ajax/fetch-youtube-transcript.php';
 
 /** Updater */
 require_once MYLS_PATH . 'update-plugin.php';

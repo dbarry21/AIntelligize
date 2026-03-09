@@ -1,3 +1,62 @@
+## 7.8.80 — 2026-03-08
+
+### Added — GEO/AEO Schema Sprint
+
+**WebPage schema provider (new)**
+- `@type WebPage` node on all singular pages (except video CPT)
+- `dateModified` auto-updates via `get_the_modified_date('c')`
+- `isPartOf` links to LocalBusiness `@id`; `author` links to Person `@id` when enabled
+- Admin toggle in Schema → WebPage subtab
+- **Files:** `inc/schema/providers/webpage.php` (new), `admin/tabs/schema/subtab-webpage.php` (new), `aintelligize.php`
+
+**og:type Yoast filter**
+- Overrides Yoast default `og:type = 'article'` to `'website'` on service pages and LB-assigned pages
+- Blog posts remain `'article'`
+- **File:** `inc/schema/providers/webpage.php`
+
+**YouTube transcript fetch (AJAX)**
+- Admin "Fetch Transcript" button per video entry in Schema → Video subtab
+- PHP endpoint `myls_fetch_youtube_transcript` uses public timedtext API (no auth required)
+- Transcript saved per video, included in VideoObject `transcript` field
+- **Files:** `inc/ajax/fetch-youtube-transcript.php` (new), `admin/tabs/schema/subtab-video.php`, `inc/schema/providers/video-object-detector.php`
+
+**Video name field in admin**
+- Per-video `name` input in Schema → Video subtab
+- Admin-configured name takes priority over widget caption and post title
+- Duplicate name warning shown inline when two entries share the same name
+- **Files:** `admin/tabs/schema/subtab-video.php`, `inc/schema/providers/video-object-detector.php`
+
+**Video unique name fallback**
+- When name falls back to post title, multi-video pages get indexed suffix (e.g. "Title — Video 2")
+- **File:** `inc/schema/providers/video-object-detector.php`
+
+**TL;DR shortcode**
+- `[myls_tldr]Summary text[/myls_tldr]` renders styled box with blue left border
+- Content-only — no schema output; inline CSS enqueued only when shortcode is present
+- **File:** `modules/shortcodes/tldr.php` (new)
+
+**LocalBusiness employee reference**
+- `employee` array with Person `@id` reference(s) on front page only
+- Requires Person schema profiles to be enabled
+- **File:** `inc/schema/providers/localbusiness.php`
+
+### Fixed
+
+**Video detection cross-validation**
+- After detecting videos from builder data, validates each video_id against rendered page output
+- Removes phantom VideoObject entries for widgets stored but no longer displayed
+- Opt-out filter: `myls_video_detection_validate_against_rendered` (default true)
+- Self-hosted videos (empty video_id) skip validation
+- **File:** `inc/schema/providers/video-object-detector.php`
+
+**FAQ Answer: prefix cleanup**
+- Strips `<strong>Answer:</strong>` and plain `Answer:` prefix from `acceptedAnswer.text` in schema
+- Applied consistently across all three FAQ providers (render.php, faq.php, service-faq-page.php)
+- On-page HTML retains prefix for human readability; only schema text is cleaned
+- **Files:** `inc/schema/helpers.php`, `inc/schema/render.php`, `inc/schema/providers/faq.php`, `inc/schema/providers/service-faq-page.php`
+
+---
+
 ## 7.8.79 — 2026-03-08
 
 ### New — Frontend Source viewer tab in Style Editor
