@@ -899,7 +899,15 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 		if ( $item['embed_url'] !== '' ) $node['embedUrl']  = $item['embed_url'];
 		if ( $item['duration']  !== '' ) $node['duration']  = $item['duration'];
 
-		// Transcript from admin entry
+		// Fallback: cache table transcript when admin entry has none
+		if ( $admin_trans === '' && function_exists('myls_vt_get_by_id') && $item['video_id'] !== '' ) {
+			$vt_row = myls_vt_get_by_id( $item['video_id'] );
+			if ( $vt_row && $vt_row['status'] === 'ok' && ! empty($vt_row['transcript']) ) {
+				$admin_trans = $vt_row['transcript'];
+			}
+		}
+
+		// Transcript from admin entry or cache table
 		if ( $admin_trans !== '' ) {
 			$node['transcript'] = $admin_trans;
 		}

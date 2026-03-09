@@ -252,6 +252,27 @@ if ( ! function_exists('myls_video_schema_single') ) {
 		}
 		$video['publisher'] = $publisher;
 
+		// Transcript: manual override (myls_video_entries) > cache table
+		$vt_transcript = '';
+		$admin_entries = get_option('myls_video_entries', []);
+		if ( is_array($admin_entries) && $video_id !== '' ) {
+			foreach ( $admin_entries as $ae ) {
+				if ( is_array($ae) && ($ae['video_id'] ?? '') === $video_id ) {
+					$vt_transcript = trim($ae['transcript'] ?? '');
+					break;
+				}
+			}
+		}
+		if ( $vt_transcript === '' && function_exists('myls_vt_get_by_id') && $video_id !== '' ) {
+			$vt_row = myls_vt_get_by_id( $video_id );
+			if ( $vt_row && $vt_row['status'] === 'ok' && ! empty($vt_row['transcript']) ) {
+				$vt_transcript = $vt_row['transcript'];
+			}
+		}
+		if ( $vt_transcript !== '' ) {
+			$video['transcript'] = $vt_transcript;
+		}
+
 		/**
 		 * Final filter to customize the VideoObject before output.
 		 * Example: add "contentUrl" if you host your own MP4.

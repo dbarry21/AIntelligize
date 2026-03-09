@@ -3,7 +3,7 @@
  * Plugin Name:       AIntelligize
  * Plugin URI:        https://aintelligize.com/
  * Description:       Modular local SEO toolkit with schema, AI tools, bulk operations, and shortcode utilities.
- * Version: 7.8.85
+ * Version: 7.8.86
  * Author:            Dave Barry
  * Author URI:        https://davebarry.io/
  * Text Domain:       aintelligize
@@ -16,7 +16,7 @@ if ( ! defined('ABSPATH') ) exit;
  * Canonical constants & helpers (single source of truth)
  * ───────────────────────────────────────────────────────────────────────── */
 // Keep in sync with plugin header above.
-if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.8.85');
+if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.8.86');
 if ( ! defined('MYLS_MAIN_FILE') )   define('MYLS_MAIN_FILE', __FILE__);
 if ( ! defined('MYLS_PATH') )        define('MYLS_PATH', plugin_dir_path(MYLS_MAIN_FILE));
 if ( ! defined('MYLS_URL') )         define('MYLS_URL',  plugins_url('', MYLS_MAIN_FILE));
@@ -71,6 +71,7 @@ require_once MYLS_PATH . 'inc/admin.php';
 require_once MYLS_PATH . 'admin/admin-docs-menu.php';
 require_once MYLS_PATH . 'admin/admin-stats-menu.php';
 require_once MYLS_PATH . 'admin/admin-search-stats-menu.php';
+require_once MYLS_PATH . 'admin/admin-video-transcripts-menu.php';
 
 /** Release notes helpers (Docs → Release Notes + optional changelog queue) */
 require_once MYLS_PATH . 'inc/release-notes.php';
@@ -123,6 +124,9 @@ require_once MYLS_PATH . 'inc/tools/inherit-city-state.php';
 /** Search Demand DB table + CRUD */
 require_once MYLS_PATH . 'inc/db/search-demand-table.php';
 
+/** Video Transcripts DB table + CRUD */
+require_once MYLS_PATH . 'inc/db/video-transcripts-table.php';
+
 
 /** Schema */
 require_once MYLS_PATH . 'inc/schema/helpers.php';
@@ -142,6 +146,9 @@ require_once MYLS_PATH . 'inc/schema/providers/service-faq-page.php';
 require_once MYLS_PATH . 'inc/schema/providers/memberships-page.php';
 require_once MYLS_PATH . 'inc/schema/providers/blog-posting.php';
 require_once MYLS_PATH . 'inc/schema/localbusiness-sync.php';
+
+/** Video transcript frontend accordion (single video CPT pages) */
+require_once MYLS_PATH . 'inc/video-transcript-frontend.php';
 
 /** AI plumbing (keep if files exist; otherwise comment these two lines) */
 require_once MYLS_PATH . 'inc/ajax/ai.php';
@@ -201,6 +208,9 @@ require_once MYLS_PATH . 'inc/ajax/google-maps.php';
 
 /** YouTube transcript fetch AJAX */
 require_once MYLS_PATH . 'inc/ajax/fetch-youtube-transcript.php';
+
+/** Video transcript cache AJAX */
+require_once MYLS_PATH . 'inc/ajax/video-transcript-cache.php';
 
 /** Updater */
 require_once MYLS_PATH . 'update-plugin.php';
