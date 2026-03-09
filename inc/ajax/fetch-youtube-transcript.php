@@ -6,12 +6,13 @@
  * Accepts: video_id (YouTube video ID)
  * Returns: JSON { success: true, data: { transcript: "..." } }
  *
- * Extracts caption track URLs from the YouTube video page's embedded
- * player config (ytInitialPlayerResponse). Falls back to the legacy
- * timedtext list API if the page-scrape approach fails.
+ * Priority chain:
+ *   1. Supadata API (reliable hosted service, requires API key)
+ *   2. YouTube page scrape (extract captionTracks from ytInitialPlayerResponse)
+ *   3. Legacy timedtext list API (deprecated, kept as last resort)
  *
  * @since 7.8.77
- * @updated 7.8.80 — switched to page-scrape approach for reliability
+ * @updated 7.8.83 — Supadata API as primary, page-scrape + timedtext as fallbacks
  */
 
 if ( ! defined('ABSPATH') ) exit;
@@ -31,33 +32,84 @@ add_action( 'wp_ajax_myls_fetch_youtube_transcript', function () {
 		wp_send_json_error( [ 'message' => 'Invalid video ID.' ] );
 	}
 
-	// ── Method 1: Scrape caption tracks from the YouTube video page ──
-	$caption_url = _myls_get_caption_url_from_page( $video_id );
+	// ── Method 1: Supadata API (primary) ──
+	$transcript = _myls_fetch_transcript_supadata( $video_id );
 
-	// ── Method 2: Fallback to legacy timedtext list API ──
-	if ( ! $caption_url ) {
+	// ── Method 2: YouTube page scrape (fallback) ──
+	if ( $transcript === null ) {
+		$caption_url = _myls_get_caption_url_from_page( $video_id );
+		if ( $caption_url ) {
+			$transcript = _myls_fetch_caption_xml( $caption_url );
+		}
+	}
+
+	// ── Method 3: Legacy timedtext API (last resort) ──
+	if ( $transcript === null ) {
 		$caption_url = _myls_get_caption_url_from_timedtext( $video_id );
+		if ( $caption_url ) {
+			$transcript = _myls_fetch_caption_xml( $caption_url );
+		}
 	}
-
-	if ( ! $caption_url ) {
-		wp_send_json_error( [ 'message' => 'No captions found for this video — enter transcript manually.' ] );
-	}
-
-	// ── Fetch and parse the caption XML ──
-	$transcript = _myls_fetch_caption_xml( $caption_url );
 
 	if ( $transcript === null ) {
-		wp_send_json_error( [ 'message' => 'Failed to parse caption data — enter transcript manually.' ] );
+		wp_send_json_error( [ 'message' => 'No captions found for this video — enter transcript manually.' ] );
 	}
 
 	wp_send_json_success( [ 'transcript' => $transcript ] );
 } );
 
 /**
- * Extract caption track URL from YouTube video page HTML.
+ * Fetch transcript via Supadata API.
  *
- * Fetches the watch page, finds ytInitialPlayerResponse JSON,
- * and extracts the first English (or any) caption track baseUrl.
+ * @see https://supadata.ai/youtube-transcript-api
+ */
+function _myls_fetch_transcript_supadata( string $video_id ) : ?string {
+	$api_key = function_exists( 'myls_get_supadata_api_key' )
+		? myls_get_supadata_api_key()
+		: (string) get_option( 'myls_supadata_api_key', '' );
+
+	if ( $api_key === '' ) {
+		return null;
+	}
+
+	$url = add_query_arg( 'url', 'https://youtu.be/' . rawurlencode( $video_id ),
+		'https://api.supadata.ai/v1/transcript'
+	);
+
+	$response = wp_remote_get( $url, [
+		'timeout' => 20,
+		'headers' => [
+			'x-api-key' => $api_key,
+		],
+	] );
+
+	if ( is_wp_error( $response ) || (int) wp_remote_retrieve_response_code( $response ) !== 200 ) {
+		return null;
+	}
+
+	$data = json_decode( wp_remote_retrieve_body( $response ), true );
+	if ( ! is_array( $data ) || empty( $data['content'] ) || ! is_array( $data['content'] ) ) {
+		return null;
+	}
+
+	$lines = [];
+	foreach ( $data['content'] as $segment ) {
+		$text = trim( (string) ( $segment['text'] ?? '' ) );
+		if ( $text !== '' ) {
+			$lines[] = $text;
+		}
+	}
+
+	if ( empty( $lines ) ) {
+		return null;
+	}
+
+	$transcript = implode( ' ', $lines );
+	return trim( preg_replace( '/\s+/', ' ', $transcript ) );
+}
+
+/**
+ * Extract caption track URL from YouTube video page HTML.
  */
 function _myls_get_caption_url_from_page( string $video_id ) : ?string {
 	$page_url = 'https://www.youtube.com/watch?v=' . rawurlencode( $video_id );
@@ -75,7 +127,6 @@ function _myls_get_caption_url_from_page( string $video_id ) : ?string {
 
 	$body = wp_remote_retrieve_body( $response );
 
-	// Extract ytInitialPlayerResponse JSON from the page
 	if ( ! preg_match( '/ytInitialPlayerResponse\s*=\s*({.+?})\s*;\s*(?:var\s|<\/script)/s', $body, $matches ) ) {
 		return null;
 	}
@@ -90,11 +141,9 @@ function _myls_get_caption_url_from_page( string $video_id ) : ?string {
 		return null;
 	}
 
-	// Prefer English tracks, then fall back to first available
 	$best = null;
 	foreach ( $tracks as $track ) {
 		if ( empty( $track['baseUrl'] ) ) continue;
-
 		$lang = $track['languageCode'] ?? '';
 		if ( $best === null ) {
 			$best = $track['baseUrl'];
@@ -128,10 +177,9 @@ function _myls_get_caption_url_from_timedtext( string $video_id ) : ?string {
 }
 
 /**
- * Fetch caption XML from a baseUrl and return clean plain text.
+ * Fetch caption XML/JSON from a baseUrl and return clean plain text.
  */
 function _myls_fetch_caption_xml( string $url ) : ?string {
-	// Ensure we get XML format (some URLs default to JSON with fmt=srv3)
 	if ( strpos( $url, 'fmt=' ) === false ) {
 		$url .= ( strpos( $url, '?' ) !== false ? '&' : '?' ) . 'fmt=srv1';
 	}
@@ -147,7 +195,7 @@ function _myls_fetch_caption_xml( string $url ) : ?string {
 
 	$body = wp_remote_retrieve_body( $response );
 
-	// Try XML parse first (srv1 format)
+	// XML format (srv1)
 	$text_xml = @simplexml_load_string( $body );
 	if ( $text_xml ) {
 		$lines = [];
@@ -160,12 +208,11 @@ function _myls_fetch_caption_xml( string $url ) : ?string {
 			}
 		}
 		if ( ! empty( $lines ) ) {
-			$transcript = implode( ' ', $lines );
-			return trim( preg_replace( '/\s+/', ' ', $transcript ) );
+			return trim( preg_replace( '/\s+/', ' ', implode( ' ', $lines ) ) );
 		}
 	}
 
-	// Fallback: try JSON format (srv3 / timedtext JSON)
+	// JSON format (srv3)
 	$json = json_decode( $body, true );
 	if ( is_array( $json ) && ! empty( $json['events'] ) ) {
 		$lines = [];
@@ -179,8 +226,7 @@ function _myls_fetch_caption_xml( string $url ) : ?string {
 			}
 		}
 		if ( ! empty( $lines ) ) {
-			$transcript = implode( ' ', $lines );
-			return trim( preg_replace( '/\s+/', ' ', $transcript ) );
+			return trim( preg_replace( '/\s+/', ' ', implode( ' ', $lines ) ) );
 		}
 	}
 
