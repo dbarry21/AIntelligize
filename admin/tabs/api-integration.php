@@ -101,6 +101,9 @@ myls_register_admin_tab([
 			update_option( 'myls_youtube_api_key',            sanitize_text_field( $_POST['myls_youtube_api_key']            ?? '' ) );
 			update_option( 'myls_youtube_channel_id',         sanitize_text_field( $_POST['myls_youtube_channel_id']         ?? '' ) );
 
+			// Supadata (YouTube Transcript API)
+			update_option( 'myls_supadata_api_key',           sanitize_text_field( $_POST['myls_supadata_api_key']           ?? '' ) );
+
 			// GSC OAuth client (used by OAuth flow)
 			update_option( 'myls_gsc_client_id',              sanitize_text_field( $_POST['myls_gsc_client_id']              ?? '' ) );
 			update_option( 'myls_gsc_client_secret',          sanitize_text_field( $_POST['myls_gsc_client_secret']          ?? '' ) );
@@ -130,6 +133,7 @@ myls_register_admin_tab([
 
 		$yt_api_key   = get_option('myls_youtube_api_key', '');
 		$yt_channel   = get_option('myls_youtube_channel_id', '');
+		$supadata_key = get_option('myls_supadata_api_key', '');
 
 		$gsc_id       = get_option('myls_gsc_client_id', '');
 		$gsc_secret   = get_option('myls_gsc_client_secret', '');
@@ -388,6 +392,19 @@ myls_register_admin_tab([
 						</div>
 					</div>
 
+					<!-- Supadata (YouTube Transcript) -->
+					<div class="card" style="flex:1 1 460px; min-width:460px;">
+						<div class="card-body">
+							<h2 class="title">Supadata (YouTube Transcripts)</h2>
+							<label class="form-label" for="myls_supadata_api_key">API Key</label>
+							<input type="text" class="regular-text" id="myls_supadata_api_key" name="myls_supadata_api_key" value="<?php echo esc_attr($supadata_key); ?>" placeholder="sd_...">
+							<?php if ($supadata_key) : ?>
+								<p class="description">Current: <code><?php echo esc_html( myls_mask_key_simple($supadata_key) ); ?></code></p>
+							<?php endif; ?>
+							<p class="description" style="margin-top:8px;">Used by Schema &rarr; Video "Fetch Transcript" button. Get a key at <a href="https://supadata.ai" target="_blank">supadata.ai</a></p>
+						</div>
+					</div>
+
 					<!-- YouTube OAuth -->
 					<div class="card" style="flex:1 1 460px; min-width:460px;">
 						<div class="card-body">
@@ -641,6 +658,11 @@ if ( ! function_exists('myls_get_youtube_api_key') ) {
 if ( ! function_exists('myls_get_youtube_channel_id') ) {
 	function myls_get_youtube_channel_id() : string {
 		return (string) get_option('myls_youtube_channel_id', '');
+	}
+}
+if ( ! function_exists('myls_get_supadata_api_key') ) {
+	function myls_get_supadata_api_key() : string {
+		return (string) get_option('myls_supadata_api_key', '');
 	}
 }
 if ( ! function_exists('myls_get_static_maps_key') ) {

@@ -1,3 +1,15 @@
+## 7.8.84 — 2026-03-08
+
+### Added — Supadata API for YouTube transcripts
+
+Added Supadata API as the primary transcript fetch method for the "Fetch
+Transcript" button in Schema → Video. Falls back to YouTube page scrape,
+then legacy timedtext API. API key stored in API Integration tab.
+
+**Files:** `inc/ajax/fetch-youtube-transcript.php`, `admin/tabs/api-integration.php`
+
+---
+
 ## 7.8.83 — 2026-03-08
 
 ### Fixed — Phantom VideoObject from orphaned Elementor widget data
