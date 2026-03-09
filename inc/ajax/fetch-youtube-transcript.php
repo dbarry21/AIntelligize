@@ -14,6 +14,7 @@
  * @since 7.8.77
  * @updated 7.8.83 — Supadata API as primary, page-scrape + timedtext as fallbacks
  * @updated 7.8.87 — Timestamp-based paragraph formatting for readability
+ * @updated 7.8.88 — Sentence-count fallback when no timestamps; visible [M:SS] markers
  */
 
 if ( ! defined('ABSPATH') ) exit;
@@ -60,6 +61,47 @@ add_action( 'wp_ajax_myls_fetch_youtube_transcript', function () {
 } );
 
 /**
+ * Format a timestamp (seconds) as [M:SS] or [H:MM:SS] for display.
+ */
+function _myls_format_ts( float $seconds ) : string {
+	$s = (int) $seconds;
+	if ( $s >= 3600 ) {
+		return sprintf( '[%d:%02d:%02d]', floor( $s / 3600 ), floor( ( $s % 3600 ) / 60 ), $s % 60 );
+	}
+	return sprintf( '[%d:%02d]', floor( $s / 60 ), $s % 60 );
+}
+
+/**
+ * Split a block of text into paragraphs every N sentences.
+ * Fallback when no timestamp data is available.
+ */
+function _myls_split_by_sentences( string $text, int $per_paragraph = 5 ) : string {
+	$text = trim( $text );
+	if ( $text === '' ) return $text;
+
+	// Split on sentence-ending punctuation followed by whitespace
+	$sentences = preg_split( '/(?<=[.!?])\s+/', $text, -1, PREG_SPLIT_NO_EMPTY );
+	if ( count( $sentences ) <= $per_paragraph ) {
+		return $text;
+	}
+
+	$paragraphs = [];
+	$chunk      = [];
+	foreach ( $sentences as $sentence ) {
+		$chunk[] = $sentence;
+		if ( count( $chunk ) >= $per_paragraph ) {
+			$paragraphs[] = implode( ' ', $chunk );
+			$chunk         = [];
+		}
+	}
+	if ( ! empty( $chunk ) ) {
+		$paragraphs[] = implode( ' ', $chunk );
+	}
+
+	return implode( "\n\n", $paragraphs );
+}
+
+/**
  * Fetch transcript via Supadata API.
  *
  * @see https://supadata.ai/youtube-transcript-api
@@ -94,10 +136,12 @@ function _myls_fetch_transcript_supadata( string $video_id ) : ?string {
 	}
 
 	// Group segments into ~30-second paragraphs for readability
-	$paragraphs    = [];
-	$current_lines = [];
-	$para_start    = null;
-	$interval      = 30; // seconds per paragraph
+	$paragraphs     = [];
+	$current_lines  = [];
+	$para_start     = null;
+	$has_timestamps = false;
+	$para_ts        = []; // first timestamp of each paragraph
+	$interval       = 30; // seconds per paragraph
 
 	foreach ( $data['content'] as $segment ) {
 		$text = trim( (string) ( $segment['text'] ?? '' ) );
@@ -107,11 +151,13 @@ function _myls_fetch_transcript_supadata( string $video_id ) : ?string {
 		$ts = $segment['offset'] ?? $segment['start'] ?? $segment['startTime'] ?? null;
 		if ( $ts !== null ) {
 			$ts = (float) $ts;
+			$has_timestamps = true;
 			if ( $para_start === null ) {
 				$para_start = $ts;
 			}
 			// Start new paragraph every ~30s
 			if ( $ts - $para_start >= $interval && ! empty( $current_lines ) ) {
+				$para_ts[]     = $para_start;
 				$paragraphs[]  = trim( preg_replace( '/\s+/', ' ', implode( ' ', $current_lines ) ) );
 				$current_lines = [];
 				$para_start    = $ts;
@@ -122,6 +168,9 @@ function _myls_fetch_transcript_supadata( string $video_id ) : ?string {
 
 	// Flush remaining
 	if ( ! empty( $current_lines ) ) {
+		if ( $para_start !== null ) {
+			$para_ts[] = $para_start;
+		}
 		$paragraphs[] = trim( preg_replace( '/\s+/', ' ', implode( ' ', $current_lines ) ) );
 	}
 
@@ -129,7 +178,18 @@ function _myls_fetch_transcript_supadata( string $video_id ) : ?string {
 		return null;
 	}
 
-	return implode( "\n\n", $paragraphs );
+	// Timestamps available → prepend [M:SS] markers
+	if ( $has_timestamps && count( $para_ts ) === count( $paragraphs ) ) {
+		foreach ( $paragraphs as $i => &$para ) {
+			$para = _myls_format_ts( $para_ts[ $i ] ) . ' ' . $para;
+		}
+		unset( $para );
+		return implode( "\n\n", $paragraphs );
+	}
+
+	// No timestamps → sentence-count fallback
+	$full_text = implode( ' ', $paragraphs );
+	return _myls_split_by_sentences( $full_text, 5 );
 }
 
 /**
@@ -224,9 +284,11 @@ function _myls_fetch_caption_xml( string $url ) : ?string {
 	// XML format (srv1) — <text start="12.34" dur="3.21">Hello world</text>
 	$text_xml = @simplexml_load_string( $body );
 	if ( $text_xml ) {
-		$paragraphs    = [];
-		$current_lines = [];
-		$para_start    = null;
+		$paragraphs     = [];
+		$current_lines  = [];
+		$para_start     = null;
+		$has_timestamps = false;
+		$para_ts        = [];
 
 		foreach ( $text_xml->text as $text ) {
 			$line = html_entity_decode( (string) $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
@@ -236,10 +298,12 @@ function _myls_fetch_caption_xml( string $url ) : ?string {
 
 			$ts = isset( $text['start'] ) ? (float) $text['start'] : null;
 			if ( $ts !== null ) {
+				$has_timestamps = true;
 				if ( $para_start === null ) {
 					$para_start = $ts;
 				}
 				if ( $ts - $para_start >= $interval && ! empty( $current_lines ) ) {
+					$para_ts[]     = $para_start;
 					$paragraphs[]  = trim( preg_replace( '/\s+/', ' ', implode( ' ', $current_lines ) ) );
 					$current_lines = [];
 					$para_start    = $ts;
@@ -248,29 +312,44 @@ function _myls_fetch_caption_xml( string $url ) : ?string {
 			$current_lines[] = $line;
 		}
 		if ( ! empty( $current_lines ) ) {
+			if ( $para_start !== null ) {
+				$para_ts[] = $para_start;
+			}
 			$paragraphs[] = trim( preg_replace( '/\s+/', ' ', implode( ' ', $current_lines ) ) );
 		}
 		if ( ! empty( $paragraphs ) ) {
-			return implode( "\n\n", $paragraphs );
+			if ( $has_timestamps && count( $para_ts ) === count( $paragraphs ) ) {
+				foreach ( $paragraphs as $i => &$para ) {
+					$para = _myls_format_ts( $para_ts[ $i ] ) . ' ' . $para;
+				}
+				unset( $para );
+				return implode( "\n\n", $paragraphs );
+			}
+			$full_text = implode( ' ', $paragraphs );
+			return _myls_split_by_sentences( $full_text, 5 );
 		}
 	}
 
 	// JSON format (srv3) — events[].tStartMs, events[].segs[].utf8
 	$json = json_decode( $body, true );
 	if ( is_array( $json ) && ! empty( $json['events'] ) ) {
-		$paragraphs    = [];
-		$current_lines = [];
-		$para_start    = null;
+		$paragraphs     = [];
+		$current_lines  = [];
+		$para_start     = null;
+		$has_timestamps = false;
+		$para_ts        = [];
 
 		foreach ( $json['events'] as $event ) {
 			if ( empty( $event['segs'] ) ) continue;
 
 			$ts = isset( $event['tStartMs'] ) ? (float) $event['tStartMs'] / 1000 : null;
 			if ( $ts !== null ) {
+				$has_timestamps = true;
 				if ( $para_start === null ) {
 					$para_start = $ts;
 				}
 				if ( $ts - $para_start >= $interval && ! empty( $current_lines ) ) {
+					$para_ts[]     = $para_start;
 					$paragraphs[]  = trim( preg_replace( '/\s+/', ' ', implode( ' ', $current_lines ) ) );
 					$current_lines = [];
 					$para_start    = $ts;
@@ -285,10 +364,21 @@ function _myls_fetch_caption_xml( string $url ) : ?string {
 			}
 		}
 		if ( ! empty( $current_lines ) ) {
+			if ( $para_start !== null ) {
+				$para_ts[] = $para_start;
+			}
 			$paragraphs[] = trim( preg_replace( '/\s+/', ' ', implode( ' ', $current_lines ) ) );
 		}
 		if ( ! empty( $paragraphs ) ) {
-			return implode( "\n\n", $paragraphs );
+			if ( $has_timestamps && count( $para_ts ) === count( $paragraphs ) ) {
+				foreach ( $paragraphs as $i => &$para ) {
+					$para = _myls_format_ts( $para_ts[ $i ] ) . ' ' . $para;
+				}
+				unset( $para );
+				return implode( "\n\n", $paragraphs );
+			}
+			$full_text = implode( ' ', $paragraphs );
+			return _myls_split_by_sentences( $full_text, 5 );
 		}
 	}
 
