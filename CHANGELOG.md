@@ -1,3 +1,27 @@
+## 7.8.86 — 2026-03-09
+
+### Added — Video Transcript Cache system
+
+New admin page "Video Transcripts" with dedicated DB table for caching
+YouTube transcripts. Sync channel videos via YouTube API, bulk-fetch or
+single-fetch transcripts via Supadata/page-scrape/timedtext, migrate
+legacy entries. Transcripts now appear in VideoObject schema output
+(single video CPT, video-object-detector, channel-list shortcode) and
+as a collapsible accordion on single video pages.
+
+**New files:** `inc/db/video-transcripts-table.php`,
+`inc/ajax/video-transcript-cache.php`,
+`admin/admin-video-transcripts-menu.php`,
+`admin/video-transcripts/video-transcripts.js`,
+`admin/video-transcripts/video-transcripts.css`,
+`inc/video-transcript-frontend.php`
+
+**Modified:** `inc/schema/providers/video-object-detector.php`,
+`inc/schema/providers/video-schema.php`,
+`modules/shortcodes/channel-list.php`, `aintelligize.php`
+
+---
+
 ## 7.8.85 — 2026-03-08
 
 ### Added — Supadata API test button

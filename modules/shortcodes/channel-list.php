@@ -279,6 +279,14 @@ if ( ! function_exists('myls_ycl_build_itemlist_schema') ) {
 					$videoObj['embedUrl'] = $embed;
 				}
 
+				// Transcript from cache table
+				if ( ! empty($vid) && function_exists('myls_vt_get_by_id') ) {
+					$vt_row = myls_vt_get_by_id( $vid );
+					if ( $vt_row && $vt_row['status'] === 'ok' && ! empty($vt_row['transcript']) ) {
+						$videoObj['transcript'] = $vt_row['transcript'];
+					}
+				}
+
 				$itemList['itemListElement'][] = array(
 					'@type'    => 'ListItem',
 					'position' => (int) $i + 1,
