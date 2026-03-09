@@ -1,3 +1,16 @@
+## 7.8.88 — 2026-03-09
+
+### Improved — Sentence-count fallback & timestamp markers
+
+When Supadata segments lack timestamp fields, transcripts now fall back to
+splitting every 5 sentences for readable paragraphs. When timestamps ARE
+available, each paragraph is prefixed with a `[M:SS]` marker (or `[H:MM:SS]`
+for long videos). Re-fetch existing transcripts to apply new formatting.
+
+**Files:** `inc/ajax/fetch-youtube-transcript.php`
+
+---
+
 ## 7.8.87 — 2026-03-09
 
 ### Improved — Timestamp-based transcript paragraphs
