@@ -1,3 +1,16 @@
+## 7.8.81 — 2026-03-08
+
+### Fixed — YouTube transcript fetch
+
+Replaced broken `video.google.com/timedtext` API with page-scrape approach.
+Extracts `captionTracks` from the YouTube video page's `ytInitialPlayerResponse`
+JSON. Prefers English tracks, falls back to first available language. Legacy
+timedtext API kept as secondary fallback. Handles both XML and JSON caption formats.
+
+**File:** `inc/ajax/fetch-youtube-transcript.php`
+
+---
+
 ## 7.8.80 — 2026-03-08
 
 ### Added — GEO/AEO Schema Sprint
