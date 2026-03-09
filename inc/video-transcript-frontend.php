@@ -43,7 +43,7 @@ function myls_vt_append_transcript_accordion( $content ) {
 
 	$accordion_id = 'myls-vt-accordion-' . esc_attr($video_id);
 	$collapse_id  = 'myls-vt-collapse-' . esc_attr($video_id);
-	$transcript   = esc_html($row['transcript']);
+	$transcript   = wpautop( esc_html($row['transcript']) );
 
 	$accordion = '
 <div class="ssseo-accordion accordion myls-vt-frontend-accordion" id="' . $accordion_id . '" style="margin-top:1.5rem;">
