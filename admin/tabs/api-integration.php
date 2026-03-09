@@ -397,10 +397,15 @@ myls_register_admin_tab([
 						<div class="card-body">
 							<h2 class="title">Supadata (YouTube Transcripts)</h2>
 							<label class="form-label" for="myls_supadata_api_key">API Key</label>
-							<input type="text" class="regular-text" id="myls_supadata_api_key" name="myls_supadata_api_key" value="<?php echo esc_attr($supadata_key); ?>" placeholder="sd_...">
+							<div class="input-group" style="display:flex; gap:8px; align-items:center;">
+								<input type="text" class="regular-text" id="myls_supadata_api_key" name="myls_supadata_api_key" value="<?php echo esc_attr($supadata_key); ?>" placeholder="sd_...">
+								<button type="button" class="button" id="myls-test-supadata-api" data-nonce="<?php echo esc_attr($ajax_nonce); ?>">Test</button>
+							</div>
 							<?php if ($supadata_key) : ?>
 								<p class="description">Current: <code><?php echo esc_html( myls_mask_key_simple($supadata_key) ); ?></code></p>
 							<?php endif; ?>
+							<p class="description" style="margin-top:8px;">Last test: <em><?php echo esc_html( get_option('myls_supadata_test_result', 'No test run yet.') ); ?></em></p>
+							<div id="myls-supadata-api-test-result" class="notice inline" style="margin-top:8px;"></div>
 							<p class="description" style="margin-top:8px;">Used by Schema &rarr; Video "Fetch Transcript" button. Get a key at <a href="https://supadata.ai" target="_blank">supadata.ai</a></p>
 						</div>
 					</div>
@@ -602,6 +607,15 @@ myls_register_admin_tab([
 
 		  $('input[name="myls_ai_provider"]').on('change', updateProviderUI);
 		  updateProviderUI();
+
+		  // --- Supadata ---
+		  $('#myls-test-supadata-api').on('click', function(){
+			const key = $('#myls_supadata_api_key').val();
+			const $box = $('#myls-supadata-api-test-result').removeClass('notice-success notice-error').html('<em>Testing…</em>');
+			$.post(POST_URL, { action:'myls_test_supadata_key', key, nonce })
+			  .done(r=>paint($box, !!(r&&r.success), (r&&r.data&&r.data.message) || (r&&r.data) || (r&&r.success?'Supadata OK':'Supadata test failed')))
+			  .fail(()=>paint($box,false,'Network error during Supadata test'));
+		  });
 
 		  // --- YouTube (API key) ---
 		  $('#myls-test-youtube-api').on('click', function(){
