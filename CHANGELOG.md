@@ -1,3 +1,15 @@
+## 7.8.85 — 2026-03-08
+
+### Added — Supadata API test button
+
+Added a "Test" button next to the Supadata API key field in the API
+Integration tab. Tests the key by fetching a transcript from a known
+video and reports segment count and language.
+
+**Files:** `admin/tabs/api-integration.php`, `admin/api-integration-tests.php`
+
+---
+
 ## 7.8.84 — 2026-03-08
 
 ### Added — Supadata API for YouTube transcripts

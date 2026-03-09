@@ -222,6 +222,45 @@ add_action('wp_ajax_myls_test_maps_key', function(){
   wp_send_json_error('Unexpected HTTP '.$code);
 });
 
+/** ---------------------- Supadata (YouTube Transcript) key test ---------------------- */
+add_action('wp_ajax_myls_test_supadata_key', function(){
+  myls_ajax_guard();
+  $key = sanitize_text_field($_POST['key'] ?? get_option('myls_supadata_api_key',''));
+  if ($key === '') { wp_send_json_error('No Supadata API key provided'); }
+
+  // Test with a well-known video (Rick Astley — always has captions)
+  $test_video = 'dQw4w9WgXcQ';
+  $url = add_query_arg('url', 'https://youtu.be/' . $test_video, 'https://api.supadata.ai/v1/transcript');
+
+  $r = myls_http_get_ipv4($url, [
+    'timeout' => 20,
+    'headers' => ['x-api-key' => $key],
+  ]);
+
+  if (is_wp_error($r)) {
+    $msg = 'HTTP error: '.$r->get_error_code().' — '.$r->get_error_message();
+    update_option('myls_supadata_test_result', $msg.' @ '.current_time('mysql'));
+    wp_send_json_error($msg);
+  }
+
+  $code = (int) wp_remote_retrieve_response_code($r);
+  $json = json_decode(wp_remote_retrieve_body($r), true);
+
+  if ($code === 200 && is_array($json) && !empty($json['content'])) {
+    $segments = count($json['content']);
+    $lang = $json['lang'] ?? 'unknown';
+    update_option('myls_supadata_test_result', "OK — {$segments} segments, lang: {$lang} @ ".current_time('mysql'));
+    wp_send_json_success(['message' => "Supadata OK — {$segments} transcript segments returned (lang: {$lang})"]);
+  } elseif ($code === 401 || $code === 403) {
+    update_option('myls_supadata_test_result', "Unauthorized ({$code}) @ ".current_time('mysql'));
+    wp_send_json_error("Unauthorized ({$code}): check API key");
+  } else {
+    $err = $json['error'] ?? $json['message'] ?? myls_snip(wp_remote_retrieve_body($r));
+    update_option('myls_supadata_test_result', "HTTP {$code} @ ".current_time('mysql'));
+    wp_send_json_error("Unexpected HTTP {$code}".($err ? " — ".myls_snip((string)$err, 120) : ''));
+  }
+});
+
 /** ---------------------- YouTube (API key) test ---------------------- */
 add_action('wp_ajax_myls_test_youtube_api', function(){
   myls_ajax_guard();
