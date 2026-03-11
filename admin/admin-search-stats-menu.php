@@ -1,9 +1,9 @@
 <?php
 /**
- * AIntelligize — Search Stats Menu & Scripts
+ * AIntelligize — Search Demand Menu & Scripts
  * Path: admin/admin-search-stats-menu.php
  *
- * Registers the "Search Stats" submenu page under AIntelligize and
+ * Registers the "Search Demand" submenu page under AIntelligize and
  * enqueues the dashboard CSS/JS. All AJAX endpoints are in
  * inc/ajax/ai-faq-search-check.php (myls_sd_db_* actions).
  *
@@ -11,19 +11,27 @@
  */
 if ( ! defined('ABSPATH') ) exit;
 
+/* ── Redirect old slug → new slug ── */
+add_action('admin_init', function() {
+    if ( isset($_GET['page']) && $_GET['page'] === 'myls-search-stats' ) {
+        wp_safe_redirect( admin_url('admin.php?page=myls-search-demand') );
+        exit;
+    }
+});
+
 /* ═══════════════════════════════════════════════════════
  *  1. SUBMENU REGISTRATION
  * ═══════════════════════════════════════════════════════ */
 
-add_action('admin_menu', 'myls_search_stats_add_submenu', 26);
+add_action('admin_menu', 'myls_search_stats_add_submenu', 27);
 
 function myls_search_stats_add_submenu() {
     add_submenu_page(
         'aintelligize',
-        'Search Stats — Keyword Analytics',
-        'Search Stats',
+        'Search Demand — Keyword Analytics',
+        '&mdash; Search Demand',
         'manage_options',
-        'myls-search-stats',
+        'myls-search-demand',
         'myls_search_stats_render_page'
     );
 }
@@ -43,7 +51,7 @@ function myls_search_stats_render_page() {
 add_action('admin_enqueue_scripts', 'myls_search_stats_admin_scripts');
 
 function myls_search_stats_admin_scripts( $hook ) {
-    if ( $hook !== 'aintelligize_page_myls-search-stats' ) return;
+    if ( $hook !== 'aintelligize_page_myls-search-demand' ) return;
 
     $base_url = plugin_dir_url( dirname(__FILE__) );
     $version  = defined('MYLS_VERSION') ? MYLS_VERSION : time();
