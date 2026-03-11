@@ -19,17 +19,20 @@ add_filter( 'myls_schema_graph', function ( array $graph ) : array {
 	if ( ! is_singular() ) return $graph;
 	if ( get_option( 'myls_schema_breadcrumb_enabled', '1' ) !== '1' ) return $graph;
 
+	// Skip on front page — breadcrumb trail is just "Home" which is redundant
+	if ( is_front_page() ) return $graph;
+
 	$post = get_queried_object();
 	if ( ! ( $post instanceof WP_Post ) ) return $graph;
 
 	$items    = [];
 	$position = 1;
 
-	// 1. Home
+	// 1. Home (decode HTML entities — JSON-LD needs plain text)
 	$items[] = [
 		'@type'    => 'ListItem',
 		'position' => $position++,
-		'name'     => get_bloginfo( 'name' ),
+		'name'     => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
 		'item'     => home_url( '/' ),
 	];
 
