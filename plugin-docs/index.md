@@ -21,11 +21,12 @@ AIntelligize is a comprehensive WordPress plugin designed for local businesses a
 
 ### Schema & SEO
 - **Organization Schema**: Business information with multiple locations, awards, certifications, `knowsAbout` opt-in topics
-- **Local Business Schema**: Location-specific schema with enriched fallback chain — image (3-level: per-location → org logo → org image URL), priceRange (site-wide default fallback), openingHoursSpecification, aggregateRating, awards, certifications. Site-wide Defaults block with live fallback chain status display.
+- **Local Business Schema**: Location-specific schema with enriched fallback chain — image (3-level: per-location → org logo → org image URL), priceRange (site-wide default fallback), openingHoursSpecification, aggregateRating, awards, certifications, `areaServed` (City objects from service_area CPT). Site-wide Defaults block with live fallback chain status display.
 - **Service Schema**: Service-specific schema with fully enriched provider node (awards, certifications, aggregateRating on both assigned and unassigned pages). `areaServed` typed as `AdministrativeArea` objects.
 - **FAQ Schema**: Structured FAQ data for rich snippets
 - **About Page Schema**: AboutPage schema for company pages
 - **VideoObject Schema** *(v7.8.74+)*: Automatic video detection and `VideoObject` JSON-LD emission on any singular page with video content. Detects across Elementor (video widget, video-playlist, background video, HTML widget iframes, Theme Builder templates), Beaver Builder, Divi, WPBakery, Gutenberg, and Classic editor. YouTube duration auto-fetched from YouTube Data API v3 and cached 30 days per video.
+- **ItemList Schema** *(v7.9.0)*: Structured `ItemList` nodes on the front page for services (`Service` typed items) and service areas (`City` typed items). Helps AI systems extract structured offerings and geographic coverage for AI Overviews and generative search.
 
 ### Location Features
 - **Dynamic Location Tags**: [city_state], [city_only], [county] shortcodes
@@ -69,7 +70,7 @@ AIntelligize is a comprehensive WordPress plugin designed for local businesses a
 
 ### Shortcodes (35+)
 - **Location**: city_state, city_only, county_name, acf_field
-- **Services**: service_grid, service_posts, service_area_grid, service_area_list, and more
+- **Services**: service_grid, service_posts, service_area_grid, service_area_list, service_area_children, service_area_siblings, service_area_flip_cards, and more
 - **Schema**: faq_schema_accordion, yoast_title, post_author
 - **Social**: social_share, social_share_icon
 - **YouTube**: myls_youtube_panel, myls_youtube_with_transcript, youtube_channel_list_detailed

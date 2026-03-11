@@ -147,6 +147,53 @@ This section documents all available shortcodes and their usage.
 
 ---
 
+### [service_area_children]
+**File:** `service-area-children.php`
+
+**Usage:** `[service_area_children]`
+
+**Description:** Lists child service_area posts of the current (or specified) parent as a bulleted list with map-marker icons and links.
+
+**Key Attributes:** `parent_id`, `orderby`, `order`, `show_parent`, `wrapper_class`, `list_class`, `empty_text`
+
+**Examples:**
+- `[service_area_children]` — Children of current service_area
+- `[service_area_children parent_id="123" show_parent="yes"]` — Specific parent with parent link
+
+---
+
+### [service_area_siblings]
+**File:** `service-area-siblings.php`
+
+**Usage:** `[service_area_siblings]`
+
+**Description:** *(v7.8.99)* Bootstrap card-grid of sibling or child service_area posts. Auto-detects context: shows children on parent pages, siblings (excluding self) on child pages. Same layout format as `[service_grid]`.
+
+**Key Attributes:** `columns`, `button`, `button_text`, `show_excerpt`, `excerpt_words`, `image_crop`, `image_height`, `aspect_ratio`, `orderby`, `order`, `empty_text`, `wrapper_class`
+
+**Examples:**
+- `[service_area_siblings]` — Auto-detect, 4 columns, no button
+- `[service_area_siblings columns="3" button="1"]` — 3 columns with Learn More buttons
+- `[service_area_siblings show_excerpt="0"]` — Cards without excerpts
+
+---
+
+### [service_area_flip_cards]
+**File:** `service-area-flip-cards.php`
+
+**Usage:** `[service_area_flip_cards]`
+
+**Description:** *(v7.8.99)* CSS-grid flip-box card layout for sibling or child service_area posts. Same auto-detection as `[service_area_siblings]` but uses the `.myls-flip-box` / `.myls-card` layout (matching `[myls_card_grid]`). Responsive columns via CSS variables.
+
+**Key Attributes:** `button_text`, `image_size`, `use_icons`, `icon_class`, `show_excerpt`, `excerpt_words`, `mobile_columns`, `tablet_columns`, `desktop_columns`, `wide_columns`, `gap`, `empty_text`, `wrapper_class`
+
+**Examples:**
+- `[service_area_flip_cards]` — Auto-detect, responsive 1/2/3/4 columns
+- `[service_area_flip_cards button_text="View Area" desktop_columns="2"]` — Custom button, 2 desktop columns
+- `[service_area_flip_cards use_icons="1" icon_class="fa fa-map-marker"]` — Icon fallback when no thumbnail
+
+---
+
 ### [service_area_grid]
 **File:** `service-area-grid.php`
 
