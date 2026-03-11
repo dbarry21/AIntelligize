@@ -1,3 +1,17 @@
+## 7.8.92 — 2026-03-11
+
+### Added — WebSite schema + entity graph unification
+
+- **WebSite**: new provider emits `WebSite` node with `@id`, `publisher` → Organization,
+  `inLanguage`, and `SearchAction` (front page) for sitelinks search box
+- **WebPage**: `isPartOf` now correctly references `WebSite` (was `LocalBusiness` — invalid
+  per Schema.org spec); added `about` → LocalBusiness when applicable
+- **Person**: moved from standalone `<script>` block into unified `@graph`;
+  `worksFor` now uses `@id` reference instead of inline Organization duplicate
+
+**Files:** `inc/schema/providers/website.php` (new), `inc/schema/providers/webpage.php`,
+`inc/schema/providers/person.php`, `aintelligize.php`
+
 ## 7.8.91 — 2026-03-10
 
 ### Fixed — Schema entity graph integrity

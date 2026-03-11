@@ -1,52 +1,20 @@
 <?php
 /**
- * Person Schema Provider — JSON-LD output
+ * Person Schema Provider — unified @graph
  *
- * Reads myls_person_profiles and emits Person schema on assigned pages.
- * Links to Organization via @id for proper entity graph.
+ * Reads myls_person_profiles and pushes Person nodes into the schema graph
+ * on assigned pages. Links to Organization via @id reference.
  *
  * @since 4.12.0
+ * @since 7.8.92 Moved from standalone wp_head emitter to myls_schema_graph filter.
  */
 
 if ( ! defined('ABSPATH') ) exit;
 
-add_action( 'wp_head', 'myls_person_schema_output', 5 );
-
-function myls_person_schema_output() {
-    if ( is_admin() || ! is_singular() ) return;
-
-    $profiles = get_option( 'myls_person_profiles', [] );
-    if ( ! is_array($profiles) || empty($profiles) ) return;
-
-    $post_id = get_queried_object_id();
-    if ( ! $post_id ) return;
-
-    // Org info for worksFor
-    $org_name = trim( (string) get_option('myls_org_name', get_bloginfo('name')) );
-    $org_url  = trim( (string) get_option('myls_org_url', home_url('/')) );
-
-    foreach ( $profiles as $p ) {
-        if ( empty($p['name']) ) continue;
-        if ( ($p['enabled'] ?? '1') !== '1' ) continue;
-
-        // Check page assignment
-        $pages = array_map( 'absint', (array) ($p['pages'] ?? []) );
-        if ( empty($pages) || ! in_array($post_id, $pages, true) ) continue;
-
-        $schema = myls_person_build_jsonld( $p, $org_name, $org_url );
-        if ( ! empty($schema) ) {
-            echo "\n<!-- AIntelligize: Person Schema -->\n";
-            echo '<script type="application/ld+json">' . "\n";
-            echo wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
-            echo "\n</script>\n";
-        }
-    }
-}
-
 /**
- * Build the Person JSON-LD array.
+ * Build the Person JSON-LD array (graph node, no @context).
  */
-function myls_person_build_jsonld( array $p, string $org_name, string $org_url ) : array {
+function myls_person_build_jsonld( array $p ) : array {
     $name = trim( $p['name'] ?? '' );
     if ( ! $name ) return [];
 
@@ -55,7 +23,6 @@ function myls_person_build_jsonld( array $p, string $org_name, string $org_url )
     $person_id   = home_url( '/#person-' . $person_slug );
 
     $schema = [
-        '@context' => 'https://schema.org',
         '@type'    => 'Person',
         '@id'      => $person_id,
         'name'     => $name,
@@ -101,17 +68,8 @@ function myls_person_build_jsonld( array $p, string $org_name, string $org_url )
         $schema['sameAs'] = count($same_as) === 1 ? $same_as[0] : $same_as;
     }
 
-    // worksFor — link to Organization schema
-    if ( $org_name ) {
-        $works_for = [
-            '@type' => 'Organization',
-            'name'  => $org_name,
-        ];
-        if ( $org_url ) $works_for['url'] = $org_url;
-        // Use @id to link to existing org schema
-        $works_for['@id'] = home_url( '/#organization' );
-        $schema['worksFor'] = $works_for;
-    }
+    // worksFor — @id reference to Organization (no inline duplicate)
+    $schema['worksFor'] = [ '@id' => home_url( '/#organization' ) ];
 
     // knowsAbout — use Thing with Wikidata/Wikipedia for max KG impact
     $knows = (array) ($p['knows_about'] ?? []);
@@ -240,3 +198,38 @@ function myls_person_build_jsonld( array $p, string $org_name, string $org_url )
 
     return $schema;
 }
+
+/**
+ * Person → unified @graph
+ *
+ * Pushes Person node(s) into myls_schema_graph for assigned pages.
+ * Replaces the old standalone wp_head emitter.
+ */
+add_filter( 'myls_schema_graph', function ( array $graph ) {
+
+	if ( is_admin() || wp_doing_ajax() || ! is_singular() ) return $graph;
+	if ( is_feed() || is_preview() ) return $graph;
+	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) return $graph;
+
+	$profiles = get_option( 'myls_person_profiles', [] );
+	if ( ! is_array( $profiles ) || empty( $profiles ) ) return $graph;
+
+	$post_id = (int) get_queried_object_id();
+	if ( $post_id <= 0 ) return $graph;
+
+	foreach ( $profiles as $p ) {
+		if ( empty( $p['name'] ) ) continue;
+		if ( ( $p['enabled'] ?? '1' ) !== '1' ) continue;
+
+		// Check page assignment
+		$pages = array_map( 'absint', (array) ( $p['pages'] ?? [] ) );
+		if ( empty( $pages ) || ! in_array( $post_id, $pages, true ) ) continue;
+
+		$node = myls_person_build_jsonld( $p );
+		if ( ! empty( $node ) ) {
+			$graph[] = apply_filters( 'myls_person_schema_node', $node, $post_id );
+		}
+	}
+
+	return $graph;
+}, 6 ); // Priority 6: after WebSite (4), before LB (8) and Org (10)
