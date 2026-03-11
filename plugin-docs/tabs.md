@@ -42,6 +42,7 @@ Manages all structured data output for the site.
   - **knowsAbout opt-in block** *(v7.8.64)*: select Service CPT posts + optional service subtype sentinel (`__subtype__`). Ctrl/Cmd multi-select. Empty = omitted. Option: `myls_lb_knows_about_include`.
   - **AggregateRating** *(v7.8.65)*: `ratingCount` = Google Places `user_ratings_total`; `reviewCount` = manual written review count (`myls_google_places_review_count_manual`). Falls back to `ratingCount` if manual value absent.
   - **Fallback node enrichment** *(v7.8.69)*: service pages not assigned to a location get a fully enriched fallback LocalBusiness node (image, priceRange, openingHoursSpecification, aggregateRating, award, hasCertification).
+  - **`areaServed`** *(v7.9.0)*: pulls root-level `service_area` CPT posts as typed `City` objects with name and URL.
 
 - **FAQ** — FAQ schema settings and accordion configuration.
 
@@ -52,6 +53,13 @@ Manages all structured data output for the site.
   - Detects videos across: Elementor widget (`video`, `video-playlist`, background), Elementor HTML widget / Text Editor iframes *(v7.8.75)*, Elementor Theme Builder templates (conditions matched via `_elementor_conditions`), Beaver Builder video module, Divi `[et_pb_video]`, WPBakery `[vc_video]`, Gutenberg `wp:embed` / `wp:video`, Classic editor `<iframe>` + bare URLs.
   - YouTube duration fetched from YouTube Data API v3, cached 30 days per video ID (`myls_yt_dur_{id}` transient).
   - Theme Builder condition matching *(fixed v7.8.76)*: parses Elementor's actual slash-delimited string format (`"include/general"`, `"include/singular/front_page"`) — not the associative array format that was previously expected.
+  - Cross-validation fix *(v7.9.0)*: validation now includes Elementor Theme Builder template content (header/footer), so videos in site-wide templates get proper VideoObject schema.
+
+- **ItemList** *(v7.9.0)*: no UI — auto-runs on the front page.
+  - **File:** `inc/schema/providers/itemlist.php`
+  - Emits `ItemList` for services (from `service` CPT, `Service` typed items) and service areas (from root `service_area` CPT, `City` typed items).
+  - Helps AI systems extract structured service offerings and geographic coverage for AI Overviews.
+  - Toggle via filters: `myls_itemlist_services_enabled`, `myls_itemlist_service_areas_enabled`.
   - Deduplicates by video_id/URL across all sources.
   - Skips `video` CPT (handled by existing `video-schema.php`).
   - Emits single `VideoObject` object or `@graph` array depending on count.
