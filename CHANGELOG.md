@@ -1,3 +1,9 @@
+## 7.8.96 — 2026-03-11
+
+### Fixed
+- **BreadcrumbList**: Skip on front page — single-item "Home → Home" trail was redundant
+- **BreadcrumbList**: Decode HTML entities in site name (`&amp;` → `&`) for valid JSON-LD
+
 ## 7.8.95 — 2026-03-11
 
 ### Added — GEO/AI visibility features
