@@ -32,7 +32,10 @@ Manages all structured data output for the site.
   - **Price Ranges** repeater: assign low/high price ranges to specific posts; outputs as `offers → PriceSpecification` (minPrice/maxPrice). Option key: `myls_service_price_ranges`.
   - Provider node enrichment *(v7.8.68)*: fallback `$org_provider` (for pages not assigned to a location) now includes `award`, `hasCertification`, and `aggregateRating`.
   - `aggregateRating` removed from Service node *(v7.8.66)* — not valid per Google's spec; remains on LocalBusiness.
-  - `areaServed` typed as `AdministrativeArea` objects *(v7.8.69)*.
+  - `areaServed` typed as `City` objects with `addressRegion` *(v7.9.2; was AdministrativeArea in v7.8.69)*.
+
+- **WebPage** — WebPage schema for all singular pages *(v7.8.77)*.
+  - `about` → Service `@id` on service pages *(v7.9.2)*; fallback to LocalBusiness on non-service pages.
 
 - **LocalBusiness** — Location-specific schema.
   - **Site-wide Defaults block** *(v7.8.67)*: priceRange default (`myls_lb_default_price_range`) and live image fallback chain status showing which level resolves.

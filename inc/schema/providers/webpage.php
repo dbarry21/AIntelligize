@@ -44,19 +44,32 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 	// isPartOf — link to WebSite (correct range for CreativeWork property)
 	$node['isPartOf'] = [ '@id' => home_url( '/#website' ) ];
 
-	// about — link to LocalBusiness if one exists in the graph for this page
-	$lb_id = '';
+	// about — link to Service entity on service pages, else LocalBusiness
+	$about_id = '';
+
+	// First: check if there's a Service node in the graph for this page
 	foreach ( $graph as $gn ) {
-		if ( is_array( $gn ) && ! empty( $gn['@id'] ) ) {
-			$t = is_array( $gn['@type'] ?? '' ) ? ( $gn['@type'][0] ?? '' ) : ( $gn['@type'] ?? '' );
-			if ( stripos( $t, 'LocalBusiness' ) !== false || stripos( $t, 'Business' ) !== false ) {
-				$lb_id = $gn['@id'];
-				break;
+		if ( is_array( $gn ) && ( $gn['@type'] ?? '' ) === 'Service' && ! empty( $gn['@id'] ) ) {
+			$about_id = $gn['@id'];
+			break;
+		}
+	}
+
+	// Fallback: link to LocalBusiness
+	if ( ! $about_id ) {
+		foreach ( $graph as $gn ) {
+			if ( is_array( $gn ) && ! empty( $gn['@id'] ) ) {
+				$t = is_array( $gn['@type'] ?? '' ) ? ( $gn['@type'][0] ?? '' ) : ( $gn['@type'] ?? '' );
+				if ( stripos( $t, 'LocalBusiness' ) !== false || stripos( $t, 'Business' ) !== false ) {
+					$about_id = $gn['@id'];
+					break;
+				}
 			}
 		}
 	}
-	if ( $lb_id ) {
-		$node['about'] = [ '@id' => $lb_id ];
+
+	if ( $about_id ) {
+		$node['about'] = [ '@id' => $about_id ];
 	}
 
 	// author — link to Person if Person schema is enabled and profiles exist
