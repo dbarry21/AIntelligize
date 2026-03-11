@@ -1,3 +1,16 @@
+## 7.8.97 — 2026-03-11
+
+### Improved — LocalBusiness schema coverage
+- **Auto-fallback to first/only location**: All singular pages now get a full
+  LocalBusiness node even without explicit assignment. Single-location sites
+  need zero config. Multi-location sites fall back to location #0 (override
+  via `myls_localbusiness_fallback_to_first` filter)
+- **Stable @id**: LocalBusiness `@id` now uses `home_url()` base instead of
+  per-page permalink, ensuring consistent entity identity across all pages
+- **Fallback LB enrichment**: The service-schema fallback LB node now includes
+  `contactPoint`, `parentOrganization`, `knowsAbout`, and `memberOf` — matching
+  the full `localbusiness.php` output
+
 ## 7.8.96 — 2026-03-11
 
 ### Fixed

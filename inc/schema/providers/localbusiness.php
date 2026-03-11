@@ -133,7 +133,7 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 
 		return array_filter( [
 			'@type'    => 'LocalBusiness',
-			'@id'      => trailingslashit( get_permalink( $post ) ) . '#localbusiness',
+			'@id'      => trailingslashit( home_url( '/' ) ) . '#localbusiness',
 
 			// Only Business Image URL, else Org Logo
 			'image'    => $image_prop,
@@ -227,13 +227,10 @@ function myls_schema_localbusiness_for_post( WP_Post $post ) : ?array {
 		}
 	}
 
-	/**
-	 * Strict by default: only assigned pages get LocalBusiness JSON-LD.
-	 * If you want a fallback to Location #1, enable via filter below:
-	 *
-	 * add_filter('myls_localbusiness_fallback_to_first', '__return_true');
-	 */
-	if ( apply_filters( 'myls_localbusiness_fallback_to_first', false ) && isset( $locs[0] ) ) {
+	// Auto-fallback: use the first/only location when no explicit assignment.
+	// If only one location exists, it's the obvious choice.
+	// Multi-location: fall back to first; override via filter returning false.
+	if ( apply_filters( 'myls_localbusiness_fallback_to_first', true ) && isset( $locs[0] ) ) {
 		return myls_lb_build_schema_from_location( $locs[0], $post );
 	}
 

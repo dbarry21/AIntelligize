@@ -246,9 +246,14 @@ if ( ! function_exists('myls_build_primary_localbusiness_node_fallback') ) {
 		if ( ! is_array($certs) ) $certs = [];
 		$certs = array_values( array_filter( array_map('sanitize_text_field', $certs) ) );
 
+		// knowsAbout + memberOf (same data localbusiness.php uses)
+		$knows_about = function_exists('myls_get_knows_about') ? myls_get_knows_about() : [];
+		$member_of   = function_exists('myls_lb_build_member_of') ? myls_lb_build_member_of() : null;
+
 		// ── Helper: apply shared enrichment to a node ────────────────────────
 		$enrich = function( array $node ) use (
-			$image_url, $price_range, $hours_spec, $agg_rating, $awards, $certs
+			$image_url, $price_range, $hours_spec, $agg_rating, $awards, $certs,
+			$knows_about, $member_of
 		) : array {
 			if ( $image_url !== '' )     $node['image']      = esc_url_raw($image_url);
 			if ( $price_range !== '' )   $node['priceRange'] = $price_range;
@@ -259,6 +264,18 @@ if ( ! function_exists('myls_build_primary_localbusiness_node_fallback') ) {
 				function($c) { return ['@type' => 'Certification', 'name' => $c]; },
 				$certs
 			);
+			// v7.8.97: match localbusiness.php enrichment
+			$phone = $node['telephone'] ?? '';
+			if ( $phone !== '' ) {
+				$node['contactPoint'] = [[
+					'@type'       => 'ContactPoint',
+					'telephone'   => $phone,
+					'contactType' => 'customer service',
+				]];
+			}
+			$node['parentOrganization'] = [ '@id' => home_url( '/#organization' ) ];
+			if ( ! empty( $knows_about ) ) $node['knowsAbout'] = $knows_about;
+			if ( is_array( $member_of ) )  $node['memberOf']   = $member_of;
 			return $node;
 		};
 
@@ -281,7 +298,7 @@ if ( ! function_exists('myls_build_primary_localbusiness_node_fallback') ) {
 
 			if ( $org_name === '' || $org_url === '' ) return null;
 
-			$lb_id = trailingslashit($org_url) . '#localbusiness-1';
+			$lb_id = trailingslashit($org_url) . '#localbusiness';
 
 			$node = [
 				'@type' => 'LocalBusiness',
@@ -312,7 +329,7 @@ if ( ! function_exists('myls_build_primary_localbusiness_node_fallback') ) {
 		if ( $name === '' ) $name = (string) myls_opt('myls_org_name', get_bloginfo('name'));
 		if ( $url === '' )  $url  = home_url();
 
-		$lb_id = trailingslashit($url) . '#localbusiness-1';
+		$lb_id = trailingslashit($url) . '#localbusiness';
 
 		$type = (string) ($loc0['type'] ?? $loc0['@type'] ?? 'LocalBusiness');
 		if ( $type === '' ) $type = 'LocalBusiness';
@@ -348,7 +365,7 @@ if ( ! function_exists('myls_build_primary_localbusiness_node_fallback') ) {
 		// by checking the node keys; re-wrap to avoid overwriting per-location values.
 		$enrich_b = function( array $node ) use (
 			$image_url, $price_range, $hours_spec, $agg_rating, $awards, $certs,
-			$loc_img, $loc_price
+			$knows_about, $member_of, $loc_img, $loc_price
 		) : array {
 			// Only apply fallback image/price if per-location value wasn't set
 			if ( $loc_img === '' && $image_url !== '' )   $node['image']      = esc_url_raw($image_url);
@@ -360,6 +377,18 @@ if ( ! function_exists('myls_build_primary_localbusiness_node_fallback') ) {
 				function($c) { return ['@type' => 'Certification', 'name' => $c]; },
 				$certs
 			);
+			// v7.8.97: match localbusiness.php enrichment
+			$phone = $node['telephone'] ?? '';
+			if ( $phone !== '' ) {
+				$node['contactPoint'] = [[
+					'@type'       => 'ContactPoint',
+					'telephone'   => $phone,
+					'contactType' => 'customer service',
+				]];
+			}
+			$node['parentOrganization'] = [ '@id' => home_url( '/#organization' ) ];
+			if ( ! empty( $knows_about ) ) $node['knowsAbout'] = $knows_about;
+			if ( is_array( $member_of ) )  $node['memberOf']   = $member_of;
 			return $node;
 		};
 
