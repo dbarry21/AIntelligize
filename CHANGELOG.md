@@ -1,5 +1,12 @@
 ## 7.9.1 — 2026-03-11
 
+### Added — Service schema on service_area pages
+- **Service → Provider → City graph**: `service_area` CPT pages now emit explicit
+  `Service` schema nodes that link each service to its provider (LocalBusiness)
+  and geographic area (City). Parent pages emit one Service node per service CPT
+  post; child pages match their title to a specific service. Creates the full
+  entity relationship AI systems need for geo-specific service queries.
+
 ### Added — hasOfferCatalog on LocalBusiness
 - **`hasOfferCatalog`**: LocalBusiness now includes a structured `OfferCatalog`
   listing all `service` CPT posts as `Offer` → `Service` items. Tells AI systems
