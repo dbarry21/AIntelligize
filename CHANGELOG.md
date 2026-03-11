@@ -1,3 +1,14 @@
+## 7.8.98 — 2026-03-11
+
+### Improved — VideoObject detector → unified @graph
+- **Video auto-detector migrated to @graph**: `video-object-detector.php` now
+  pushes auto-detected VideoObject nodes into the unified `myls_schema_graph`
+  filter (priority 46) instead of emitting standalone `<script>` blocks.
+  Affects all non-video CPT pages (service areas, pages, posts, etc.)
+- **Publisher → @id reference**: VideoObject publisher changed from inline
+  Organization to `@id` → `/#organization`, matching the rest of the graph
+- **Added isPartOf**: VideoObject now references `/#website` via isPartOf
+
 ## 7.8.97 — 2026-03-11
 
 ### Improved — LocalBusiness schema coverage
