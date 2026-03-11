@@ -76,7 +76,7 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 
 	$graph[] = apply_filters( 'myls_webpage_schema_node', $node, $post_id );
 	return $graph;
-} );
+}, 60 ); // Priority 60: run after all entity providers (LB 8, Org 10, Service 50)
 
 /**
  * Override Yoast og:type for service pages.

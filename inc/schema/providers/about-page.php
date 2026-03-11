@@ -143,24 +143,27 @@ add_filter('myls_schema_graph', function(array $graph) {
 	$page_name = $headline !== '' ? $headline : $default_name;
 	$page_desc = $desc !== '' ? $desc : '';
 
-	$site_url  = home_url('/');
-	$site_name = get_bloginfo('name');
+	// WebSite node is already provided by website.php — no duplicate needed.
 
-	// Minimal WebSite node (safe to duplicate)
-	$graph[] = [
-		'@type' => 'WebSite',
-		'@id'   => trailingslashit($site_url) . '#website',
-		'url'   => esc_url_raw($site_url),
-		'name'  => $site_name,
-	];
+	// about: prefer LocalBusiness @id if in graph, else Organization @id
+	$about_ref = [ '@id' => home_url( '/#organization' ) ];
+	foreach ( $graph as $gn ) {
+		if ( is_array( $gn ) && ! empty( $gn['@id'] ) ) {
+			$t = is_array( $gn['@type'] ?? '' ) ? ( $gn['@type'][0] ?? '' ) : ( $gn['@type'] ?? '' );
+			if ( stripos( $t, 'LocalBusiness' ) !== false || stripos( $t, 'Business' ) !== false ) {
+				$about_ref = [ '@id' => $gn['@id'] ];
+				break;
+			}
+		}
+	}
 
 	$about_node = [
 		'@type'        => 'AboutPage',
 		'@id'          => untrailingslashit($url) . '#about',
 		'url'          => esc_url_raw($url),
 		'name'         => $page_name,
-		'isPartOf'     => [ '@id' => trailingslashit($site_url) . '#website' ],
-		'about'        => myls_about_get_primary_entity(),
+		'isPartOf'     => [ '@id' => home_url( '/#website' ) ],
+		'about'        => $about_ref,
 	];
 
 	if ( $page_desc !== '' ) {
@@ -182,4 +185,4 @@ add_filter('myls_schema_graph', function(array $graph) {
 	}
 
 	return $graph;
-}, 20);
+}, 65 ); // Priority 65: after all entity providers so @id refs resolve

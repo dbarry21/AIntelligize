@@ -3,10 +3,13 @@
 if ( ! defined('ABSPATH') ) exit;
 
 /**
- * Provider: Organization (page-assigned only; no global enable)
+ * Provider: Organization — site-wide identity node
+ *
+ * Emits on ALL singular front-end pages so every @id reference to
+ * /#organization resolves within the same graph (WebSite.publisher,
+ * Person.worksFor, LocalBusiness.parentOrganization, etc.).
  *
  * Assumes your Organization subtab saves:
- * - myls_org_pages (int[] post IDs)
  * - myls_org_name, myls_org_url, myls_org_email, myls_org_tel, myls_org_description
  * - myls_org_street, myls_org_locality, myls_org_region, myls_org_postal, myls_org_country
  * - myls_org_lat, myls_org_lng (optional)
@@ -16,17 +19,9 @@ if ( ! defined('ABSPATH') ) exit;
 
 add_filter('myls_schema_graph', function(array $graph) {
 
-	// --- Only print on assigned pages or the WordPress front page ---
-	$assigned = get_option('myls_org_pages', []);
-	if ( ! is_array($assigned) ) $assigned = [];
-
-	$current_id = get_queried_object_id();
-	$is_assigned  = $current_id && in_array( (int) $current_id, array_map('intval', $assigned), true );
-	$is_frontpage = is_front_page();
-
-	if ( ! $is_assigned && ! $is_frontpage ) {
-		return $graph; // not assigned and not the front page
-	}
+	// Emit on all front-end pages (not admin, feeds, REST, previews)
+	if ( is_admin() || is_feed() || is_preview() ) return $graph;
+	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) return $graph;
 
 	// --- Collect fields ---
 	$name  = trim( (string) get_option('myls_org_name', '') );

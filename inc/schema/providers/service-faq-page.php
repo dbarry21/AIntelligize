@@ -108,7 +108,30 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 		'mainEntity'   => $main_entity,
 	];
 
+	// publisher: link to LocalBusiness (if in graph) or Organization
+	$pub_id = '';
+	foreach ( $graph as $gn ) {
+		if ( is_array($gn) && ! empty($gn['@id']) ) {
+			$t = is_array($gn['@type'] ?? '') ? ($gn['@type'][0] ?? '') : ($gn['@type'] ?? '');
+			if ( stripos( $t, 'LocalBusiness' ) !== false || stripos( $t, 'Business' ) !== false ) {
+				$pub_id = $gn['@id'];
+				break;
+			}
+		}
+	}
+	if ( ! $pub_id ) {
+		foreach ( $graph as $gn ) {
+			if ( is_array($gn) && ($gn['@type'] ?? '') === 'Organization' && ! empty($gn['@id']) ) {
+				$pub_id = $gn['@id'];
+				break;
+			}
+		}
+	}
+	if ( $pub_id ) {
+		$node['publisher'] = [ '@id' => $pub_id ];
+	}
+
 	$graph[] = apply_filters( 'myls_service_faq_page_schema_node', $node, $svc_faq_page_id );
 
 	return $graph;
-});
+}, 60 ); // Priority 60: after entity providers so publisher @id resolves

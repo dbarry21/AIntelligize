@@ -61,8 +61,8 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 
 	$node = [
 		'@type'    => 'Organization',
-		'@id'      => trailingslashit( get_permalink( $mem_page_id ) ) . '#organization',
-		'name'     => $org_name,
+		'@id'      => home_url( '/#organization' ),
+		'name'     => wp_specialchars_decode( $org_name, ENT_QUOTES ),
 		'url'      => esc_url_raw( $org_url ),
 		'memberOf' => $member_of,
 	];
