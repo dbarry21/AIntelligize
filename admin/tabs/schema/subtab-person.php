@@ -194,6 +194,15 @@ $spec = [
       }
 
       /* Page assignment */
+      .myls-page-assign-filters {
+        display:flex; gap:6px; margin-bottom:6px;
+      }
+      .myls-page-assign-filters select,
+      .myls-page-assign-filters input {
+        font-size:12px !important; padding:4px 8px !important;
+      }
+      .myls-page-assign-filters select { flex:0 0 auto; min-width:100px; }
+      .myls-page-assign-filters input  { flex:1; min-width:80px; }
       .myls-page-list {
         max-height:200px; overflow-y:auto; border:1px solid #e5e5e5;
         border-radius:.5em; padding:6px; background:#fff;
@@ -203,6 +212,10 @@ $spec = [
         font-size:13px; cursor:pointer;
       }
       .myls-page-list label:hover { background:#f0f4ff; border-radius:4px; }
+      .myls-page-list label.is-hidden { display:none; }
+      .myls-page-assign-count {
+        font-size:11px; color:#6c757d; margin-top:4px;
+      }
 
       /* Image preview */
       .myls-img-preview     { display:flex; align-items:center; gap:10px; margin-top:6px; }
@@ -824,17 +837,36 @@ $spec = [
                 <div class="myls-fieldgroup">
                   <div class="myls-fieldgroup-title"><i class="bi bi-file-earmark-check"></i> Page Assignment</div>
                   <div class="form-hint" style="margin-bottom:8px;">Schema outputs only on checked pages.</div>
+                  <div class="myls-page-assign-filters">
+                    <select class="myls-page-type-filter" onchange="mylsFilterPages(this)">
+                      <option value="">All Types</option>
+                      <?php
+                      $seen_types = [];
+                      foreach ($assignable as $apost) {
+                        if (isset($seen_types[$apost->post_type])) continue;
+                        $seen_types[$apost->post_type] = true;
+                        $pto = get_post_type_object($apost->post_type);
+                        $lbl = $pto->labels->singular_name ?? $apost->post_type;
+                        echo '<option value="' . esc_attr($apost->post_type) . '">' . esc_html($lbl) . '</option>';
+                      }
+                      ?>
+                    </select>
+                    <input type="text" class="myls-page-search-filter" placeholder="Search pages…" oninput="mylsFilterPages(this)" />
+                  </div>
                   <div class="myls-page-list">
                     <?php foreach ($assignable as $post):
                       $checked    = in_array($post->ID, $page_ids) ? 'checked' : '';
                       $type_label = get_post_type_object($post->post_type)->labels->singular_name ?? $post->post_type;
                     ?>
-                    <label>
+                    <label data-post-type="<?php echo esc_attr($post->post_type); ?>" data-title="<?php echo esc_attr(strtolower($post->post_title)); ?>">
                       <input type="checkbox" name="myls_person[<?php echo $idx; ?>][pages][]" value="<?php echo $post->ID; ?>" <?php echo $checked; ?> />
                       <?php echo esc_html($post->post_title); ?>
                       <span style="color:#adb5bd;font-size:11px;">(<?php echo esc_html($type_label); ?>)</span>
                     </label>
                     <?php endforeach; ?>
+                  </div>
+                  <div class="myls-page-assign-count">
+                    <span class="myls-checked-count"><?php echo count($page_ids); ?></span> page(s) assigned
                   </div>
                 </div>
 
@@ -1726,6 +1758,15 @@ $spec = [
         clone.querySelectorAll('input[type="checkbox"]').forEach(function(el) { el.checked = el.value === '1'; });
         clone.querySelectorAll('input[type="checkbox"][name*="[pages]"]').forEach(function(el) { el.checked = false; });
 
+        // Reset page assignment filters and count
+        var ptFilter = clone.querySelector('.myls-page-type-filter');
+        if (ptFilter) ptFilter.value = '';
+        var searchFilter = clone.querySelector('.myls-page-search-filter');
+        if (searchFilter) searchFilter.value = '';
+        clone.querySelectorAll('.myls-page-list label.is-hidden').forEach(function(el) { el.classList.remove('is-hidden'); });
+        var countEl = clone.querySelector('.myls-checked-count');
+        if (countEl) countEl.textContent = '0';
+
         // Update all name attributes
         clone.querySelectorAll('[name]').forEach(function(el) {
           el.name = el.name.replace(/myls_person\[\d+\]/, 'myls_person[' + newIdx + ']');
@@ -1772,6 +1813,35 @@ $spec = [
 
         list.appendChild(clone);
         clone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+
+      /* ══════════════════════════════════════════════════════════════════
+       *  PAGE ASSIGNMENT: post type dropdown + search filter
+       * ══════════════════════════════════════════════════════════════════ */
+      window.mylsFilterPages = function(el) {
+        var fieldgroup = el.closest('.myls-fieldgroup');
+        var typeSelect = fieldgroup.querySelector('.myls-page-type-filter');
+        var searchInput = fieldgroup.querySelector('.myls-page-search-filter');
+        var list = fieldgroup.querySelector('.myls-page-list');
+
+        var typeVal   = typeSelect ? typeSelect.value : '';
+        var searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+        var labels = list.querySelectorAll('label[data-post-type]');
+        labels.forEach(function(lbl) {
+          var matchType   = !typeVal || lbl.dataset.postType === typeVal;
+          var matchSearch = !searchVal || lbl.dataset.title.indexOf(searchVal) !== -1;
+          lbl.classList.toggle('is-hidden', !(matchType && matchSearch));
+        });
+      };
+
+      /* Update assigned count on checkbox change */
+      document.addEventListener('change', function(e) {
+        if (!e.target.matches('.myls-page-list input[type="checkbox"]')) return;
+        var fieldgroup = e.target.closest('.myls-fieldgroup');
+        var counter = fieldgroup.querySelector('.myls-checked-count');
+        if (!counter) return;
+        counter.textContent = fieldgroup.querySelectorAll('.myls-page-list input[type="checkbox"]:checked').length;
       });
 
     })();
