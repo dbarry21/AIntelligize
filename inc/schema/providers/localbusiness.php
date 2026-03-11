@@ -57,11 +57,15 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 
 		$awards = get_option('myls_org_awards', []);
 		if ( ! is_array($awards) ) $awards = [];
-		$awards = array_values(array_filter(array_map('sanitize_text_field', $awards)));
+		$awards = array_values( array_filter( array_map( function( $a ) {
+			return wp_specialchars_decode( trim( $a ), ENT_QUOTES );
+		}, $awards ) ) );
 
 		$certs = get_option('myls_org_certifications', []);
 		if ( ! is_array($certs) ) $certs = [];
-		$certs = array_values(array_filter(array_map('sanitize_text_field', $certs)));
+		$certs = array_values( array_filter( array_map( function( $c ) {
+			return wp_specialchars_decode( trim( $c ), ENT_QUOTES );
+		}, $certs ) ) );
 
 		// Image fallback chain (first non-empty wins):
 		//   1. Per-location Business Image URL
@@ -124,16 +128,18 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			}
 		}
 
+		// Decode HTML entities — JSON-LD strings must be plain text, not HTML-encoded.
+		$lb_name = wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES );
+
 		return array_filter( [
-			'@context' => 'https://schema.org',
 			'@type'    => 'LocalBusiness',
 			'@id'      => trailingslashit( get_permalink( $post ) ) . '#localbusiness',
 
 			// Only Business Image URL, else Org Logo
 			'image'    => $image_prop,
 
-			'name'       => sanitize_text_field( $loc['name'] ?? $org_name ),
-			'telephone'  => sanitize_text_field( $loc['phone'] ?? '' ),
+			'name'       => $lb_name,
+			'telephone'  => trim( $loc['phone'] ?? '' ),
 			'priceRange' => $price_prop,
 			'award'      => ( $awards ? $awards : null ),
 			'hasCertification' => ( $certs ? array_map(function($c){ return ['@type'=>'Certification','name'=>$c]; }, $certs) : null ),
@@ -141,16 +147,16 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			'memberOf' => myls_lb_build_member_of(),
 			'address'  => array_filter( [
 				'@type'           => 'PostalAddress',
-				'streetAddress'   => sanitize_text_field( $loc['street'] ?? '' ),
-				'addressLocality' => sanitize_text_field( $loc['city'] ?? '' ),
-				'addressRegion'   => sanitize_text_field( $loc['state'] ?? '' ),
-				'postalCode'      => sanitize_text_field( $loc['zip'] ?? '' ),
-				'addressCountry'  => sanitize_text_field( $loc['country'] ?? 'US' ),
+				'streetAddress'   => wp_specialchars_decode( trim( $loc['street'] ?? '' ), ENT_QUOTES ),
+				'addressLocality' => wp_specialchars_decode( trim( $loc['city'] ?? '' ), ENT_QUOTES ),
+				'addressRegion'   => trim( $loc['state'] ?? '' ),
+				'postalCode'      => trim( $loc['zip'] ?? '' ),
+				'addressCountry'  => trim( $loc['country'] ?? 'US' ),
 			] ),
 			'geo' => ( ! empty( $loc['lat'] ) || ! empty( $loc['lng'] ) ) ? array_filter( [
 				'@type'    => 'GeoCoordinates',
-				'latitude' => sanitize_text_field( $loc['lat'] ?? '' ),
-				'longitude'=> sanitize_text_field( $loc['lng'] ?? '' ),
+				'latitude' => trim( $loc['lat'] ?? '' ),
+				'longitude'=> trim( $loc['lng'] ?? '' ),
 			] ) : null,
 			'openingHoursSpecification' => $hours ?: null,
 			'aggregateRating' => function_exists('myls_schema_build_aggregate_rating') ? myls_schema_build_aggregate_rating() : null,
@@ -158,17 +164,8 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			// employee: Person @id reference (front page only)
 			'employee' => $employee,
 
-			// schema.org: LocalBusiness does NOT support `publisher`.
-			// Use parentOrganization to link the location to the primary Organization entity.
-			'parentOrganization' => array_filter( [
-				'@type' => 'Organization',
-				'name'  => $org_name,
-				'url'   => esc_url_raw( $org_url ),
-				'logo'  => $logo_url ? [
-					'@type' => 'ImageObject',
-					'url'   => esc_url( $logo_url ),
-				] : null,
-			] ),
+			// Link to Organization entity by @id reference (not inline duplicate)
+			'parentOrganization' => [ '@id' => home_url( '/#organization' ) ],
 		] );
 	}
 }
@@ -283,36 +280,31 @@ add_action( 'wp_head', function () {
 }, 2 );
 
 /**
- * JSON-LD EMITTER (head)
+ * LocalBusiness → unified @graph
  * ------------------------------------------------------------
- * Calls the LocalBusiness provider on singular pages and prints
- * <script type="application/ld+json">...</script> if data is returned.
+ * Pushes LocalBusiness node into myls_schema_graph so all schema
+ * nodes appear in one JSON-LD block. Replaces the old standalone emitter.
  *
- * Guards:
- * - Skips admin, feeds, REST, previews.
- * - Respects a kill switch constant or filter if you want to disable.
+ * Guards mirror the old emitter: skips admin, feeds, REST, previews.
+ * Respects a kill switch constant or filter.
  */
-add_action( 'wp_head', function () {
-	// Basic front-end guards
-	if ( is_admin() || is_feed() || ( defined('REST_REQUEST') && REST_REQUEST ) ) return;
-	if ( is_preview() ) return;
-	if ( ! is_singular() ) return;
+add_filter( 'myls_schema_graph', function ( array $graph ) {
+	if ( is_admin() || is_feed() || ( defined('REST_REQUEST') && REST_REQUEST ) ) return $graph;
+	if ( is_preview() ) return $graph;
+	if ( ! is_singular() ) return $graph;
 
-	// Optional kill-switch
-	if ( defined('MYLS_DISABLE_LOCALBUSINESS_EMIT') && MYLS_DISABLE_LOCALBUSINESS_EMIT ) return;
-	if ( false === apply_filters( 'myls_allow_localbusiness_emit', true ) ) return;
+	if ( defined('MYLS_DISABLE_LOCALBUSINESS_EMIT') && MYLS_DISABLE_LOCALBUSINESS_EMIT ) return $graph;
+	if ( false === apply_filters( 'myls_allow_localbusiness_emit', true ) ) return $graph;
 
 	$post = get_queried_object();
-	if ( ! ( $post instanceof WP_Post ) ) return;
+	if ( ! ( $post instanceof WP_Post ) ) return $graph;
 
 	$data = myls_schema_localbusiness_for_post( $post );
-	if ( empty( $data ) || ! is_array( $data ) ) return;
+	if ( empty( $data ) || ! is_array( $data ) ) return $graph;
 
-	// Print JSON-LD
-	echo "\n<script type=\"application/ld+json\">" .
-		wp_kses_post( wp_json_encode( $data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ) .
-		"</script>\n";
-}, 12 );
+	$graph[] = $data;
+	return $graph;
+}, 8 ); // Priority 8: ensure LB is in graph before WebPage (10) looks for it
 
 /**
  * Auto-sync hook (optional but helpful)
