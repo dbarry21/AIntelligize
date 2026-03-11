@@ -166,6 +166,13 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 
 			// Link to Organization entity by @id reference (not inline duplicate)
 			'parentOrganization' => [ '@id' => home_url( '/#organization' ) ],
+
+			// ContactPoint for customer service (mirrors Organization pattern)
+			'contactPoint' => ( trim( $loc['phone'] ?? '' ) !== '' ) ? [[
+				'@type'       => 'ContactPoint',
+				'telephone'   => trim( $loc['phone'] ?? '' ),
+				'contactType' => 'customer service',
+			]] : null,
 		] );
 	}
 }

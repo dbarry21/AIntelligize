@@ -15,6 +15,8 @@
  *
  * Toggle: Disable this schema via:
  *   add_filter('myls_video_single_schema_enabled', '__return_false');
+ *
+ * @since 7.8.95 Moved from standalone wp_head emitter to myls_schema_graph filter.
  */
 
 if ( ! defined('ABSPATH') ) exit;
@@ -141,17 +143,14 @@ if ( ! function_exists('myls_vs_build_thumbnails') ) {
  *      3) Post publish date (get_the_date('c'))
  * ----------------------------------------------------------------- */
 if ( ! function_exists('myls_video_schema_single') ) {
-	function myls_video_schema_single() {
-		if ( ! is_singular( apply_filters('myls_video_schema_post_types', array('video')) ) ) {
-			return;
-		}
-		if ( ! apply_filters('myls_video_single_schema_enabled', true ) ) {
-			return;
-		}
-
+	/**
+	 * Build VideoObject schema array (graph node, no @context).
+	 * @return array|null
+	 */
+	function myls_video_schema_single() : ?array {
 		$post_id   = get_the_ID();
 		$permalink = get_permalink( $post_id );
-		if ( ! $permalink ) return;
+		if ( ! $permalink ) return null;
 
 		// Core fields
 		$raw_title = get_the_title( $post_id );
@@ -202,15 +201,7 @@ if ( ! function_exists('myls_video_schema_single') ) {
 		$duration = trim( (string) get_post_meta($post_id, '_myls_video_duration_iso8601', true) );
 		$views    = (int) get_post_meta($post_id, '_myls_video_view_count', true );
 
-		// Publisher org (from plugin options; adjust option keys if needed)
-		$site_name = get_bloginfo('name');
-		$org_name  = get_option('myls_org_name', $site_name);
-		$org_url   = get_option('myls_org_url', home_url('/'));
-		$logo_id   = (int) get_option('myls_org_logo_id', 0);
-		$logo_url  = $logo_id ? wp_get_attachment_image_url($logo_id, 'full') : '';
-
 		$video = array(
-			'@context'         => 'https://schema.org',
 			'@type'            => 'VideoObject',
 			'@id'              => esc_url_raw($watch_url . '#video'),   // stable id helps dedupe
 			'mainEntityOfPage' => esc_url_raw($permalink),
@@ -238,19 +229,11 @@ if ( ! function_exists('myls_video_schema_single') ) {
 			'userInteractionCount' => $views,
 		);
 
-		// Publisher (Organization)
-		$publisher = array(
-			'@type' => 'Organization',
-			'name'  => sanitize_text_field($org_name),
-			'url'   => esc_url_raw($org_url),
-		);
-		if ( $logo_url ) {
-			$publisher['logo'] = array(
-				'@type' => 'ImageObject',
-				'url'   => esc_url_raw($logo_url),
-			);
-		}
-		$video['publisher'] = $publisher;
+		// Publisher — @id reference to Organization (in graph at priority 10)
+		$video['publisher'] = [ '@id' => home_url( '/#organization' ) ];
+
+		// isPartOf — @id reference to WebSite
+		$video['isPartOf'] = [ '@id' => home_url( '/#website' ) ];
 
 		// Transcript: manual override (myls_video_entries) > cache table
 		$vt_transcript = '';
@@ -279,15 +262,31 @@ if ( ! function_exists('myls_video_schema_single') ) {
 		 */
 		$video = apply_filters( 'myls_video_schema_single_object', $video, $post_id, $video_id );
 
-		// Output JSON-LD
-		echo "\n<!-- MYLS Single Video JSON-LD -->\n";
-		echo '<script type="application/ld+json">' . "\n";
-		echo wp_json_encode( $video, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT );
-		echo "\n</script>\n";
+		return $video;
 	}
-	// Hook late so other SEO plugins run first; adjust if you need to override theirs
-	add_action( 'wp_head', 'myls_video_schema_single', 40 );
 }
+
+/**
+ * VideoObject → unified @graph
+ *
+ * @since 7.8.95 Moved from standalone wp_head emitter to myls_schema_graph filter.
+ */
+add_filter( 'myls_schema_graph', function ( array $graph ) : array {
+
+	if ( is_admin() || is_feed() || is_preview() ) return $graph;
+	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) return $graph;
+
+	$post_types = apply_filters( 'myls_video_schema_post_types', [ 'video' ] );
+	if ( ! is_singular( $post_types ) ) return $graph;
+	if ( ! apply_filters( 'myls_video_single_schema_enabled', true ) ) return $graph;
+
+	$video = myls_video_schema_single();
+	if ( is_array( $video ) && ! empty( $video ) ) {
+		$graph[] = $video;
+	}
+
+	return $graph;
+}, 45 ); // Priority 45: before Service (50), after Website/Person/LB/Org
 
 /** -----------------------------------------------------------------
  * (Optional) If another SEO plugin emits a conflicting VideoObject

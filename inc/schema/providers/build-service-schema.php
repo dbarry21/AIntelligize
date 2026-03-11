@@ -607,11 +607,12 @@ add_filter('myls_schema_graph', function(array $graph) {
 	// "Invalid object type for field <parent_node>" in the Rich Results Test.
 	// aggregateRating belongs on the LocalBusiness node (localbusiness.php) only.
 
-	// ── Price Ranges (offers → PriceSpecification) ───────────────────────
+	// ── Price Ranges (hasOfferCatalog → OfferCatalog → Offer) ────────────
 	// Look up myls_service_price_ranges for any entry whose post_ids contains
-	// the current post.  If found, attach an Offer with a PriceSpecification
-	// node so AI and search engines see the price range directly in schema.
+	// the current post.  If found, attach as hasOfferCatalog with OfferCatalog
+	// wrapper so AI and search engines see the price range directly in schema.
 	$price_ranges = (array) get_option( 'myls_service_price_ranges', [] );
+	$offer_items  = [];
 	foreach ( $price_ranges as $pr ) {
 		if ( ! is_array($pr) ) continue;
 
@@ -621,20 +622,31 @@ add_filter('myls_schema_graph', function(array $graph) {
 		$low      = trim( (string) ( $pr['low']      ?? '' ) );
 		$high     = trim( (string) ( $pr['high']     ?? '' ) );
 		$currency = strtoupper( trim( (string) ( $pr['currency'] ?? 'USD' ) ) );
+		$label    = trim( (string) ( $pr['label']    ?? '' ) );
 
 		// Need at least one price value to output valid schema
 		if ( $low === '' && $high === '' ) continue;
 
-		$price_spec = [ '@type' => 'PriceSpecification', 'priceCurrency' => $currency ];
+		$price_spec = [ '@type' => 'UnitPriceSpecification', 'priceCurrency' => $currency ];
 		if ( $low  !== '' ) $price_spec['minPrice'] = $low;
 		if ( $high !== '' ) $price_spec['maxPrice'] = $high;
 
-		$service['offers'] = [
+		$offer = [
 			'@type'              => 'Offer',
 			'priceCurrency'      => $currency,
 			'priceSpecification' => $price_spec,
 		];
-		break; // one matching range per post — first match wins
+		if ( $label !== '' ) $offer['name'] = $label;
+
+		$offer_items[] = $offer;
+	}
+
+	if ( ! empty( $offer_items ) ) {
+		$service['hasOfferCatalog'] = [
+			'@type'          => 'OfferCatalog',
+			'name'           => $service_name . ' Pricing',
+			'itemListElement' => $offer_items,
+		];
 	}
 
 	$graph[] = $service;
