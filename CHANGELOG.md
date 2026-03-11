@@ -1,3 +1,15 @@
+## 7.8.99 — 2026-03-11
+
+### Added — Service area siblings & flip-cards shortcodes
+- **`[service_area_siblings]`**: Bootstrap card-grid shortcode that auto-detects
+  context — shows child service_area posts on parent pages, sibling posts
+  (excluding self) on child pages. Same layout as `[service_grid]` with
+  configurable columns, excerpts, buttons, image crop, and aspect ratio.
+- **`[service_area_flip_cards]`**: CSS-grid flip-box card shortcode with the
+  same parent/child auto-detection. Uses `.myls-flip-box` / `.myls-card` layout
+  (matching `[myls_card_grid]`), with responsive CSS-variable columns, icons
+  fallback, and configurable excerpts.
+
 ## 7.8.98 — 2026-03-11
 
 ### Improved — VideoObject detector → unified @graph
