@@ -1,3 +1,15 @@
+## 7.8.90 — 2026-03-10
+
+### Improved — Person page assignment, auto Organization on homepage
+
+- Person subtab: post type dropdown and search filter for page assignment
+- Organization schema: auto-outputs on WordPress front page without manual assignment
+- Service FAQ Page: added missing `dateModified` field
+
+**Files:** `admin/tabs/schema/subtab-person.php`, `inc/schema/providers/organization.php`, `inc/schema/providers/service-faq-page.php`
+
+---
+
 ## 7.8.89 — 2026-03-09
 
 ### Fixed — Supadata timestamp conversion (ms → s)
