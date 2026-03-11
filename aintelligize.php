@@ -148,6 +148,7 @@ require_once MYLS_PATH . 'inc/schema/providers/memberships-page.php';
 require_once MYLS_PATH . 'inc/schema/providers/blog-posting.php';
 require_once MYLS_PATH . 'inc/schema/providers/breadcrumb.php';
 require_once MYLS_PATH . 'inc/schema/providers/itemlist.php';
+require_once MYLS_PATH . 'inc/schema/providers/service-area-service.php';
 require_once MYLS_PATH . 'inc/schema/localbusiness-sync.php';
 
 /** GEO/AI infrastructure */

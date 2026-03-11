@@ -27,6 +27,7 @@ AIntelligize is a comprehensive WordPress plugin designed for local businesses a
 - **About Page Schema**: AboutPage schema for company pages
 - **VideoObject Schema** *(v7.8.74+)*: Automatic video detection and `VideoObject` JSON-LD emission on any singular page with video content. Detects across Elementor (video widget, video-playlist, background video, HTML widget iframes, Theme Builder templates), Beaver Builder, Divi, WPBakery, Gutenberg, and Classic editor. YouTube duration auto-fetched from YouTube Data API v3 and cached 30 days per video.
 - **ItemList Schema** *(v7.9.0)*: Structured `ItemList` nodes on the front page for services (`Service` typed items) and service areas (`City` typed items). Helps AI systems extract structured offerings and geographic coverage for AI Overviews and generative search.
+- **Service Area Service Schema** *(v7.9.1)*: Explicit `Service` schema nodes on `service_area` CPT pages creating the Service → Provider (LocalBusiness) → City entity graph. Parent pages emit one Service per service CPT post; child pages match to a specific service. Completes the geo-specific service relationship chain for AI systems.
 
 ### Location Features
 - **Dynamic Location Tags**: [city_state], [city_only], [county] shortcodes
