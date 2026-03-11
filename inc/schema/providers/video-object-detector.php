@@ -912,17 +912,11 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 			$node['transcript'] = $admin_trans;
 		}
 
-		// Publisher — from org options, consistent with other nodes.
-		$org_name   = trim((string) get_option('myls_org_name', get_bloginfo('name')));
-		$org_url    = trim((string) get_option('myls_org_url',  home_url('/')));
-		$org_logo_id = (int) get_option('myls_org_logo_id', 0);
-		$org_logo    = $org_logo_id ? (string) wp_get_attachment_image_url($org_logo_id, 'full') : '';
+		// Publisher — @id reference to Organization (in unified @graph)
+		$node['publisher'] = [ '@id' => home_url( '/#organization' ) ];
 
-		$publisher = [ '@type' => 'Organization', 'name' => $org_name, 'url' => $org_url ];
-		if ( $org_logo !== '' ) {
-			$publisher['logo'] = [ '@type' => 'ImageObject', 'url' => $org_logo ];
-		}
-		$node['publisher'] = $publisher;
+		// isPartOf — @id reference to WebSite
+		$node['isPartOf'] = [ '@id' => home_url( '/#website' ) ];
 
 		/**
 		 * Filter individual VideoObject node before it enters the graph.
@@ -938,41 +932,34 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 
 /* =========================================================================
  * SECTION 11 — SCHEMA GRAPH INJECTION
- * Hook into wp_head and inject VideoObject nodes into the page <head>.
+ * Push auto-detected VideoObject nodes into the unified @graph.
  * Runs only on singular pages; skips the existing video CPT handler
  * (video-schema.php) which already covers that case.
+ *
+ * @since 7.8.98 Moved from standalone wp_head emitter to myls_schema_graph filter.
  * ========================================================================= */
 
-add_action('wp_head', function () {
+add_filter('myls_schema_graph', function ( array $graph ) : array {
+
+	if ( is_admin() || is_feed() || is_preview() ) return $graph;
+	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) return $graph;
 
 	// Toggle off via filter if needed.
-	if ( ! apply_filters('myls_video_object_detector_enabled', true) ) return;
+	if ( ! apply_filters('myls_video_object_detector_enabled', true) ) return $graph;
 
 	// Only on singular pages; video CPT is handled by video-schema.php.
-	if ( ! is_singular() || is_singular('video') ) return;
+	if ( ! is_singular() || is_singular('video') ) return $graph;
 
 	$post_id = (int) get_queried_object_id();
-	if ( ! $post_id ) return;
+	if ( ! $post_id ) return $graph;
 
 	$items = myls_detect_videos_in_post($post_id);
-	if ( empty($items) ) return;
+	if ( empty($items) ) return $graph;
 
-	$nodes = [];
 	foreach ( $items as $index => $item ) {
-		$nodes[] = myls_build_video_object_node($item, $post_id, $index);
+		$graph[] = myls_build_video_object_node($item, $post_id, $index);
 	}
 
-	// If only one video, emit a single object; multiple → array.
-	$output = count($nodes) === 1
-		? array_merge(['@context' => 'https://schema.org'], $nodes[0])
-		: [
-			'@context' => 'https://schema.org',
-			'@graph'   => $nodes,
-		];
+	return $graph;
 
-	echo "\n<!-- AIntelligize VideoObject Schema -->\n";
-	echo '<script type="application/ld+json">';
-	echo wp_json_encode($output, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-	echo "</script>\n";
-
-}, 30);
+}, 46); // Priority 46: just after video-schema.php (45), before Service (50)
