@@ -1,0 +1,402 @@
+/**
+ * AI Exposure Dashboard — Page-specific CSS
+ * Extends admin/stats/stats-dashboard.css (shared design system)
+ * Follows patterns from admin/search-stats/search-stats.css
+ *
+ * @since 7.9.0
+ */
+
+/* ── Platform Badges ── */
+.ae-badge-chatgpt {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #e0f7fa;
+    color: var(--ms-teal);
+}
+.ae-badge-claude {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #ede9fe;
+    color: var(--ms-purple);
+}
+
+/* ── Citation Status Badges ── */
+.ae-cited-yes {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #dcfce7;
+    color: #166534;
+}
+.ae-cited-no {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #fee2e2;
+    color: #991b1b;
+}
+.ae-cited-na {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #f0f0f1;
+    color: #787c82;
+}
+
+/* ── Exposure Score Badge ── */
+.ae-score {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+.ae-score-high  { background: #dcfce7; color: #166534; }
+.ae-score-med   { background: #fef3c7; color: #92400e; }
+.ae-score-low   { background: #fee2e2; color: #991b1b; }
+.ae-score-none  { background: #f0f0f1; color: #787c82; }
+
+/* ── Position Badge ── */
+.ae-position {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+/* ── Tab Navigation ── */
+.ae-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+}
+.ae-tab {
+    padding: 8px 16px;
+    border: 1px solid var(--ms-border);
+    border-radius: var(--ms-radius);
+    background: var(--ms-surface);
+    color: var(--ms-text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.ae-tab:hover {
+    background: #f6f6f6;
+}
+.ae-tab.active {
+    background: var(--ms-accent);
+    color: #fff;
+    border-color: var(--ms-accent);
+}
+
+/* ── Action Bar ── */
+.ae-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--ms-surface);
+    border: 1px solid var(--ms-border);
+    border-radius: var(--ms-radius);
+}
+.ae-actions .ae-sep {
+    border-left: 1px solid var(--ms-border);
+    height: 24px;
+    margin: 0 4px;
+}
+.ae-actions .ae-right {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* ── Progress Bar ── */
+.ae-progress-wrap {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--ms-surface);
+    border: 1px solid var(--ms-border);
+    border-radius: var(--ms-radius);
+}
+.ae-progress-bar {
+    height: 8px;
+    background: #f0f0f1;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+.ae-progress-fill {
+    height: 100%;
+    background: var(--ms-accent);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+    width: 0%;
+}
+.ae-progress-text {
+    font-size: 12px;
+    color: var(--ms-text-muted);
+}
+
+/* ── Phase Badge (pulsing) ── */
+.ae-phase-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    animation: ae-pulse 1.5s ease-in-out infinite;
+}
+.ae-phase-chatgpt { background: #e0f7fa; color: var(--ms-teal); }
+.ae-phase-claude  { background: #ede9fe; color: var(--ms-purple); }
+
+@keyframes ae-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ── Results Table ── */
+.ae-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.ae-table thead th {
+    padding: 10px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ms-text-muted);
+    border-bottom: 2px solid var(--ms-border);
+    text-align: left;
+    font-weight: 600;
+}
+.ae-table tbody td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--ms-border);
+    vertical-align: middle;
+}
+.ae-table tbody tr:hover {
+    background: #fafbfc;
+}
+.ae-table tbody tr.ae-highlight {
+    background: #fff8e1;
+}
+.ae-table .ae-text-end { text-align: right; }
+.ae-table .ae-text-center { text-align: center; }
+.ae-table .ae-fw-semi { font-weight: 600; }
+.ae-table .ae-small { font-size: 12px; }
+.ae-table .ae-muted { color: var(--ms-text-muted); }
+
+/* ── Expandable Detail Row ── */
+.ae-detail-row {
+    display: none;
+}
+.ae-detail-row.ae-show {
+    display: table-row;
+}
+.ae-detail-inner {
+    padding: 16px;
+    background: #fafbfc;
+    border-top: 2px solid var(--ms-accent);
+}
+.ae-expand-link {
+    cursor: pointer;
+    color: var(--ms-accent);
+    font-size: 16px;
+    user-select: none;
+}
+.ae-expand-link:hover {
+    color: var(--ms-accent);
+}
+
+/* ── Response Excerpt ── */
+.ae-response-excerpt {
+    max-height: 200px;
+    overflow-y: auto;
+    background: #f8f9fa;
+    border: 1px solid var(--ms-border);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 8px 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* ── Citation URL List ── */
+.ae-citation-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0;
+}
+.ae-citation-list li {
+    padding: 3px 0;
+    font-size: 12px;
+    font-family: monospace;
+}
+.ae-citation-list .ae-own-domain {
+    font-weight: 700;
+    color: var(--ms-green);
+}
+.ae-citation-list .ae-competitor {
+    color: var(--ms-red);
+}
+.ae-citation-list .ae-neutral {
+    color: var(--ms-text-muted);
+}
+
+/* ── Detail Sub-sections ── */
+.ae-detail-section {
+    margin-bottom: 12px;
+}
+.ae-detail-section h4 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ms-text-muted);
+    margin: 0 0 6px 0;
+}
+
+/* ── Competitor Section ── */
+.ae-comp-input-wrap {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.ae-comp-input-wrap input {
+    flex: 1;
+    padding: 6px 12px;
+    border: 1px solid var(--ms-border);
+    border-radius: var(--ms-radius);
+    font-size: 13px;
+}
+.ae-comp-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: #f0f0f1;
+    border-radius: 999px;
+    font-size: 12px;
+    margin: 2px 4px 2px 0;
+}
+.ae-comp-tag .ae-comp-remove {
+    cursor: pointer;
+    color: var(--ms-red);
+    font-weight: 700;
+    font-size: 14px;
+}
+.ae-comp-tag.ae-is-manual {
+    background: #dbeafe;
+    color: #1e40af;
+}
+.ae-comp-tag.ae-is-auto {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* ── Add Keyword Modal ── */
+.ae-add-kw-wrap {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.ae-add-kw-wrap input {
+    padding: 6px 12px;
+    border: 1px solid var(--ms-border);
+    border-radius: var(--ms-radius);
+    font-size: 13px;
+    width: 250px;
+}
+
+/* ── History Panel ── */
+.ae-history-btn {
+    cursor: pointer;
+    color: var(--ms-accent);
+    font-size: 12px;
+    text-decoration: none;
+    font-weight: 600;
+}
+.ae-history-btn:hover {
+    text-decoration: underline;
+}
+.ae-history-panel {
+    background: #fefce8;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 8px;
+}
+.ae-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.ae-history-table th {
+    padding: 4px 8px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--ms-text-muted);
+    border-bottom: 1px solid #fde68a;
+}
+.ae-history-table td {
+    padding: 4px 8px;
+    border-bottom: 1px solid #fef3c7;
+}
+
+/* ── Two-Column Layout ── */
+.ae-grid-2col {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+/* ── Chart Container ── */
+.ae-chart-container {
+    position: relative;
+    height: 280px;
+}
+
+/* ── Cost Estimate ── */
+.ae-cost-estimate {
+    font-size: 12px;
+    color: var(--ms-orange);
+    font-weight: 600;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1200px) {
+    .ae-grid-2col {
+        grid-template-columns: 1fr;
+    }
+}
