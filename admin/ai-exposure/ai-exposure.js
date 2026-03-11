@@ -42,6 +42,8 @@
   var currentView  = "results";
   var STOP         = false;
   var charts       = {};
+  var sourceFilter = "all";
+  var selected     = {};  // keyword → true
 
   /* ══════════════════════════════════════════════════════════════════
    * RENDER SHELL
@@ -79,12 +81,14 @@
 
       // Action bar
       '<div class="ae-actions" id="ae_action_bar">',
+        '<select class="ae-source-filter" id="ae_source_filter"><option value="all">All Sources</option></select>',
         '<button class="button button-primary" id="ae_btn_check_all"><i class="bi bi-arrow-repeat"></i> Check All</button>',
         '<button class="button" id="ae_btn_check_chatgpt"><i class="bi bi-chat-dots"></i> Check ChatGPT</button>',
         '<button class="button" id="ae_btn_check_claude"><i class="bi bi-robot"></i> Check Claude</button>',
         '<span class="ae-sep"></span>',
         '<button class="button" id="ae_btn_add_kw"><i class="bi bi-plus-circle"></i> Add Keyword</button>',
         '<span class="ae-right">',
+          '<span class="ae-selection-info" id="ae_sel_info"></span>',
           '<span class="ae-cost-estimate" id="ae_cost_est"></span>',
           '<span id="ae_phase_badge"></span>',
           '<button class="button" id="ae_btn_stop" style="display:none;color:#d63638;"><i class="bi bi-stop-circle"></i> Stop</button>',
@@ -128,6 +132,35 @@
       $(this).addClass("active");
       currentView = $(this).data("view");
       renderCurrentView();
+    });
+
+    // Source filter
+    $(ROOT).on("change", "#ae_source_filter", function () {
+      sourceFilter = $(this).val();
+      selected = {};
+      renderCurrentView();
+    });
+
+    // Checkbox selection
+    $(ROOT).on("change", "#ae_select_all", function () {
+      var checked = this.checked;
+      var visible = getVisibleKeywords();
+      selected = {};
+      if (checked) {
+        for (var i = 0; i < visible.length; i++) selected[visible[i].keyword] = true;
+      }
+      $(".ae-row-cb").prop("checked", checked);
+      updateSelectionInfo();
+    });
+    $(ROOT).on("change", ".ae-row-cb", function () {
+      var kw = $(this).data("keyword");
+      if (this.checked) selected[kw] = true;
+      else delete selected[kw];
+      // Update header checkbox state
+      var visible = getVisibleKeywords();
+      var allChecked = visible.length > 0 && Object.keys(selected).length === visible.length;
+      $("#ae_select_all").prop("checked", allChecked);
+      updateSelectionInfo();
     });
 
     // Action buttons
@@ -234,20 +267,71 @@
   /* ══════════════════════════════════════════════════════════════════
    * RESULTS TAB
    * ══════════════════════════════════════════════════════════════════ */
+  function getVisibleKeywords() {
+    if (sourceFilter === "all") return keywords;
+    return keywords.filter(function (kw) { return (kw.source || "Custom") === sourceFilter; });
+  }
+
+  function getCheckTargets() {
+    var visible = getVisibleKeywords();
+    var selKeys = Object.keys(selected);
+    if (selKeys.length) {
+      return visible.filter(function (kw) { return selected[kw.keyword]; });
+    }
+    return visible;
+  }
+
+  function populateSourceFilter() {
+    var sel = el("ae_source_filter");
+    if (!sel) return;
+    var sources = {};
+    for (var i = 0; i < keywords.length; i++) {
+      var s = keywords[i].source || "Custom";
+      sources[s] = (sources[s] || 0) + 1;
+    }
+    var html = '<option value="all">All Sources (' + keywords.length + ')</option>';
+    var keys = Object.keys(sources).sort();
+    for (var j = 0; j < keys.length; j++) {
+      var s = keys[j];
+      html += '<option value="' + esc(s) + '"' + (sourceFilter === s ? ' selected' : '') + '>' + esc(s) + ' (' + sources[s] + ')</option>';
+    }
+    sel.innerHTML = html;
+  }
+
+  function updateSelectionInfo() {
+    var info = el("ae_sel_info");
+    if (!info) return;
+    var count = Object.keys(selected).length;
+    info.textContent = count ? count + " selected" : "";
+    setBtns(false);
+    updateCostEstimate();
+  }
+
   function renderResults(ct) {
     // Group results by keyword
     var grouped = groupByKeyword(allResults);
-    var kwList = keywords.length ? keywords : [];
+    var kwList = getVisibleKeywords();
 
-    if (!kwList.length) {
+    populateSourceFilter();
+
+    if (!keywords.length) {
       ct.innerHTML = emptyState("No keywords to check",
         "Scan keywords in Search Demand first, or add custom keywords using the button above.");
       return;
     }
 
+    if (!kwList.length) {
+      ct.innerHTML = emptyState("No keywords for this source",
+        "Try selecting a different source filter or add custom keywords.");
+      return;
+    }
+
+    var allChecked = kwList.length > 0 && Object.keys(selected).length === kwList.length;
+
     var html = '<div class="ms-card" style="padding:0;overflow:auto;">';
     html += '<table class="ae-table">';
     html += '<thead><tr>';
+    html += '<th style="width:32px;"><input type="checkbox" id="ae_select_all"' + (allChecked ? ' checked' : '') + ' /></th>';
     html += '<th style="width:30px;">#</th>';
     html += '<th>Keyword</th>';
     html += '<th>Source</th>';
@@ -268,14 +352,16 @@
       if (chatgpt) compCount += (chatgpt.competitor_domains || []).length;
       if (claude) compCount += (claude.competitor_domains || []).length;
       var lastCheck = chatgpt ? chatgpt.checked_at : (claude ? claude.checked_at : null);
+      var isChecked = !!selected[kw.keyword];
 
       html += '<tr id="ae_row_' + hash + '">';
+      html += '<td><input type="checkbox" class="ae-row-cb" data-keyword="' + esc(kw.keyword) + '"' + (isChecked ? ' checked' : '') + ' /></td>';
       html += '<td class="ae-muted">' + (i + 1) + '</td>';
       html += '<td class="ae-fw-semi">' + esc(kw.keyword);
       if (kw.custom) html += ' <span class="ae-cited-na" style="font-size:9px;">CUSTOM</span>';
       if (kw.custom) html += ' <span class="ae-delete-kw" data-keyword="' + esc(kw.keyword) + '" style="cursor:pointer;color:#d63638;font-size:11px;margin-left:4px;" title="Remove">✕</span>';
       html += '</td>';
-      html += '<td class="ae-small ae-muted">' + esc(kw.source || "—") + '</td>';
+      html += '<td class="ae-small ae-muted">' + esc(kw.source || "Custom") + '</td>';
       html += '<td class="ae-text-center">' + citedBadge(chatgpt) + '</td>';
       html += '<td class="ae-text-center">' + citedBadge(claude) + '</td>';
       html += '<td class="ae-text-center">' + (compCount > 0 ? '<span class="ae-fw-semi">' + compCount + '</span>' : '<span class="ae-muted">—</span>') + '</td>';
@@ -284,7 +370,7 @@
       html += '</tr>';
 
       // Detail row
-      html += '<tr class="ae-detail-row" id="ae_detail_' + hash + '"><td colspan="8">';
+      html += '<tr class="ae-detail-row" id="ae_detail_' + hash + '"><td colspan="9">';
       html += '<div class="ae-detail-inner">';
       html += renderDetailContent(kw, chatgpt, claude);
       html += '</div></td></tr>';
@@ -562,6 +648,9 @@
    * CHECKING LOOPS
    * ══════════════════════════════════════════════════════════════════ */
   async function doCheckAll() {
+    var targets = getCheckTargets();
+    if (!targets.length) { alert("No keywords to check. Adjust your filter or selection."); return; }
+
     STOP = false;
     setBtns(true);
     show(el("ae_prog_wrap"), true);
@@ -569,30 +658,32 @@
     // ChatGPT first
     if (CFG.has_openai) {
       setPhase("chatgpt");
-      await checkLoop("chatgpt");
+      await checkLoop("chatgpt", targets);
       if (STOP) { finish(); return; }
     }
 
     // Then Claude
     if (CFG.has_anthropic) {
       setPhase("claude");
-      await checkLoop("claude");
+      await checkLoop("claude", targets);
     }
 
     finish();
   }
 
   async function doCheckPlatform(platform) {
+    var targets = getCheckTargets();
+    if (!targets.length) { alert("No keywords to check. Adjust your filter or selection."); return; }
+
     STOP = false;
     setBtns(true);
     show(el("ae_prog_wrap"), true);
     setPhase(platform);
-    await checkLoop(platform);
+    await checkLoop(platform, targets);
     finish();
   }
 
-  async function checkLoop(platform) {
-    var kws = keywords;
+  async function checkLoop(platform, kws) {
     var total = kws.length;
     var action = platform === "chatgpt" ? "myls_ae_check_chatgpt" : "myls_ae_check_claude";
     var delay = platform === "chatgpt" ? 2000 : 1000;
@@ -716,6 +807,8 @@
 
     show(el("ae_loading"), false);
     renderKPIs();
+    populateSourceFilter();
+    updateSelectionInfo();
     renderCurrentView();
   }
 
@@ -783,6 +876,17 @@
     }
     show(el("ae_btn_stop"), running);
 
+    // Update button labels based on selection
+    if (!running) {
+      var selCount = Object.keys(selected).length;
+      var allBtn = el("ae_btn_check_all");
+      var cgBtn = el("ae_btn_check_chatgpt");
+      var clBtn = el("ae_btn_check_claude");
+      if (allBtn) allBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> ' + (selCount ? 'Check Selected (' + selCount + ')' : 'Check All');
+      if (cgBtn) cgBtn.innerHTML = '<i class="bi bi-chat-dots"></i> ' + (selCount ? 'ChatGPT (' + selCount + ')' : 'Check ChatGPT');
+      if (clBtn) clBtn.innerHTML = '<i class="bi bi-robot"></i> ' + (selCount ? 'Claude (' + selCount + ')' : 'Check Claude');
+    }
+
     // Disable unavailable platforms
     if (!CFG.has_openai) {
       var b1 = el("ae_btn_check_chatgpt");
@@ -809,7 +913,8 @@
   function updateCostEstimate() {
     var est = el("ae_cost_est");
     if (!est) return;
-    var kwCount = keywords.length;
+    var targets = getCheckTargets();
+    var kwCount = targets.length;
     if (!kwCount) { est.textContent = ""; return; }
 
     // gpt-4o-mini ~$0.001/check, claude-haiku ~$0.008/check

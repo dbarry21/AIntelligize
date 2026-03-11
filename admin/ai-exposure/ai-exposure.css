@@ -387,6 +387,38 @@
     height: 280px;
 }
 
+/* ── Source Filter ── */
+.ae-source-filter {
+    padding: 5px 10px;
+    border: 1px solid var(--ms-border);
+    border-radius: var(--ms-radius);
+    font-size: 13px;
+    background: #fff;
+    color: var(--ms-text);
+    cursor: pointer;
+    min-width: 140px;
+}
+.ae-source-filter:focus {
+    border-color: var(--ms-accent);
+    outline: none;
+    box-shadow: 0 0 0 1px var(--ms-accent);
+}
+
+/* ── Selection Info ── */
+.ae-selection-info {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ms-accent);
+}
+
+/* ── Row Checkboxes ── */
+.ae-table input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--ms-accent);
+}
+
 /* ── Cost Estimate ── */
 .ae-cost-estimate {
     font-size: 12px;
