@@ -140,9 +140,10 @@ add_filter('myls_schema_graph', function( array $graph ) {
 
 	$permalink = get_permalink( $post_id );
 	$node = [
-		'@type'      => 'FAQPage',
-		'@id'        => trailingslashit( $permalink ) . '#faq',
-		'mainEntity' => $main,
+		'@type'        => 'FAQPage',
+		'@id'          => trailingslashit( $permalink ) . '#faq',
+		'dateModified' => get_the_modified_date( DATE_W3C, $post_id ),
+		'mainEntity'   => $main,
 	];
 
 	// publisher: link FAQPage back to the LocalBusiness (if assigned) or Organization

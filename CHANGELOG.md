@@ -1,3 +1,20 @@
+## 7.8.91 — 2026-03-10
+
+### Fixed — Schema entity graph integrity
+
+- **Organization**: added `@id` (`/#organization`) so Person `worksFor` and
+  LocalBusiness `parentOrganization` references resolve correctly
+- **LocalBusiness**: moved into unified `@graph` (no more separate `<script>` block);
+  fixed double-encoded `&amp;amp;` entities in name/awards/address fields;
+  `parentOrganization` now uses `@id` reference instead of inline duplicate
+- **FAQPage**: added `dateModified` to the regular FAQ provider (`faq.php`)
+- **All providers**: JSON-LD text fields decoded via `wp_specialchars_decode()`
+  so strings contain plain text, not HTML entities
+
+**Files:** `inc/schema/providers/organization.php`, `inc/schema/providers/localbusiness.php`, `inc/schema/providers/faq.php`
+
+---
+
 ## 7.8.90 — 2026-03-10
 
 ### Improved — Person page assignment, auto Organization on homepage

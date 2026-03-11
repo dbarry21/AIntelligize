@@ -55,7 +55,9 @@ add_filter('myls_schema_graph', function(array $graph) {
 
 	$awards = get_option('myls_org_awards', []);
 	if ( ! is_array($awards) ) $awards = [];
-	$awards = array_values( array_filter( array_map('sanitize_text_field', $awards) ) );
+	$awards = array_values( array_filter( array_map( function( $a ) {
+		return wp_specialchars_decode( trim( $a ), ENT_QUOTES );
+	}, $awards ) ) );
 
 	$certs = get_option('myls_org_certifications', []);
 	if ( ! is_array($certs) ) $certs = [];
@@ -88,11 +90,12 @@ add_filter('myls_schema_graph', function(array $graph) {
 	// --- Base node ---
 	$node = [
 		'@type' => 'Organization',
-		'name'  => $name,
+		'@id'   => home_url( '/#organization' ),
+		'name'  => wp_specialchars_decode( $name, ENT_QUOTES ),
 		'url'   => esc_url_raw( $url ),
 	];
 
-	if ( $desc !== '' )  $node['description'] = $desc;
+	if ( $desc !== '' )  $node['description'] = wp_specialchars_decode( $desc, ENT_QUOTES );
 	if ( $email !== '' ) $node['email']       = $email;
 	if ( $tel !== '' )   $node['telephone']   = $tel;
 	if ( $address )      $node['address']     = $address;
