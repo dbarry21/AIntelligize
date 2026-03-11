@@ -331,8 +331,8 @@ add_shortcode('myls_ajax_search', function ($atts) {
 	$atts = shortcode_atts([
 		'placeholder' => 'Search...',
 		'post_types'  => 'current', // current | all | post,page,service
-		'priority'    => '',        // NEW: "service,video,page"
-		'max'         => 5,
+		'priority'    => '',        // "service,video,page" — float types to top
+		'max'         => 10,
 		'min_chars'   => 2,
 		'debounce_ms' => 200,
 		'hint'        => 1,
@@ -341,6 +341,7 @@ add_shortcode('myls_ajax_search', function ($atts) {
 		// Back-compat aliases (won't break older shortcodes)
 		'post_type'   => '',        // alias for post_types (single)
 		'limit'       => '',        // alias for max
+		'description' => '',        // alias for hint
 	], $atts, 'myls_ajax_search');
 
 	// Alias support: post_type="page"
@@ -351,6 +352,11 @@ add_shortcode('myls_ajax_search', function ($atts) {
 	// Alias support: limit="10"
 	if ( $atts['limit'] !== '' ) {
 		$atts['max'] = (int) $atts['limit'];
+	}
+
+	// Alias support: description="0" => hint=0
+	if ( $atts['description'] !== '' ) {
+		$atts['hint'] = (int) $atts['description'];
 	}
 
 	$placeholder = sanitize_text_field($atts['placeholder']);
