@@ -88,21 +88,36 @@ if ( ! function_exists('myls_parse_areas_served') ) {
 if ( ! function_exists('myls_wrap_areas_as_admin_area') ) {
 	/**
 	 * Convert a flat array of area name strings (from myls_parse_areas_served)
-	 * into properly typed AdministrativeArea objects for use in areaServed.
+	 * into properly typed City objects for use in areaServed.
 	 *
 	 * Schema.org requires areaServed entries to be typed entities, not bare
 	 * strings, for AI crawlers and Rich Results to resolve them correctly.
 	 *
+	 * If a name ends with a 2-letter state abbreviation (e.g. "Bradenton, FL"),
+	 * the state is extracted into addressRegion and the city name is cleaned.
+	 *
 	 * @param  string[] $names  Flat array of area name strings.
-	 * @return array[]          Array of AdministrativeArea schema objects.
+	 * @return array[]          Array of City schema objects.
 	 */
 	function myls_wrap_areas_as_admin_area( array $names ) : array {
 		$out = [];
 		foreach ( $names as $name ) {
 			$name = trim( (string) $name );
-			if ( $name !== '' ) {
-				$out[] = [ '@type' => 'AdministrativeArea', 'name' => $name ];
+			if ( $name === '' ) continue;
+
+			$city = [
+				'@type' => 'City',
+			];
+
+			// Extract trailing 2-letter state abbreviation if present
+			if ( preg_match( '/[,\s]+([A-Z]{2})$/i', $name, $m ) ) {
+				$city['name']          = trim( preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $name ) );
+				$city['addressRegion'] = strtoupper( $m[1] );
+			} else {
+				$city['name'] = $name;
 			}
+
+			$out[] = $city;
 		}
 		return $out;
 	}
@@ -600,7 +615,14 @@ add_filter('myls_schema_graph', function(array $graph) {
 		$city_state = trim(wp_strip_all_tags($city_state));
 
 		if ( $city_state !== '' ) {
-			$area_served = [[ '@type' => 'AdministrativeArea', 'name' => $city_state ]];
+			$city_obj = [ '@type' => 'City' ];
+			if ( preg_match( '/[,\s]+([A-Z]{2})$/i', $city_state, $csm ) ) {
+				$city_obj['name']          = trim( preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $city_state ) );
+				$city_obj['addressRegion'] = strtoupper( $csm[1] );
+			} else {
+				$city_obj['name'] = $city_state;
+			}
+			$area_served = [ $city_obj ];
 		} elseif ( ! empty($org_areas_served) ) {
 			// Wrap plain strings as typed AdministrativeArea objects.
 			$area_served = myls_wrap_areas_as_admin_area($org_areas_served);

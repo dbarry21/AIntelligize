@@ -1,3 +1,17 @@
+## 7.9.2 — 2026-03-11
+
+### Changed — areaServed uses City instead of AdministrativeArea
+- **`City` with `addressRegion`**: Service schema `areaServed` entries now use
+  `@type: City` with `addressRegion` (state) instead of `AdministrativeArea`.
+  More precise geographic typing improves local service intent signals for AI
+  systems. Affects both the ACF `city_state` field path and org-wide areas.
+
+### Changed — WebPage `about` links to Service entity
+- **WebPage → Service**: On service pages, the WebPage node's `about` property
+  now links to the Service `@id` instead of LocalBusiness. The Service node
+  already references LocalBusiness as its `provider`, preserving the full chain
+  while explicitly connecting the page to the service it describes.
+
 ## 7.9.1 — 2026-03-11
 
 ### Added — Service schema on service_area pages
