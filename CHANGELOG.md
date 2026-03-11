@@ -1,3 +1,14 @@
+## 7.8.94 — 2026-03-11
+
+### Improved — AJAX search shortcode
+
+- Added `description` attribute as alias for `hint` (e.g. `description="0"` hides the hint text)
+- Default max results raised from 5 to 10
+- Updated interactive shortcode docs with all attributes: `post_types`, `limit`, `priority`, `description`, `show_type`, `min_chars`, `debounce_ms`
+- Added examples for `post_types="all"`, priority ordering, and mixed post type searches
+
+---
+
 ## 7.8.93 — 2026-03-11
 
 ### Fixed — Schema graph validation across all page types
