@@ -145,12 +145,47 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			$area_served = [];
 			foreach ( $sa_roots as $sa ) {
 				$city_name = wp_specialchars_decode( get_the_title( $sa->ID ), ENT_QUOTES );
-				// Strip trailing state abbreviation for cleaner city name (e.g. "Bradenton FL" → "Bradenton")
-				$city_clean = preg_replace( '/\s+[A-Z]{2}$/i', '', $city_name );
+				// Strip trailing state abbreviation for cleaner city name
+				// Handles "Bradenton FL", "Bradenton, FL", "Apollo Beach, FL"
+				$city_clean = preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $city_name );
 				$area_served[] = [
 					'@type' => 'City',
 					'name'  => $city_clean,
 					'url'   => get_permalink( $sa->ID ),
+				];
+			}
+		}
+
+		// hasOfferCatalog: structured service catalog from the service CPT.
+		// Tells AI systems exactly what services this business offers.
+		$offer_catalog = null;
+		if ( post_type_exists( 'service' ) ) {
+			$svc_posts = get_posts( [
+				'post_type'        => 'service',
+				'post_status'      => 'publish',
+				'post_parent'      => 0,
+				'posts_per_page'   => 100,
+				'orderby'          => 'menu_order title',
+				'order'            => 'ASC',
+				'no_found_rows'    => true,
+				'suppress_filters' => true,
+			] );
+			if ( ! empty( $svc_posts ) ) {
+				$offer_items = [];
+				foreach ( $svc_posts as $svc ) {
+					$offer_items[] = [
+						'@type'        => 'Offer',
+						'itemOffered'  => [
+							'@type' => 'Service',
+							'name'  => wp_specialchars_decode( get_the_title( $svc->ID ), ENT_QUOTES ),
+							'url'   => get_permalink( $svc->ID ),
+						],
+					];
+				}
+				$offer_catalog = [
+					'@type'           => 'OfferCatalog',
+					'name'            => wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES ) . ' Services',
+					'itemListElement' => $offer_items,
 				];
 			}
 		}
@@ -172,6 +207,7 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			'hasCertification' => ( $certs ? array_map(function($c){ return ['@type'=>'Certification','name'=>$c]; }, $certs) : null ),
 			'knowsAbout' => $knows_about ?: null,
 			'areaServed' => $area_served,
+			'hasOfferCatalog' => $offer_catalog,
 			'memberOf' => myls_lb_build_member_of(),
 			'address'  => array_filter( [
 				'@type'           => 'PostalAddress',

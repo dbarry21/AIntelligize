@@ -91,8 +91,9 @@ add_filter( 'myls_schema_graph', function ( array $graph ) : array {
 			foreach ( $areas as $sa ) {
 				$pos++;
 				$city_name = wp_specialchars_decode( get_the_title( $sa->ID ), ENT_QUOTES );
-				// Strip trailing state abbreviation (e.g. "Bradenton FL" → "Bradenton")
-				$city_clean = preg_replace( '/\s+[A-Z]{2}$/i', '', $city_name );
+				// Strip trailing state abbreviation
+				// Handles "Bradenton FL", "Bradenton, FL", "Apollo Beach, FL"
+				$city_clean = preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $city_name );
 
 				$area_items[] = [
 					'@type'    => 'ListItem',
