@@ -1,3 +1,15 @@
+## 7.9.1 — 2026-03-11
+
+### Added — hasOfferCatalog on LocalBusiness
+- **`hasOfferCatalog`**: LocalBusiness now includes a structured `OfferCatalog`
+  listing all `service` CPT posts as `Offer` → `Service` items. Tells AI systems
+  exactly what services the business sells, improving AI answer eligibility.
+
+### Fixed — areaServed city name formatting
+- **Trailing commas stripped**: City names like "Apollo Beach, FL" now correctly
+  become "Apollo Beach" instead of "Apollo Beach," in both `areaServed` on
+  LocalBusiness and `ItemList` service areas.
+
 ## 7.9.0 — 2026-03-11
 
 ### Added — AI visibility schema enhancements
