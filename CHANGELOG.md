@@ -1,3 +1,23 @@
+## 7.9.0 — 2026-03-11
+
+### Added — AI visibility schema enhancements
+- **`areaServed` on LocalBusiness**: Pulls root-level `service_area` CPT posts as
+  typed `City` objects with name and URL. Tells AI systems exactly which cities
+  the business covers, improving "near me" query eligibility.
+- **`ItemList` for services**: Emits a structured `ItemList` of all `service` CPT
+  posts on the front page, with `Service` typed items. Helps AI systems extract
+  and cite the business's service offerings.
+- **`ItemList` for service areas**: Emits a structured `ItemList` of root-level
+  `service_area` posts on the front page, with `City` typed items. Dramatically
+  improves AI answer eligibility for location-based queries.
+
+### Fixed — Video schema on pages with footer/header videos
+- **Video detector cross-validation**: Fixed an issue where videos embedded in
+  Elementor Theme Builder templates (header/footer/section) were detected but
+  then filtered out during cross-validation. The validation now includes rendered
+  template content alongside the page's own content, ensuring site-wide footer
+  videos get proper VideoObject schema.
+
 ## 7.8.99 — 2026-03-11
 
 ### Added — Service area siblings & flip-cards shortcodes

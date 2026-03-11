@@ -797,6 +797,8 @@ if ( ! function_exists('myls_detect_videos_in_post') ) {
 		// rendered on the page (e.g. orphaned Elementor widget data).
 		// Uses Elementor's own renderer for Elementor pages, standard
 		// the_content filter for everything else.
+		// Also includes Elementor Theme Builder template content (header/footer)
+		// so videos in site-wide templates pass validation.
 		if ( apply_filters( 'myls_video_detection_validate_against_rendered', true ) && ! empty( $all ) ) {
 			$rendered = '';
 
@@ -811,6 +813,18 @@ if ( ! function_exists('myls_detect_videos_in_post') ) {
 			// Fallback: standard WordPress content rendering
 			if ( $rendered === '' || $rendered === false ) {
 				$rendered = apply_filters( 'the_content', get_post_field( 'post_content', $post_id ) );
+			}
+
+			// Append Elementor Theme Builder template content (header/footer/section).
+			// Videos in site-wide templates are legitimately rendered on the page
+			// but get_builder_content() above only covers the page's own content.
+			if ( ! empty( $tpl_ids ) && class_exists( '\Elementor\Plugin' ) ) {
+				foreach ( $tpl_ids as $tpl_id ) {
+					$tpl_rendered = \Elementor\Plugin::$instance->frontend->get_builder_content( (int) $tpl_id, false );
+					if ( is_string( $tpl_rendered ) && $tpl_rendered !== '' ) {
+						$rendered .= $tpl_rendered;
+					}
+				}
 			}
 
 			if ( is_string( $rendered ) && $rendered !== '' ) {

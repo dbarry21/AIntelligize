@@ -128,6 +128,33 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			}
 		}
 
+		// areaServed: pull root-level service_area CPT posts as City objects.
+		// Tells AI systems exactly which cities/areas the business covers.
+		$area_served = null;
+		$sa_roots = get_posts( [
+			'post_type'        => 'service_area',
+			'post_status'      => 'publish',
+			'post_parent'      => 0,
+			'posts_per_page'   => 100,
+			'orderby'          => 'title',
+			'order'            => 'ASC',
+			'no_found_rows'    => true,
+			'suppress_filters' => true,
+		] );
+		if ( ! empty( $sa_roots ) ) {
+			$area_served = [];
+			foreach ( $sa_roots as $sa ) {
+				$city_name = wp_specialchars_decode( get_the_title( $sa->ID ), ENT_QUOTES );
+				// Strip trailing state abbreviation for cleaner city name (e.g. "Bradenton FL" → "Bradenton")
+				$city_clean = preg_replace( '/\s+[A-Z]{2}$/i', '', $city_name );
+				$area_served[] = [
+					'@type' => 'City',
+					'name'  => $city_clean,
+					'url'   => get_permalink( $sa->ID ),
+				];
+			}
+		}
+
 		// Decode HTML entities — JSON-LD strings must be plain text, not HTML-encoded.
 		$lb_name = wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES );
 
@@ -144,6 +171,7 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			'award'      => ( $awards ? $awards : null ),
 			'hasCertification' => ( $certs ? array_map(function($c){ return ['@type'=>'Certification','name'=>$c]; }, $certs) : null ),
 			'knowsAbout' => $knows_about ?: null,
+			'areaServed' => $area_served,
 			'memberOf' => myls_lb_build_member_of(),
 			'address'  => array_filter( [
 				'@type'           => 'PostalAddress',
