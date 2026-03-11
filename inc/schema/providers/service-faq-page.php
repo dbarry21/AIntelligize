@@ -100,11 +100,12 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 	$permalink = get_permalink( $svc_faq_page_id );
 
 	$node = [
-		'@type'      => 'FAQPage',
-		'@id'        => trailingslashit( $permalink ) . '#faq',
-		'url'        => $permalink,
-		'name'       => get_the_title( $svc_faq_page_id ),
-		'mainEntity' => $main_entity,
+		'@type'        => 'FAQPage',
+		'@id'          => trailingslashit( $permalink ) . '#faq',
+		'url'          => $permalink,
+		'name'         => get_the_title( $svc_faq_page_id ),
+		'dateModified' => get_the_modified_date( DATE_W3C, $svc_faq_page_id ),
+		'mainEntity'   => $main_entity,
 	];
 
 	$graph[] = apply_filters( 'myls_service_faq_page_schema_node', $node, $svc_faq_page_id );

@@ -16,15 +16,16 @@ if ( ! defined('ABSPATH') ) exit;
 
 add_filter('myls_schema_graph', function(array $graph) {
 
-	// --- Only print on assigned pages/posts ---
+	// --- Only print on assigned pages or the WordPress front page ---
 	$assigned = get_option('myls_org_pages', []);
-	if ( ! is_array($assigned) || empty($assigned) ) {
-		return $graph; // no assignment configured => do not output
-	}
+	if ( ! is_array($assigned) ) $assigned = [];
 
 	$current_id = get_queried_object_id();
-	if ( ! $current_id || ! in_array( (int)$current_id, array_map('intval', $assigned), true ) ) {
-		return $graph; // not assigned to this page
+	$is_assigned  = $current_id && in_array( (int) $current_id, array_map('intval', $assigned), true );
+	$is_frontpage = is_front_page();
+
+	if ( ! $is_assigned && ! $is_frontpage ) {
+		return $graph; // not assigned and not the front page
 	}
 
 	// --- Collect fields ---
