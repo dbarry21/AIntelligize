@@ -3,7 +3,7 @@
  * WebPage Schema Provider — JSON-LD output
  *
  * Emits a WebPage node on all singular pages (except video CPT).
- * Links to LocalBusiness via isPartOf and Person via author when enabled.
+ * Links to WebSite via isPartOf, LocalBusiness via about, Person via author.
  *
  * Toggle: myls_schema_webpage_enabled === '1'
  *
@@ -41,22 +41,23 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 		'dateModified' => get_the_modified_date( 'c', $post_id ),
 	];
 
-	// isPartOf — link to LocalBusiness if one exists in the graph
+	// isPartOf — link to WebSite (correct range for CreativeWork property)
+	$node['isPartOf'] = [ '@id' => home_url( '/#website' ) ];
+
+	// about — link to LocalBusiness if one exists in the graph for this page
 	$lb_id = '';
 	foreach ( $graph as $gn ) {
 		if ( is_array( $gn ) && ! empty( $gn['@id'] ) ) {
 			$t = is_array( $gn['@type'] ?? '' ) ? ( $gn['@type'][0] ?? '' ) : ( $gn['@type'] ?? '' );
-			if ( stripos( $t, 'LocalBusiness' ) !== false ) {
+			if ( stripos( $t, 'LocalBusiness' ) !== false || stripos( $t, 'Business' ) !== false ) {
 				$lb_id = $gn['@id'];
 				break;
 			}
 		}
 	}
-	if ( ! $lb_id ) {
-		// Fallback: use site-level LocalBusiness @id convention
-		$lb_id = trailingslashit( $site_url ) . '#localbusiness';
+	if ( $lb_id ) {
+		$node['about'] = [ '@id' => $lb_id ];
 	}
-	$node['isPartOf'] = [ '@id' => $lb_id ];
 
 	// author — link to Person if Person schema is enabled and profiles exist
 	$person_profiles = get_option( 'myls_person_profiles', [] );
