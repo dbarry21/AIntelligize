@@ -1,3 +1,33 @@
+## 7.8.93 — 2026-03-11
+
+### Fixed — Schema graph validation across all page types
+
+- **Organization**: now emits on ALL singular pages (was assigned+frontpage only);
+  fixes dangling `/#organization` references from WebSite, Person, LocalBusiness
+- **WebPage/FAQPage**: priority raised to 60 (was 10); now runs AFTER Service
+  schema (50) so `about` and `publisher` @id refs always resolve
+- **BlogPosting**: moved from standalone `<script>` into unified `@graph`;
+  publisher uses `@id` → Organization; author matches Person profile when available
+- **AboutPage**: removed duplicate WebSite node; `about` uses `@id` reference
+  instead of inline entity; priority raised to 65
+- **Memberships page**: Organization `@id` corrected to canonical `/#organization`
+- **Service FAQ page**: added `publisher` @id reference; priority raised to 60
+
+### Priority map (post-fix)
+```
+ 4  WebSite
+ 6  Person
+ 8  LocalBusiness
+10  Organization
+50  Service + fallback LB
+55  BlogPosting
+60  WebPage, FAQPage, Service FAQ
+65  AboutPage
+```
+
+**Files:** `organization.php`, `webpage.php`, `faq.php`, `blog-posting.php`,
+`about-page.php`, `memberships-page.php`, `service-faq-page.php`
+
 ## 7.8.92 — 2026-03-11
 
 ### Added — WebSite schema + entity graph unification
