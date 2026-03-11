@@ -1,3 +1,44 @@
+## 7.8.95 — 2026-03-11
+
+### Added — GEO/AI visibility features
+
+- **robots.txt AI bot rules**: Appends Allow/Disallow rules for GPTBot, ClaudeBot,
+  PerplexityBot, OAI-SearchBot, and 8 other AI crawlers. Includes llms.txt hint.
+  Toggle via `myls_robots_ai_enabled`; mode via `myls_robots_ai_mode` (allow/block)
+- **AI referral traffic tracker**: Detects visits from ChatGPT, Perplexity, Claude,
+  Gemini, Copilot, You.com, Phind, Poe, MetaAI. Logs to custom DB table with
+  source, landing page, post ID, user-agent. 30-min session cookie for attribution.
+  Query helper: `myls_ai_referral_get_stats( $days )`
+- **BreadcrumbList schema**: New provider at priority 70 emitting BreadcrumbList
+  in unified @graph. Supports CPT archives, primary categories (Yoast-aware),
+  hierarchical parents. Toggle via `myls_schema_breadcrumb_enabled`
+
+### Improved — Schema enhancements
+
+- **Service → hasOfferCatalog**: Price ranges now wrapped in OfferCatalog structure
+  instead of single Offer; supports multiple price range entries per service
+- **VideoObject → unified @graph**: Moved from standalone `<script>` block to
+  `myls_schema_graph` filter at priority 45. Publisher uses @id → Organization;
+  added isPartOf → WebSite
+- **LocalBusiness → contactPoint**: Added ContactPoint (customer service) when
+  telephone is present, matching the Organization pattern
+
+### Priority map (updated)
+```
+ 4  WebSite
+ 6  Person
+ 8  LocalBusiness
+10  Organization
+45  VideoObject
+50  Service + fallback LB
+55  BlogPosting
+60  WebPage, FAQPage, ServiceFAQ
+65  AboutPage
+70  BreadcrumbList
+```
+
+---
+
 ## 7.8.94 — 2026-03-11
 
 ### Improved — AJAX search shortcode
