@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.9.2
+Stable tag: 7.9.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,7 @@ This plugin provides a modular admin toolkit for local SEO workflows including s
 * Search Stats — Focus keyword & FAQ tracking, Google Autocomplete suggestions, GSC metrics, AI Overview detection, per-post SERP rank with history tracking
 * Google Search Console OAuth integration
 * 35+ shortcodes for location data, service grids, schema, social links, Google reviews, YouTube, and utilities
+* YouTube Video Blog — auto-generate blog posts from channel videos with 12-hour auto-refresh and overwrite support
 * Enterprise logging with quality control and batch processing
 
 == Installation ==
@@ -35,6 +36,9 @@ This plugin provides a modular admin toolkit for local SEO workflows including s
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 
 == Upgrade Notice ==
+
+= 7.9.6 =
+YT Video Blog tab modernized with auto-refresh (12-hour cron) and overwrite toggle. New card-based UI with scheduling controls and last-run status display.
 
 = 7.8.76 =
 Critical fix for VideoObject schema on sites using Elementor Theme Builder. Elementor conditions were not matching due to format mismatch — VideoObject schema now generates correctly on all pages with Template Builder-applied video content.
