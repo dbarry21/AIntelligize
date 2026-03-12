@@ -1,36 +1,28 @@
 <?php
 /**
- * AIntelligize — AI Usage Stats Menu & AJAX Endpoints
+ * AIntelligize — AIntelligize Stats Menu & AJAX Endpoints
  * Path: admin/admin-stats-menu.php
  *
- * Registers the "AI Usage" submenu page under AIntelligize and
+ * Registers the "AIntelligize Stats" submenu page under AIntelligize and
  * provides AJAX endpoints for the dashboard to fetch data.
  *
  * @since 6.3.1.8
  */
 if ( ! defined('ABSPATH') ) exit;
 
-/* ── Redirect old slug → new slug ── */
-add_action('admin_init', function() {
-    if ( isset($_GET['page']) && $_GET['page'] === 'myls-plugin-stats' ) {
-        wp_safe_redirect( admin_url('admin.php?page=myls-ai-usage') );
-        exit;
-    }
-});
-
 /* ═══════════════════════════════════════════════════════
  *  1. SUBMENU REGISTRATION
  * ═══════════════════════════════════════════════════════ */
 
-add_action('admin_menu', 'myls_stats_add_submenu', 26);
+add_action('admin_menu', 'myls_stats_add_submenu', 25);
 
 function myls_stats_add_submenu() {
     add_submenu_page(
         'aintelligize',
-        'AI Usage — AI Analytics',
-        '&mdash; AI Usage',
+        'AIntelligize Stats — AI Analytics',
+        'AIntelligize Stats',
         'manage_options',
-        'myls-ai-usage',
+        'myls-plugin-stats',
         'myls_stats_render_page'
     );
 }
@@ -50,7 +42,7 @@ function myls_stats_render_page() {
 add_action('admin_enqueue_scripts', 'myls_stats_admin_scripts');
 
 function myls_stats_admin_scripts( $hook ) {
-    if ( $hook !== 'aintelligize_page_myls-ai-usage' ) return;
+    if ( $hook !== 'aintelligize_page_myls-plugin-stats' ) return;
 
     $base_url = plugin_dir_url( dirname(__FILE__) );
     $version  = defined('MYLS_VERSION') ? MYLS_VERSION : time();

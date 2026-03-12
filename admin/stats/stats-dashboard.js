@@ -95,7 +95,7 @@
         // Header
         html += '<div class="ms-header">';
         html += '  <div>';
-        html += '    <h1><span class="ms-logo">📊</span> AI Usage</h1>';
+        html += '    <h1><span class="ms-logo">📊</span> AIntelligize Stats</h1>';
         html += '    <div class="ms-subtitle">AI Usage Analytics &amp; Cost Tracking &middot; ' + new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '</div>';
         html += '  </div>';
         html += '  <div class="ms-period-selector">';

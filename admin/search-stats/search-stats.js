@@ -59,7 +59,7 @@
       // Header
       '<div class="ms-header">',
         '<div>',
-          '<h1><span class="ms-logo">📊</span> Search Demand</h1>',
+          '<h1><span class="ms-logo">📊</span> Search Stats</h1>',
           '<div class="ms-subtitle">Focus keyword &amp; FAQ tracking &bull; Autocomplete suggestions &bull; GSC metrics &bull; AI Overview &bull; Per-post SERP rank</div>',
         '</div>',
         '<div class="ms-period-selector" id="ss_pt_filter"></div>',
