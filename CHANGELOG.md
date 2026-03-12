@@ -1,3 +1,25 @@
+## 7.9.6 — 2026-03-12
+
+### Changed — YT Video Blog tab modernized
+- **Modern UI**: Replaced old WordPress `.card`/`form-table` styling with the
+  plugin's `.myls-card` + Bootstrap 5 component system. Four organized cards:
+  General, Templates, Scheduling & Behavior, Run Now & Debug.
+
+### Added — Auto-refresh for YT Video Blog
+- **12-hour WP-Cron**: New toggle enables automatic video blog generation every
+  12 hours. Self-healing cron scheduling with proper deactivation cleanup.
+  Displays "Next run" timestamp when active.
+
+### Added — Overwrite existing posts option
+- **Overwrite toggle**: New checkbox (OFF by default) allows updating title and
+  content of existing video posts instead of skipping duplicates. Preserves
+  existing slugs/URLs. Last run status shows New / Updated / Skipped counts.
+
+### Changed — generate() refactored for cron safety
+- **`generate_cron()` method**: Separate entry point for WP-Cron that skips
+  `current_user_can()` checks (no logged-in user in cron context). Both manual
+  and cron runs store last-run metadata for the admin UI status display.
+
 ## 7.9.2 — 2026-03-11
 
 ### Changed — areaServed uses City instead of AdministrativeArea
