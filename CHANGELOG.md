@@ -1,3 +1,32 @@
+## 7.9.7 — 2026-03-12
+
+### Fixed — Dedup by video ID only
+- **Removed slug-based fallback**: Duplicate detection now uses `_myls_youtube_video_id`
+  meta only. Slug-based check removed since YouTube titles are dynamic and caused
+  false matches.
+
+### Changed — Default post status to Publish
+- **Posts default to 'publish'**: New video blog posts are published immediately.
+  Draft and Pending Review still available via the dropdown.
+
+### Added — `{transcript}` template token
+- **Transcript accordion**: New `{transcript}` token renders a Bootstrap 5
+  collapsible accordion with the video transcript. Reads from the Video Transcripts
+  database so manual edits are always reflected.
+- **Fetch Transcript toggle**: New setting in Templates card fetches transcripts
+  via Supadata API during generation and stores them in the database.
+
+### Added — Transcript editing
+- **Post editor meta box**: Video Transcript textarea on post/video editors for
+  manual transcript overrides. Shows video ID and source.
+- **Video Transcripts Interface**: New Edit button for inline transcript editing
+  with Save/Cancel actions. New `myls_vt_edit` AJAX endpoint.
+
+### Added — Email notification
+- **Generation summary email**: Optional HTML email with New/Updated/Skipped/Errors
+  counts sent after generation completes. Works with both manual and cron runs.
+  Configurable recipient (defaults to admin email).
+
 ## 7.9.6 — 2026-03-12
 
 ### Changed — YT Video Blog tab modernized
