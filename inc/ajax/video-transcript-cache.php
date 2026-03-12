@@ -254,6 +254,37 @@ add_action('wp_ajax_myls_vt_refetch', function() {
 });
 
 /* ═══════════════════════════════════════════════════════
+ *  Edit transcript (manual override)
+ * ═══════════════════════════════════════════════════════ */
+add_action('wp_ajax_myls_vt_edit', function() {
+	_myls_vt_guard();
+
+	$video_id   = sanitize_text_field( $_POST['video_id'] ?? '' );
+	$transcript = isset($_POST['transcript']) ? sanitize_textarea_field( wp_unslash( $_POST['transcript'] ) ) : '';
+
+	if ( $video_id === '' ) {
+		wp_send_json_error('Missing video_id.');
+	}
+	if ( $transcript === '' ) {
+		wp_send_json_error('Transcript cannot be empty.');
+	}
+
+	myls_vt_upsert([
+		'video_id'   => $video_id,
+		'transcript' => $transcript,
+		'source'     => 'manual',
+		'status'     => 'ok',
+		'fetched_at' => current_time('mysql'),
+	]);
+
+	wp_send_json_success([
+		'message' => 'Transcript saved.',
+		'row'     => myls_vt_get_by_id( $video_id ),
+		'stats'   => myls_vt_get_stats(),
+	]);
+});
+
+/* ═══════════════════════════════════════════════════════
  *  Delete single row
  * ═══════════════════════════════════════════════════════ */
 add_action('wp_ajax_myls_vt_delete_row', function() {

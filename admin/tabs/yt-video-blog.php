@@ -133,8 +133,8 @@ myls_register_admin_tab(array(
 		) {
 			update_option('myls_ytvb_enabled', isset($_POST['myls_ytvb_enabled']) ? '1' : '0');
 
-			$status = isset($_POST['myls_ytvb_status']) ? sanitize_key( wp_unslash($_POST['myls_ytvb_status']) ) : 'draft';
-			if ( ! in_array( $status, array('draft','pending','publish'), true ) ) $status = 'draft';
+			$status = isset($_POST['myls_ytvb_status']) ? sanitize_key( wp_unslash($_POST['myls_ytvb_status']) ) : 'publish';
+			if ( ! in_array( $status, array('draft','pending','publish'), true ) ) $status = 'publish';
 			update_option('myls_ytvb_status', $status);
 
 			update_option('myls_ytvb_category',  isset($_POST['myls_ytvb_category']) ? absint($_POST['myls_ytvb_category']) : 0);
@@ -179,12 +179,20 @@ myls_register_admin_tab(array(
 			// Overwrite existing posts toggle
 			update_option('myls_ytvb_overwrite', isset($_POST['myls_ytvb_overwrite']) ? '1' : '0');
 
+			// Fetch Transcript toggle
+			update_option('myls_ytvb_fetch_transcript', isset($_POST['myls_ytvb_fetch_transcript']) ? '1' : '0');
+
+			// Email notification
+			update_option('myls_ytvb_notify_email_enabled', isset($_POST['myls_ytvb_notify_email_enabled']) ? '1' : '0');
+			$notify_email = isset($_POST['myls_ytvb_notify_email']) ? sanitize_email( wp_unslash($_POST['myls_ytvb_notify_email']) ) : '';
+			update_option('myls_ytvb_notify_email', $notify_email);
+
 			echo '<div class="notice notice-success is-dismissible"><p>YT Video Blog settings saved.</p></div>';
 		}
 
 		/* ===== Load settings ===== */
 		$enabled      = get_option('myls_ytvb_enabled', '0');
-		$status       = get_option('myls_ytvb_status', 'draft');
+		$status       = get_option('myls_ytvb_status', 'publish');
 		$cat_id       = (int) get_option('myls_ytvb_category', 0);
 		$auto_embed   = get_option('myls_ytvb_autoembed', '1');
 		$title_tpl    = get_option('myls_ytvb_title_tpl', '{title}');
@@ -194,11 +202,14 @@ myls_register_admin_tab(array(
 		$strip_hash   = get_option('myls_ytvb_strip_hashtags', '1');
 		$strip_emo    = get_option('myls_ytvb_strip_emojis', '1');
 		$max_words    = (int) get_option('myls_ytvb_title_max_words', 5);
-		$auto_refresh = get_option('myls_ytvb_auto_refresh', '0');
-		$overwrite    = get_option('myls_ytvb_overwrite', '0');
-		$last_run     = get_option('myls_ytvb_last_run_time', '');
-		$last_result  = get_option('myls_ytvb_last_run_result', []);
-		$next_run     = wp_next_scheduled('myls_ytvb_auto_generate');
+		$auto_refresh    = get_option('myls_ytvb_auto_refresh', '0');
+		$overwrite       = get_option('myls_ytvb_overwrite', '0');
+		$fetch_transcript= get_option('myls_ytvb_fetch_transcript', '0');
+		$notify_enabled  = get_option('myls_ytvb_notify_email_enabled', '0');
+		$notify_email    = get_option('myls_ytvb_notify_email', '');
+		$last_run        = get_option('myls_ytvb_last_run_time', '');
+		$last_result     = get_option('myls_ytvb_last_run_result', []);
+		$next_run        = wp_next_scheduled('myls_ytvb_auto_generate');
 
 		$yt_api_key   = get_option('myls_youtube_api_key','');
 		$yt_channel   = get_option('myls_youtube_channel_id','');
@@ -206,7 +217,7 @@ myls_register_admin_tab(array(
 		$categories   = get_categories(array('hide_empty'=>false,'taxonomy'=>'category'));
 		$ajax_nonce   = wp_create_nonce('myls_ytvb_ajax');
 
-		$token_help   = '<code>{title}</code> <code>{description}</code> <code>{channel}</code> <code>{date}</code> <code>{embed}</code> <code>{url}</code> <code>{slug}</code>';
+		$token_help   = '<code>{title}</code> <code>{description}</code> <code>{channel}</code> <code>{date}</code> <code>{embed}</code> <code>{url}</code> <code>{slug}</code> <code>{transcript}</code>';
 		?>
 		<div class="wrap myls-admin-wrap myls-ytvb" style="max-width:1200px;">
 			<h1 class="wp-heading-inline" style="margin-bottom:.5rem;">YT Video Blog</h1>
@@ -295,7 +306,14 @@ myls_register_admin_tab(array(
 					<div class="mb-3">
 						<label class="form-label" for="myls_ytvb_content_tpl">Content Template</label>
 						<textarea class="form-control font-monospace" id="myls_ytvb_content_tpl" name="myls_ytvb_content_tpl" rows="8"><?php echo esc_textarea($content_tpl); ?></textarea>
-						<div class="form-text">Tokens: <?php echo $token_help; ?></div>
+						<div class="form-text">Tokens: <?php echo $token_help; ?>. Use <code>{transcript}</code> to insert a collapsible transcript accordion (requires Fetch Transcript enabled + Supadata API key).</div>
+					</div>
+					<div class="mb-3">
+						<div class="form-check form-switch">
+							<input class="form-check-input" type="checkbox" id="myls_ytvb_fetch_transcript" name="myls_ytvb_fetch_transcript" value="1" <?php checked('1', $fetch_transcript); ?>>
+							<label class="form-check-label" for="myls_ytvb_fetch_transcript"><strong>Fetch Transcript</strong></label>
+						</div>
+						<div class="form-text">Fetch video transcripts via Supadata API during generation and store in the Video Transcripts database. Requires API key in <em>API Integration &rarr; Supadata</em>. Use <code>{transcript}</code> token in content template to display.</div>
 					</div>
 					<div class="mb-3">
 						<label class="form-label d-block">Title Cleaner</label>
@@ -342,6 +360,17 @@ myls_register_admin_tab(array(
 								<label class="form-check-label" for="myls_ytvb_overwrite"><strong>Overwrite existing posts</strong></label>
 							</div>
 							<div class="form-text">When OFF (default), existing posts are skipped. When ON, posts matched by video ID are updated with the latest title and content.</div>
+						</div>
+						<div class="col-md-6">
+							<div class="form-check form-switch mb-2">
+								<input class="form-check-input" type="checkbox" id="myls_ytvb_notify_email_enabled" name="myls_ytvb_notify_email_enabled" value="1" <?php checked('1', $notify_enabled); ?>>
+								<label class="form-check-label" for="myls_ytvb_notify_email_enabled"><strong>Email notification</strong></label>
+							</div>
+							<div class="form-text">Send a summary email after generation completes (manual or cron).</div>
+							<div id="myls-ytvb-email-field" class="mt-2" style="<?php echo $notify_enabled === '1' ? '' : 'display:none;'; ?>">
+								<input type="email" class="form-control" id="myls_ytvb_notify_email" name="myls_ytvb_notify_email" value="<?php echo esc_attr($notify_email); ?>" placeholder="<?php echo esc_attr(get_option('admin_email')); ?>">
+								<div class="form-text">Leave blank to use the admin email.</div>
+							</div>
 						</div>
 					</div>
 					<?php if ( $last_run ) : ?>
@@ -429,6 +458,7 @@ myls_register_admin_tab(array(
 					'url'         => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
 					'slug'        => sanitize_title( $example_clean ),
 					'embed'       => '<figure class="wp-block-embed"><div class="wp-block-embed__wrapper">https://www.youtube.com/watch?v=dQw4w9WgXcQ</div></figure>',
+					'transcript'  => '<em>[Transcript accordion renders here if available]</em>',
 				);
 				$render = function( $tpl ) use ( $example ) {
 					foreach ($example as $k=>$v) { $tpl = str_replace('{'.$k.'}', $v, $tpl); }
@@ -478,6 +508,11 @@ jQuery(function($){
 
 	$('#myls-ytvb-debug-toggle').on('change', function(){
 		$.post(ajaxurl, { action:'myls_youtube_toggle_debug', enabled: $(this).is(':checked') ? 1 : 0, nonce: nonce });
+	});
+
+	// Email field toggle
+	$('#myls_ytvb_notify_email_enabled').on('change', function(){
+		$('#myls-ytvb-email-field').toggle($(this).is(':checked'));
 	});
 
 	// Generate Drafts — reads overwrite checkbox from the settings form
