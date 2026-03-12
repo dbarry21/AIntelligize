@@ -81,15 +81,23 @@ function renderRows(rows) {
 		html += '<button class="button button-small myls-vt-refetch" data-vid="' + vid + '">Re-fetch</button> ';
 		if (hasTranscript) {
 			html += '<button class="button button-small myls-vt-view" data-vid="' + vid + '">View</button> ';
+			html += '<button class="button button-small myls-vt-edit" data-vid="' + vid + '">Edit</button> ';
 		}
 		html += '<button class="button button-small myls-vt-del" data-vid="' + vid + '">Delete</button>';
 		html += '</td>';
 		html += '</tr>';
 
-		// Hidden transcript preview row
+		// Hidden transcript preview/edit row
 		if (hasTranscript) {
 			html += '<tr class="myls-vt-preview-row" id="vt-preview-' + vid + '" style="display:none;">';
-			html += '<td colspan="6"><div class="myls-vt-transcript-preview">' + escHtml(truncate(r.transcript, 2000)) + '</div></td>';
+			html += '<td colspan="6">';
+			html += '<div class="myls-vt-transcript-preview" data-vid="' + vid + '">' + escHtml(truncate(r.transcript, 2000)) + '</div>';
+			html += '<textarea class="myls-vt-transcript-editor" data-vid="' + vid + '" style="display:none;width:100%;min-height:200px;font-family:monospace;font-size:13px;padding:8px;">' + escHtml(r.transcript) + '</textarea>';
+			html += '<div class="myls-vt-edit-actions" data-vid="' + vid + '" style="display:none;margin-top:8px;">';
+			html += '<button class="button button-primary myls-vt-save-edit" data-vid="' + vid + '">Save</button> ';
+			html += '<button class="button myls-vt-cancel-edit" data-vid="' + vid + '">Cancel</button>';
+			html += '</div>';
+			html += '</td>';
 			html += '</tr>';
 		}
 	}
@@ -230,6 +238,44 @@ $(function(){
 	$(document).on('click', '.myls-vt-view', function(){
 		var vid = $(this).data('vid');
 		$('#vt-preview-' + vid).toggle();
+	});
+
+	// Per-row: Edit transcript
+	$(document).on('click', '.myls-vt-edit', function(){
+		var vid = $(this).data('vid');
+		var $row = $('#vt-preview-' + vid);
+		$row.show();
+		$row.find('.myls-vt-transcript-preview').hide();
+		$row.find('.myls-vt-transcript-editor').show().focus();
+		$row.find('.myls-vt-edit-actions').show();
+	});
+
+	// Per-row: Save edited transcript
+	$(document).on('click', '.myls-vt-save-edit', function(){
+		var vid = $(this).data('vid');
+		var $row = $('#vt-preview-' + vid);
+		var transcript = $row.find('.myls-vt-transcript-editor').val();
+		var $btn = $(this).prop('disabled', true).text('Saving...');
+
+		ajax('myls_vt_edit', {video_id: vid, transcript: transcript}, function(err, r) {
+			$btn.prop('disabled', false).text('Save');
+			if (err || !r || !r.success) {
+				showMsg('Save failed: ' + ((r && r.data) || 'Unknown error'), 'error');
+				return;
+			}
+			showMsg('Transcript saved for ' + vid, 'success');
+			if (r.data.stats) updateStats(r.data.stats);
+			loadData();
+		});
+	});
+
+	// Per-row: Cancel edit
+	$(document).on('click', '.myls-vt-cancel-edit', function(){
+		var vid = $(this).data('vid');
+		var $row = $('#vt-preview-' + vid);
+		$row.find('.myls-vt-transcript-editor').hide();
+		$row.find('.myls-vt-edit-actions').hide();
+		$row.find('.myls-vt-transcript-preview').show();
 	});
 
 	// Per-row: Delete

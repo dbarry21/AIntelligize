@@ -188,16 +188,79 @@ add_action('add_meta_boxes', function() {
 		'normal',
 		'high'
 	);
+
+	// Video Transcript meta box — shows on posts with a YouTube video ID
+	$screen_types = ['post', 'video'];
+	foreach ( $screen_types as $pt ) {
+		add_meta_box(
+			'myls_video_transcript',
+			'Video Transcript',
+			'myls_render_transcript_meta_box',
+			$pt,
+			'normal',
+			'default'
+		);
+	}
 });
 
+/** Render the Video Transcript meta box (only if post has a YouTube video ID). */
+function myls_render_transcript_meta_box( $post ) {
+	$video_id = get_post_meta( $post->ID, '_myls_youtube_video_id', true );
+	if ( empty( $video_id ) ) {
+		echo '<p class="description">This post is not linked to a YouTube video. The transcript meta box only applies to posts created by the YT Video Blog generator.</p>';
+		return;
+	}
+
+	wp_nonce_field( 'myls_save_transcript', 'myls_transcript_nonce' );
+
+	$transcript = '';
+	$row = null;
+	if ( function_exists('myls_vt_get_by_id') ) {
+		$row = myls_vt_get_by_id( $video_id );
+		if ( $row && ! empty( $row['transcript'] ) ) {
+			$transcript = $row['transcript'];
+		}
+	}
+
+	echo '<p class="description" style="margin-bottom:8px;">Video ID: <code>' . esc_html( $video_id ) . '</code>';
+	if ( $row && ! empty( $row['source'] ) ) {
+		echo ' &mdash; Source: <code>' . esc_html( $row['source'] ) . '</code>';
+	}
+	echo '</p>';
+	echo '<textarea name="myls_video_transcript" id="myls_video_transcript" rows="15" style="width:100%;font-family:monospace;font-size:13px;">' . esc_textarea( $transcript ) . '</textarea>';
+	if ( empty( $transcript ) ) {
+		echo '<p class="description">No transcript available. Fetch via the <a href="' . esc_url( admin_url('admin.php?page=myls-video-transcripts') ) . '">Video Transcripts</a> interface or paste manually.</p>';
+	}
+}
+
 add_action('save_post', function( $post_id ) {
-	if ( ! isset($_POST['myls_about_the_area_nonce']) ) return;
-	if ( ! wp_verify_nonce( $_POST['myls_about_the_area_nonce'], 'myls_save_about_the_area' ) ) return;
 	if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) return;
 	if ( ! current_user_can('edit_post', $post_id) ) return;
 
-	if ( isset($_POST['about_the_area']) ) {
-		update_post_meta( $post_id, '_about_the_area', wp_kses_post( $_POST['about_the_area'] ) );
+	// About the Area (service_area CPT)
+	if ( isset($_POST['myls_about_the_area_nonce']) &&
+	     wp_verify_nonce( $_POST['myls_about_the_area_nonce'], 'myls_save_about_the_area' ) ) {
+		if ( isset($_POST['about_the_area']) ) {
+			update_post_meta( $post_id, '_about_the_area', wp_kses_post( $_POST['about_the_area'] ) );
+		}
+	}
+
+	// Video Transcript
+	if ( isset($_POST['myls_transcript_nonce']) &&
+	     wp_verify_nonce( $_POST['myls_transcript_nonce'], 'myls_save_transcript' ) ) {
+		$video_id = get_post_meta( $post_id, '_myls_youtube_video_id', true );
+		if ( ! empty( $video_id ) && function_exists('myls_vt_upsert') ) {
+			$transcript = isset($_POST['myls_video_transcript']) ? sanitize_textarea_field( wp_unslash( $_POST['myls_video_transcript'] ) ) : '';
+			if ( $transcript !== '' ) {
+				myls_vt_upsert([
+					'video_id'   => $video_id,
+					'transcript' => $transcript,
+					'source'     => 'manual',
+					'status'     => 'ok',
+					'fetched_at' => current_time('mysql'),
+				]);
+			}
+		}
 	}
 });
 

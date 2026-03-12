@@ -43,7 +43,7 @@ final class MYLS_Youtube {
 	private static function api_key()         { return get_option('myls_youtube_api_key', ''); }
 	private static function channel_id()      { return get_option('myls_youtube_channel_id', ''); }
 	private static function enabled()         { return get_option('myls_ytvb_enabled', '0') === '1'; }
-	private static function status()          { $s = get_option('myls_ytvb_status','draft'); return in_array($s,['draft','pending','publish'],true) ? $s : 'draft'; }
+	private static function status()          { $s = get_option('myls_ytvb_status','publish'); return in_array($s,['draft','pending','publish'],true) ? $s : 'publish'; }
 	private static function category_id()     { return (int) get_option('myls_ytvb_category', 0); }
 	private static function auto_embed()      { return get_option('myls_ytvb_autoembed','1') === '1'; }
 	private static function title_tpl()       { return (string) get_option('myls_ytvb_title_tpl','🎥 {title}'); }
@@ -119,6 +119,66 @@ final class MYLS_Youtube {
 		return $out;
 	}
 
+	/* ===== Transcript Accordion ===== */
+	/**
+	 * Build a Bootstrap 5 accordion containing the transcript for a video.
+	 * Reads from the myls_video_transcripts table (supports manual edits).
+	 */
+	private static function build_transcript_accordion( string $video_id ) : string {
+		if ( ! function_exists('myls_vt_get_by_id') ) return '';
+
+		$row = myls_vt_get_by_id( $video_id );
+		if ( ! $row || $row['status'] !== 'ok' || empty( $row['transcript'] ) ) return '';
+
+		$uid = 'ytvbTT-' . esc_attr( $video_id );
+		$html  = '<div class="accordion myls-ytvb-transcript-accordion" id="' . $uid . '" style="margin-top:1.5rem;">';
+		$html .=   '<div class="accordion-item">';
+		$html .=     '<h2 class="accordion-header" id="' . $uid . '-h">';
+		$html .=       '<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#' . $uid . '-body" aria-expanded="false" aria-controls="' . $uid . '-body">';
+		$html .=         'Transcript';
+		$html .=       '</button>';
+		$html .=     '</h2>';
+		$html .=     '<div id="' . $uid . '-body" class="accordion-collapse collapse" aria-labelledby="' . $uid . '-h" data-bs-parent="#' . $uid . '">';
+		$html .=       '<div class="accordion-body" style="max-height:400px;overflow-y:auto;font-size:14px;line-height:1.7;">';
+		$html .=         wpautop( esc_html( $row['transcript'] ) );
+		$html .=       '</div>';
+		$html .=     '</div>';
+		$html .=   '</div>';
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/* ===== Email Notification ===== */
+	private static function maybe_send_notification( array $result ) : void {
+		if ( get_option('myls_ytvb_notify_email_enabled', '0') !== '1' ) return;
+
+		$to = trim( (string) get_option('myls_ytvb_notify_email', '') );
+		if ( $to === '' ) $to = get_option('admin_email');
+		if ( empty($to) ) return;
+
+		$new     = (int) ($result['new_posts'] ?? 0);
+		$updated = (int) ($result['updated_posts'] ?? 0);
+		$skipped = (int) ($result['existing_posts'] ?? 0);
+		$errors  = $result['errors'] ?? [];
+
+		$subject = 'AIntelligize: YouTube Blog Generation Complete';
+
+		$body  = '<h2 style="margin:0 0 12px;">YouTube Blog Generation Results</h2>';
+		$body .= '<table style="border-collapse:collapse;font-family:sans-serif;font-size:14px;">';
+		$body .= '<tr><td style="padding:4px 12px 4px 0;font-weight:600;">New Posts:</td><td>' . $new . '</td></tr>';
+		$body .= '<tr><td style="padding:4px 12px 4px 0;font-weight:600;">Updated:</td><td>' . $updated . '</td></tr>';
+		$body .= '<tr><td style="padding:4px 12px 4px 0;font-weight:600;">Skipped:</td><td>' . $skipped . '</td></tr>';
+		if ( ! empty($errors) ) {
+			$body .= '<tr><td style="padding:4px 12px 4px 0;font-weight:600;color:#dc3545;">Errors:</td><td>' . count($errors) . '</td></tr>';
+		}
+		$body .= '</table>';
+		$body .= '<p style="margin-top:12px;font-size:13px;color:#666;">Generated at ' . esc_html( current_time('M j, Y g:i A') ) . '</p>';
+
+		$headers = ['Content-Type: text/html; charset=UTF-8'];
+		wp_mail( $to, $subject, $body, $headers );
+	}
+
 	/* ===== Generation ===== */
 
 	/** Manual generation (admin AJAX / direct call) — checks user capability. */
@@ -159,6 +219,7 @@ final class MYLS_Youtube {
 		$content_tpl= self::content_tpl();
 		$slug_prefix= self::slug_prefix();
 
+		$fetch_transcript = get_option('myls_ytvb_fetch_transcript', '0') === '1';
 		$next = '';
 		$created = 0; $skipped = 0; $updated = 0; $errors = []; $page = 0;
 
@@ -195,6 +256,39 @@ final class MYLS_Youtube {
 				// Compose content via template tokens
 				$embed_markup = $autoembed ? self::embed_block_from_url($url) : self::iframe_embed($vid);
 
+				// Fetch & store transcript if enabled (populates DB before token rendering)
+				if ( $fetch_transcript && function_exists('myls_vt_get_by_id') && function_exists('_myls_vt_do_fetch') ) {
+					$existing_tt = myls_vt_get_by_id( $vid );
+					if ( ! $existing_tt || ! in_array( $existing_tt['status'], ['ok','manual'], true ) ) {
+						$tt_result = _myls_vt_do_fetch( $vid );
+						if ( $tt_result !== null ) {
+							myls_vt_upsert([
+								'video_id'   => $vid,
+								'title'      => $title,
+								'transcript' => $tt_result['transcript'],
+								'lang'       => $tt_result['lang'],
+								'source'     => $tt_result['source'],
+								'status'     => 'ok',
+								'fetched_at' => current_time('mysql'),
+							]);
+							self::log(['transcript_fetched'=>$vid,'source'=>$tt_result['source']]);
+						} else {
+							myls_vt_upsert([
+								'video_id'   => $vid,
+								'title'      => $title,
+								'status'     => 'none',
+								'fetched_at' => current_time('mysql'),
+							]);
+						}
+					}
+				}
+
+				// Build transcript accordion if token is used and transcript exists in DB
+				$transcript_html = '';
+				if ( strpos( $content_tpl, '{transcript}' ) !== false ) {
+					$transcript_html = self::build_transcript_accordion( $vid );
+				}
+
 				$vars = [
 					'title'       => $title,
 					'description' => esc_html( $desc ),
@@ -203,12 +297,13 @@ final class MYLS_Youtube {
 					'url'         => esc_url( $url ),
 					'slug'        => esc_html( $slug_base ),
 					'embed'       => $embed_markup,
+					'transcript'  => $transcript_html,
 				];
 
 				$final_title   = self::render_tokens( $title_tpl, $vars );
 				$final_content = self::render_tokens( $content_tpl, $vars );
 
-				// Duplicate checks: by meta OR by existing slug in chosen post type
+				// Duplicate check: by video ID meta only
 				$dup = get_posts([
 					'post_type'      => $post_type,
 					'posts_per_page' => 1,
@@ -219,13 +314,6 @@ final class MYLS_Youtube {
 				]);
 
 				$existing_id = $dup ? $dup[0] : 0;
-
-				if ( ! $existing_id ) {
-					$existing_by_slug = get_page_by_path( $slug, OBJECT, $post_type );
-					if ( $existing_by_slug ) {
-						$existing_id = $existing_by_slug->ID;
-					}
-				}
 
 				if ( $existing_id ) {
 					if ( $overwrite ) {
@@ -279,6 +367,8 @@ final class MYLS_Youtube {
 
 		update_option('myls_ytvb_last_run_time',   current_time('mysql'), false);
 		update_option('myls_ytvb_last_run_result',  $result, false);
+
+		self::maybe_send_notification( $result );
 
 		return $result;
 	}
