@@ -251,13 +251,18 @@ register_activation_hook( __FILE__, function() {
 } );
 register_deactivation_hook( __FILE__, function() {
 	wp_clear_scheduled_hook('myls_refresh_places_rating');
+	wp_clear_scheduled_hook('myls_ytvb_auto_generate');
 } );
 
-/** Custom cron interval: every 4 hours */
+/** Custom cron intervals */
 add_filter( 'cron_schedules', function( $schedules ) {
 	$schedules['myls_every_4_hours'] = [
 		'interval' => 4 * HOUR_IN_SECONDS,
 		'display'  => 'Every 4 Hours (AIntelligize)',
+	];
+	$schedules['myls_every_12_hours'] = [
+		'interval' => 12 * HOUR_IN_SECONDS,
+		'display'  => 'Every 12 Hours (AIntelligize YT Video Blog)',
 	];
 	return $schedules;
 } );
@@ -295,6 +300,29 @@ add_action( 'myls_refresh_places_rating', function() {
 add_action( 'init', function() {
 	if ( ! wp_next_scheduled('myls_refresh_places_rating') ) {
 		wp_schedule_event( time(), 'myls_every_4_hours', 'myls_refresh_places_rating' );
+	}
+} );
+
+/** Cron callback: auto-generate YouTube video blog posts */
+add_action( 'myls_ytvb_auto_generate', function() {
+	if ( get_option('myls_ytvb_enabled', '0') !== '1' ) return;
+	if ( get_option('myls_ytvb_auto_refresh', '0') !== '1' ) return;
+
+	$overwrite = get_option('myls_ytvb_overwrite', '0') === '1';
+
+	if ( class_exists('MYLS_Youtube') && method_exists('MYLS_Youtube', 'generate_cron') ) {
+		MYLS_Youtube::generate_cron( null, 0, $overwrite );
+	}
+} );
+
+/** Self-healing: ensure YTVB cron matches auto-refresh setting */
+add_action( 'init', function() {
+	$auto      = get_option('myls_ytvb_auto_refresh', '0') === '1';
+	$scheduled = wp_next_scheduled('myls_ytvb_auto_generate');
+	if ( $auto && ! $scheduled ) {
+		wp_schedule_event( time(), 'myls_every_12_hours', 'myls_ytvb_auto_generate' );
+	} elseif ( ! $auto && $scheduled ) {
+		wp_clear_scheduled_hook('myls_ytvb_auto_generate');
 	}
 } );
 register_deactivation_hook( __FILE__, function(){ flush_rewrite_rules(); });

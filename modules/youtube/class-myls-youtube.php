@@ -120,14 +120,29 @@ final class MYLS_Youtube {
 	}
 
 	/* ===== Generation ===== */
-	public static function generate( ?string $channel_id = null, int $max_pages = 0 ) {
+
+	/** Manual generation (admin AJAX / direct call) — checks user capability. */
+	public static function generate( ?string $channel_id = null, int $max_pages = 0, bool $overwrite = false ) {
 		if ( ! current_user_can('manage_options') ) {
 			return new WP_Error('forbidden','You do not have permission to run this function.');
 		}
 		if ( ! self::enabled() ) {
 			return new WP_Error('disabled','YT → Blog is disabled in settings.');
 		}
+		return self::do_generate( $channel_id, $max_pages, $overwrite );
+	}
 
+	/** Cron-safe generation — no capability check (WP-Cron has no logged-in user). */
+	public static function generate_cron( ?string $channel_id = null, int $max_pages = 0, bool $overwrite = false ) {
+		if ( ! self::enabled() ) {
+			self::log('Cron: YT → Blog is disabled in settings.');
+			return ['new_posts'=>0,'existing_posts'=>0,'updated_posts'=>0,'errors'=>['Disabled in settings.']];
+		}
+		return self::do_generate( $channel_id, $max_pages, $overwrite );
+	}
+
+	/** Shared generation logic used by both generate() and generate_cron(). */
+	private static function do_generate( ?string $channel_id, int $max_pages, bool $overwrite ) {
 		$channel = sanitize_text_field( $channel_id ?: self::channel_id() );
 		if (empty($channel)) return new WP_Error('no_channel','No channel ID configured.');
 		$key = self::api_key();
@@ -145,7 +160,7 @@ final class MYLS_Youtube {
 		$slug_prefix= self::slug_prefix();
 
 		$next = '';
-		$created = 0; $skipped = 0; $errors = []; $page = 0;
+		$created = 0; $skipped = 0; $updated = 0; $errors = []; $page = 0;
 
 		do {
 			$page++;
@@ -177,20 +192,6 @@ final class MYLS_Youtube {
 				$slug_base = sanitize_title($raw_title ? $raw_title : $vid);
 				$slug      = $slug_prefix ? "{$slug_prefix}-{$slug_base}" : $slug_base;
 
-				// Duplicate checks: by meta OR by existing slug in chosen post type
-				$dup = get_posts([
-					'post_type'      => $post_type,
-					'posts_per_page' => 1,
-					'meta_key'       => '_myls_youtube_video_id',
-					'meta_value'     => $vid,
-					'fields'         => 'ids',
-					'post_status'    => 'any',
-				]);
-				if ( $dup ) { $skipped++; self::log(['skip'=>'exists_by_meta','vid'=>$vid,'post_id'=>$dup[0]]); continue; }
-
-				$existing = get_page_by_path( $slug, OBJECT, $post_type );
-				if ( $existing ) { $skipped++; self::log(['skip'=>'exists_by_slug','vid'=>$vid,'slug'=>$slug]); continue; }
-
 				// Compose content via template tokens
 				$embed_markup = $autoembed ? self::embed_block_from_url($url) : self::iframe_embed($vid);
 
@@ -206,6 +207,46 @@ final class MYLS_Youtube {
 
 				$final_title   = self::render_tokens( $title_tpl, $vars );
 				$final_content = self::render_tokens( $content_tpl, $vars );
+
+				// Duplicate checks: by meta OR by existing slug in chosen post type
+				$dup = get_posts([
+					'post_type'      => $post_type,
+					'posts_per_page' => 1,
+					'meta_key'       => '_myls_youtube_video_id',
+					'meta_value'     => $vid,
+					'fields'         => 'ids',
+					'post_status'    => 'any',
+				]);
+
+				$existing_id = $dup ? $dup[0] : 0;
+
+				if ( ! $existing_id ) {
+					$existing_by_slug = get_page_by_path( $slug, OBJECT, $post_type );
+					if ( $existing_by_slug ) {
+						$existing_id = $existing_by_slug->ID;
+					}
+				}
+
+				if ( $existing_id ) {
+					if ( $overwrite ) {
+						$upd = wp_update_post([
+							'ID'           => $existing_id,
+							'post_title'   => $final_title,
+							'post_content' => $final_content,
+						], true);
+						if ( is_wp_error($upd) ) {
+							$errors[] = 'Update failed for '.$vid.': '.$upd->get_error_message();
+							self::log(end($errors));
+						} else {
+							$updated++;
+							self::log(['updated_post'=>$existing_id,'video_id'=>$vid,'slug'=>$slug]);
+						}
+					} else {
+						$skipped++;
+						self::log(['skip'=>'exists','vid'=>$vid,'post_id'=>$existing_id]);
+					}
+					continue;
+				}
 
 				$postarr = [
 					'post_title'   => $final_title,
@@ -234,14 +275,20 @@ final class MYLS_Youtube {
 			if ( $max_pages > 0 && $page >= $max_pages ) break;
 		} while ( ! empty($next) );
 
-		return ['new_posts'=>$created,'existing_posts'=>$skipped,'errors'=>$errors];
+		$result = ['new_posts'=>$created,'existing_posts'=>$skipped,'updated_posts'=>$updated,'errors'=>$errors];
+
+		update_option('myls_ytvb_last_run_time',   current_time('mysql'), false);
+		update_option('myls_ytvb_last_run_result',  $result, false);
+
+		return $result;
 	}
 
 	/* ===== AJAX ===== */
 	public static function ajax_generate() : void {
 		self::verify_ajax_or_fail();
-		$limit = isset($_POST['pages']) ? max(0, intval($_POST['pages'])) : 0;
-		$result = self::generate( self::channel_id(), $limit );
+		$limit     = isset($_POST['pages']) ? max(0, intval($_POST['pages'])) : 0;
+		$overwrite = ! empty($_POST['overwrite']);
+		$result    = self::generate( self::channel_id(), $limit, $overwrite );
 		if (is_wp_error($result)) wp_send_json_error(['message'=>$result->get_error_message()]);
 		wp_send_json_success($result);
 	}
