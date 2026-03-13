@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.9.7
+Stable tag: 7.9.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -36,6 +36,9 @@ This plugin provides a modular admin toolkit for local SEO workflows including s
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 
 == Upgrade Notice ==
+
+= 7.9.8 =
+Added 14-page YT Video Blog documentation PDF with help link from the tab heading.
 
 = 7.9.7 =
 Dedup now by video ID only (fixes dynamic title issues). Default status changed to Publish. New {transcript} template token with Bootstrap 5 accordion. Transcript editing via post editor and Video Transcripts interface. Optional email notification after generation.
