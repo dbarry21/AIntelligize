@@ -1,3 +1,13 @@
+## 7.9.8 — 2026-03-12
+
+### Added — YT Video Blog documentation PDF
+- **14-page guide**: Comprehensive PDF covering all YT Video Blog features —
+  prerequisites, general settings, templates & tokens, title cleaner, scheduling,
+  transcript system, deduplication, email notifications, troubleshooting, and full
+  settings reference.
+- **Help link**: PDF icon added next to the "YT Video Blog" tab heading; opens
+  the guide in a new browser tab.
+
 ## 7.9.7 — 2026-03-12
 
 ### Fixed — Dedup by video ID only
