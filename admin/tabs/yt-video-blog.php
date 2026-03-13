@@ -220,7 +220,7 @@ myls_register_admin_tab(array(
 		$token_help   = '<code>{title}</code> <code>{description}</code> <code>{channel}</code> <code>{date}</code> <code>{embed}</code> <code>{url}</code> <code>{slug}</code> <code>{transcript}</code>';
 		?>
 		<div class="wrap myls-admin-wrap myls-ytvb" style="max-width:1200px;">
-			<h1 class="wp-heading-inline" style="margin-bottom:.5rem;">YT Video Blog</h1>
+			<h1 class="wp-heading-inline" style="margin-bottom:.5rem;">YT Video Blog <a href="<?php echo esc_url( plugins_url( 'admin/docs/yt-video-blog-guide.pdf', MYLS_MAIN_FILE ) ); ?>" target="_blank" rel="noopener" title="YT Video Blog Guide (PDF)" style="font-size:16px;vertical-align:middle;margin-left:4px;text-decoration:none;color:#0d6efd;"><i class="bi bi-file-earmark-pdf"></i></a></h1>
 			<p class="myls-text-muted" style="margin-top:0;">Use your YouTube channel to auto-create posts with a template. API key &amp; Channel ID come from <em>API Integration</em>.</p>
 
 			<?php if ( empty($yt_api_key) || empty($yt_channel) ) : ?>
