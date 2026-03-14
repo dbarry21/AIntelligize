@@ -618,7 +618,7 @@ function mlseo_compile_shortcode_documentation() {
                 'post_types'  => ['default' => 'current', 'description' => 'Which post types to search. "current" = same type as the page the shortcode is on. "all" = all public post types. Or a comma-separated list: "post,page,service"'],
                 'placeholder' => ['default' => 'Search...', 'description' => 'Input placeholder text'],
                 'limit'       => ['default' => '10',        'description' => 'Maximum number of results to display (alias: max)'],
-                'priority'    => ['default' => '(none)',     'description' => 'Comma-separated post types to float to top of results, e.g. "service,video"'],
+                'priority'    => ['default' => '(none)',     'description' => 'Comma-separated post types to guarantee at the top of results in order, e.g. "service,page". Each listed type gets its own query pass so it is represented before the budget is exhausted'],
                 'description' => ['default' => '1',         'description' => 'Show the "Searching: ..." hint below the input. Set to "0" to hide (alias: hint)'],
                 'show_type'   => ['default' => '0',         'description' => 'Show post type label next to each result. Set to "1" to enable'],
                 'min_chars'   => ['default' => '2',         'description' => 'Minimum characters before search fires'],
@@ -633,7 +633,7 @@ function mlseo_compile_shortcode_documentation() {
             'tips' => [
                 'Results appear instantly as user types — no page reload',
                 'Title matches are ranked first, then content/excerpt matches fill remaining slots',
-                'Use priority="service,video" to float specific post types to the top of mixed results',
+                'Use priority="service,page" to guarantee those types appear first — each gets its own query pass in the listed order',
                 'post_types="all" searches every public post type (posts, pages, services, videos, etc.)',
                 'Mobile-friendly dropdown design with thumbnail support',
             ],

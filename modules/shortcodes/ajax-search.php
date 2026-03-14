@@ -16,10 +16,15 @@
  * NEW:
  * - priority="service,video"          => floats those post types to top (in that order)
  *
- * Ranking:
+ * Ranking (no priority):
  *  1) Title-first pass (title-only matches up to max)
  *  2) Fill remainder with default WP search (title/excerpt/content), excluding duplicates
- *  3) Optional: post_type priority ordering (client-provided), then title
+ *
+ * Ranking (with priority):
+ *  Per-type queries in priority order, each type gets its own query pass so
+ *  high-priority types are guaranteed representation before the budget is exhausted.
+ *  1) Title-first pass per group (priority types first, then remainder)
+ *  2) Content-fill pass per group (same order)
  *
  * Assets expected under plugin root:
  * - /assets/js/myls-ajax-search.js
@@ -138,6 +143,21 @@ if ( ! function_exists('myls_ajax_search_parse_priority_map') ) {
 	}
 }
 
+/**
+ * Build a single search-result item from the current post in the loop.
+ */
+if ( ! function_exists('myls_ajax_search_build_item') ) {
+	function myls_ajax_search_build_item() : array {
+		return [
+			'title' => get_the_title(),
+			'url'   => get_permalink(),
+			'type'  => get_post_type(),
+			'date'  => get_the_date('m/d/Y'),
+			'thumb' => get_the_post_thumbnail_url(get_the_ID(), 'thumbnail') ?: '',
+		];
+	}
+}
+
 /* -------------------------------------------------------------------------
  * Assets (registered; enqueued by shortcode)
  * ------------------------------------------------------------------------- */
@@ -230,93 +250,166 @@ if ( ! function_exists('myls_ajax_search_handler') ) {
 			wp_send_json_success(['items' => []]);
 		}
 
-		/* -----------------------------------------
-		 * 1) Title-first pass (title only)
-		 * ----------------------------------------- */
-		add_filter('posts_search', 'myls_ajax_search_title_only_search', 10, 2);
-
-		$q_title = new WP_Query([
-			'post_type'           => $types,
-			'post_status'         => 'publish',
-			's'                   => $term,
-			'posts_per_page'      => $max,
-			'no_found_rows'       => true,
-			'ignore_sticky_posts' => true,
-		]);
-
-		remove_filter('posts_search', 'myls_ajax_search_title_only_search', 10);
-
 		$items    = [];
 		$used_ids = [];
 
-		if ( $q_title->have_posts() ) {
-			while ( $q_title->have_posts() ) {
-				$q_title->the_post();
-				$used_ids[] = get_the_ID();
+		if ( ! empty($priority_map) ) {
 
-				$items[] = [
-					'title' => get_the_title(),
-					'url'   => get_permalink(),
-					'type'  => get_post_type(),
-					'date'  => get_the_date('m/d/Y'),
-					'thumb' => get_the_post_thumbnail_url(get_the_ID(), 'thumbnail') ?: '',
-				];
+			/* =================================================
+			 * PRIORITY PATH: per-type queries in priority order.
+			 * Each priority type gets its own query so it is
+			 * guaranteed a chance to contribute results before
+			 * the budget is exhausted.
+			 * ================================================= */
+
+			// Build ordered groups: each priority type is its own group;
+			// remaining (non-priority) types are combined into one group.
+			$priority_types = [];
+			foreach ( array_keys($priority_map) as $pt ) {
+				if ( in_array($pt, $types, true) ) {
+					$priority_types[] = $pt;
+				}
 			}
-			wp_reset_postdata();
-		}
 
-		/* -----------------------------------------
-		 * 2) Fill remainder (default WP search)
-		 * ----------------------------------------- */
-		$remaining = $max - count($items);
+			$remainder_types = array_values(array_diff($types, $priority_types));
 
-		if ( $remaining > 0 ) {
+			$ordered_groups = [];
+			foreach ( $priority_types as $pt ) {
+				$ordered_groups[] = [$pt];
+			}
+			if ( ! empty($remainder_types) ) {
+				$ordered_groups[] = $remainder_types;
+			}
 
-			$q_fill = new WP_Query([
+			$budget = $max;
+
+			/* -----------------------------------------
+			 * 1) Title-first pass (per group)
+			 * ----------------------------------------- */
+			add_filter('posts_search', 'myls_ajax_search_title_only_search', 10, 2);
+
+			foreach ( $ordered_groups as $group ) {
+				if ( $budget <= 0 ) break;
+
+				$args = [
+					'post_type'           => $group,
+					'post_status'         => 'publish',
+					's'                   => $term,
+					'posts_per_page'      => $budget,
+					'no_found_rows'       => true,
+					'ignore_sticky_posts' => true,
+				];
+				if ( ! empty($used_ids) ) {
+					$args['post__not_in'] = $used_ids;
+				}
+
+				$q = new WP_Query($args);
+
+				if ( $q->have_posts() ) {
+					while ( $q->have_posts() ) {
+						$q->the_post();
+						$used_ids[] = get_the_ID();
+						$items[]    = myls_ajax_search_build_item();
+						$budget--;
+					}
+					wp_reset_postdata();
+				}
+			}
+
+			remove_filter('posts_search', 'myls_ajax_search_title_only_search', 10);
+
+			/* -----------------------------------------
+			 * 2) Content-fill pass (per group, same order)
+			 * ----------------------------------------- */
+			if ( $budget > 0 ) {
+				foreach ( $ordered_groups as $group ) {
+					if ( $budget <= 0 ) break;
+
+					$args = [
+						'post_type'           => $group,
+						'post_status'         => 'publish',
+						's'                   => $term,
+						'posts_per_page'      => $budget,
+						'no_found_rows'       => true,
+						'ignore_sticky_posts' => true,
+						'orderby'             => 'relevance',
+					];
+					if ( ! empty($used_ids) ) {
+						$args['post__not_in'] = $used_ids;
+					}
+
+					$q = new WP_Query($args);
+
+					if ( $q->have_posts() ) {
+						while ( $q->have_posts() ) {
+							$q->the_post();
+							$used_ids[] = get_the_ID();
+							$items[]    = myls_ajax_search_build_item();
+							$budget--;
+						}
+						wp_reset_postdata();
+					}
+				}
+			}
+
+			// No usort needed — results are already in priority order.
+
+		} else {
+
+			/* =================================================
+			 * NO-PRIORITY PATH: original combined-query behavior
+			 * ================================================= */
+
+			/* -----------------------------------------
+			 * 1) Title-first pass (title only)
+			 * ----------------------------------------- */
+			add_filter('posts_search', 'myls_ajax_search_title_only_search', 10, 2);
+
+			$q_title = new WP_Query([
 				'post_type'           => $types,
 				'post_status'         => 'publish',
 				's'                   => $term,
-				'posts_per_page'      => $remaining,
+				'posts_per_page'      => $max,
 				'no_found_rows'       => true,
 				'ignore_sticky_posts' => true,
-				'post__not_in'        => $used_ids,
-				'orderby'             => 'relevance',
 			]);
 
-			if ( $q_fill->have_posts() ) {
-				while ( $q_fill->have_posts() ) {
-					$q_fill->the_post();
+			remove_filter('posts_search', 'myls_ajax_search_title_only_search', 10);
 
-					$items[] = [
-						'title' => get_the_title(),
-						'url'   => get_permalink(),
-						'type'  => get_post_type(),
-						'date'  => get_the_date('m/d/Y'),
-						'thumb' => get_the_post_thumbnail_url(get_the_ID(), 'thumbnail') ?: '',
-					];
+			if ( $q_title->have_posts() ) {
+				while ( $q_title->have_posts() ) {
+					$q_title->the_post();
+					$used_ids[] = get_the_ID();
+					$items[]    = myls_ajax_search_build_item();
 				}
 				wp_reset_postdata();
 			}
-		}
 
-		/* -----------------------------------------
-		 * 3) Optional: Priority sort by post type, then title
-		 * ----------------------------------------- */
-		if ( ! empty($priority_map) && ! empty($items) ) {
-			usort($items, function($a, $b) use ($priority_map) {
+			/* -----------------------------------------
+			 * 2) Fill remainder (default WP search)
+			 * ----------------------------------------- */
+			$remaining = $max - count($items);
 
-				$at = isset($a['type']) ? (string) $a['type'] : '';
-				$bt = isset($b['type']) ? (string) $b['type'] : '';
+			if ( $remaining > 0 ) {
+				$q_fill = new WP_Query([
+					'post_type'           => $types,
+					'post_status'         => 'publish',
+					's'                   => $term,
+					'posts_per_page'      => $remaining,
+					'no_found_rows'       => true,
+					'ignore_sticky_posts' => true,
+					'post__not_in'        => $used_ids,
+					'orderby'             => 'relevance',
+				]);
 
-				$ap = array_key_exists($at, $priority_map) ? (int) $priority_map[$at] : 999;
-				$bp = array_key_exists($bt, $priority_map) ? (int) $priority_map[$bt] : 999;
-
-				if ( $ap !== $bp ) return $ap <=> $bp;
-
-				$an = isset($a['title']) ? (string) $a['title'] : '';
-				$bn = isset($b['title']) ? (string) $b['title'] : '';
-				return strcasecmp($an, $bn);
-			});
+				if ( $q_fill->have_posts() ) {
+					while ( $q_fill->have_posts() ) {
+						$q_fill->the_post();
+						$items[] = myls_ajax_search_build_item();
+					}
+					wp_reset_postdata();
+				}
+			}
 		}
 
 		wp_send_json_success(['items' => $items]);

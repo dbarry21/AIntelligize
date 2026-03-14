@@ -1,3 +1,18 @@
+## 7.9.9 — 2026-03-14
+
+### Fixed — AJAX search priority parameter now works correctly
+- **Per-type queries**: When `priority` is set on `[myls_ajax_search]`, the handler
+  now runs separate queries per post type in priority order instead of a single
+  combined query. Previously, if one post type (e.g. video) had more matches than
+  the result limit, it would fill all slots and priority types (e.g. service) would
+  never appear — the post-fetch sort had nothing to reorder. Each priority type now
+  gets its own query pass with a shared budget, guaranteeing representation before
+  the budget is exhausted.
+- **No-priority backward compatible**: When no `priority` is set, the original
+  combined-query behavior is unchanged.
+- **Helper function**: Added `myls_ajax_search_build_item()` to DRY up the repeated
+  result-item array construction.
+
 ## 7.9.8 — 2026-03-12
 
 ### Added — YT Video Blog documentation PDF
