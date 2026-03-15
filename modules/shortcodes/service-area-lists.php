@@ -151,8 +151,12 @@ function service_area_list_shortcode( $atts ) {
 
         $display_title = $title;
         if ( $use_city_state ) {
-            $city_state = myls_get_city_state( get_the_ID() );
-            if ( $city_state !== '' ) {
+            $post_id_for_meta = get_the_ID();
+            $city_state = get_post_meta( $post_id_for_meta, '_myls_city_state', true );
+            if ( empty( $city_state ) ) {
+                $city_state = get_post_meta( $post_id_for_meta, 'city_state', true );
+            }
+            if ( ! empty( $city_state ) ) {
                 $display_title = $city_state;
             }
         }
