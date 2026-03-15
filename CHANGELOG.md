@@ -1,3 +1,11 @@
+## 7.9.11 — 2026-03-14
+
+### Fixed — Bullet styles and city_state critical error
+- **Bullets `<style>` block**: Inline `!important` is ignored by browsers; moved
+  bullet styles to a `<style>` block with `.service-area-list--bullets` class.
+- **`use_city_state` fatal error**: `myls_get_city_state()` helper was not loaded;
+  replaced with direct `get_post_meta()` calls.
+
 ## 7.9.10 — 2026-03-14
 
 ### Added — `use_city_state` and `bullets` attributes for `[service_area_list]`
