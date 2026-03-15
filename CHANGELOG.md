@@ -1,3 +1,13 @@
+## 7.9.10 — 2026-03-14
+
+### Added — `use_city_state` and `bullets` attributes for `[service_area_list]`
+- **`use_city_state="true"`**: Displays the `city_state` custom field value as
+  link text instead of the post title. Falls back to the post title when the
+  field is empty. Uses the existing `myls_get_city_state()` helper.
+- **`bullets="true"`**: Shows default browser bullet markers by removing the
+  Bootstrap `list-unstyled` class. Defaults to `false` (unstyled, matching
+  previous behavior).
+
 ## 7.9.9 — 2026-03-14
 
 ### Fixed — AJAX search priority parameter now works correctly
