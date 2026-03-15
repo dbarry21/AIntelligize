@@ -29,8 +29,19 @@
  *     Show or hide the Font Awesome map-marker icon before each list item.
  *     Default: true.
  *
+ * - use_city_state="true|false|1|0"
+ *     Display the city_state custom field value instead of the post title.
+ *     Falls back to the post title when the field is empty.
+ *     Default: false.
+ *
+ * - bullets="true|false|1|0"
+ *     Show default browser bullet markers on the list.
+ *     When false, the Bootstrap list-unstyled class is applied.
+ *     Default: false.
+ *
  * @since 7.5.29 — added get_related_children
  * @since 7.5.30 — added heading, icon attributes
+ * @since 7.9.10 — added use_city_state, bullets attributes
  */
 
 if ( ! function_exists( 'service_area_list_shortcode' ) ) {
@@ -42,11 +53,15 @@ function service_area_list_shortcode( $atts ) {
         'get_related_children' => 'false',
         'heading'              => '__auto__',  // __auto__ = auto-detect; '' = suppress
         'icon'                 => 'true',
+        'use_city_state'       => 'false',
+        'bullets'              => 'false',
     ], $atts, 'service_area_list');
 
     $show_drafts          = filter_var( $atts['show_drafts'],          FILTER_VALIDATE_BOOLEAN );
     $get_related_children = filter_var( $atts['get_related_children'], FILTER_VALIDATE_BOOLEAN );
     $show_icon            = filter_var( $atts['icon'],                 FILTER_VALIDATE_BOOLEAN );
+    $use_city_state       = filter_var( $atts['use_city_state'],       FILTER_VALIDATE_BOOLEAN );
+    $show_bullets         = filter_var( $atts['bullets'],              FILTER_VALIDATE_BOOLEAN );
 
     // heading: null means "auto"; empty string means "suppress"
     $heading_override = $atts['heading']; // '__auto__' | '' | custom string
@@ -134,8 +149,16 @@ function service_area_list_shortcode( $atts ) {
             }
         }
 
+        $display_title = $title;
+        if ( $use_city_state ) {
+            $city_state = myls_get_city_state( get_the_ID() );
+            if ( $city_state !== '' ) {
+                $display_title = $city_state;
+            }
+        }
+
         $items[] = [
-            'title'     => $title,
+            'title'     => $display_title,
             'permalink' => get_permalink(),
         ];
     }
@@ -158,7 +181,8 @@ function service_area_list_shortcode( $atts ) {
 
     $output .= '<div class="container service-areas"><div class="row">';
     $output .= '<div class="col-lg-12">';
-    $output .= '<ul class="list-unstyled service-area-list">';
+    $ul_class = $show_bullets ? 'service-area-list' : 'list-unstyled service-area-list';
+    $output .= '<ul class="' . $ul_class . '">';
 
     foreach ( $items as $item ) {
         if ( $show_drafts ) {
