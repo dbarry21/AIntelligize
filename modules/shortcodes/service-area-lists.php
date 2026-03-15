@@ -185,9 +185,11 @@ function service_area_list_shortcode( $atts ) {
 
     $output .= '<div class="container service-areas"><div class="row">';
     $output .= '<div class="col-lg-12">';
-    $ul_class = $show_bullets ? 'service-area-list' : 'list-unstyled service-area-list';
-    $ul_style = $show_bullets ? ' style="list-style-type:disc !important;padding-left:1.5em !important"' : '';
-    $output .= '<ul class="' . $ul_class . '"' . $ul_style . '>';
+    $ul_class = $show_bullets ? 'service-area-list service-area-list--bullets' : 'list-unstyled service-area-list';
+    if ( $show_bullets ) {
+        $output .= '<style>.service-area-list--bullets{list-style-type:disc !important;padding-left:1.5em !important}.service-area-list--bullets li{display:list-item !important}</style>';
+    }
+    $output .= '<ul class="' . $ul_class . '">';
 
     foreach ( $items as $item ) {
         if ( $show_drafts ) {
