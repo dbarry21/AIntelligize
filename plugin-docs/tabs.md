@@ -55,6 +55,12 @@ Manages all structured data output for the site.
   - Toggle: `add_filter('myls_service_area_service_schema_enabled', '__return_false');`
 
 - **FAQ** — FAQ schema settings and accordion configuration.
+  - **FAQ schema answer length (v7.9.13):** `acceptedAnswer.text` in FAQPage JSON-LD
+    now contains only the first paragraph of each answer (40–60 words) rather than
+    the full multi-paragraph HTML. This matches the AI citability target — models
+    extract the opening block directly. Full HTML still renders in the on-page
+    accordion. All FAQ schema paths updated via single function change in
+    `inc/schema/helpers.php`.
 
 - **About Page** — AboutPage schema for company/about pages.
 

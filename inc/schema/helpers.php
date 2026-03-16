@@ -21,22 +21,51 @@ if ( ! function_exists('myls_sanitize_csv') ) {
 }
 
 /**
- * Strip 'Answer:' prefix from FAQ answer text for schema output.
+ * Extract the opening answer block from FAQ answer HTML for schema output.
  *
- * AI citation engines read schema text literally — the prefix is noise.
- * Strips both HTML bold-wrapped and plain text variants.
+ * AI citation engines (ChatGPT, Gemini, Perplexity) read acceptedAnswer.text
+ * directly. Answers over ~80 words are summarised poorly or skipped entirely.
+ * The FAQ generator prompt produces a structured answer where the FIRST <p>
+ * tag contains a concise 40–60 word standalone answer (the "opening answer
+ * block"). Only that paragraph is used for schema — the full HTML continues
+ * to render in the on-page accordion unchanged.
  *
- * @param  string $text  Raw answer text (may contain HTML).
- * @return string        Cleaned text.
- * @since  7.8.77
+ * Extraction logic (in priority order):
+ *   1. If the answer HTML contains a <p> tag — extract the first <p> content,
+ *      strip all HTML tags, strip the "Answer:" prefix, trim whitespace.
+ *   2. If no <p> tag exists — strip all HTML from the full text, strip the
+ *      "Answer:" prefix, trim whitespace (safe fallback for plain-text answers).
+ *
+ * The full HTML answer is NOT modified — it is stored and rendered separately.
+ * This function only affects what goes into acceptedAnswer.text in JSON-LD.
+ *
+ * @param  string $text  Raw answer HTML from _myls_faq_items post meta.
+ * @return string        Concise plain-text string for acceptedAnswer.text.
+ * @since  7.9.10
  */
 if ( ! function_exists('myls_strip_answer_prefix') ) {
 	function myls_strip_answer_prefix( string $text ) : string {
-		// Strip <strong>Answer:</strong> (with optional whitespace)
-		$text = preg_replace( '/<strong>\s*Answer:\s*<\/strong>\s*/i', '', $text );
-		// Strip plain text "Answer:" at the beginning
-		$text = preg_replace( '/^\s*Answer:\s*/i', '', $text );
-		return $text;
+		// ── Step 1: Try to extract the first <p> tag content ─────────────────
+		// The FAQ generator always wraps the opening answer block in a <p> tag.
+		// Match the first <p>...</p> pair, including any nested tags inside it.
+		if ( preg_match( '/<p[^>]*>(.*?)<\/p>/is', $text, $matches ) ) {
+			$first_para = $matches[1];
+		} else {
+			// Fallback: no <p> tag found — use full text as-is
+			$first_para = $text;
+		}
+
+		// ── Step 2: Strip all HTML tags from the extracted paragraph ─────────
+		$clean = wp_strip_all_tags( $first_para );
+
+		// ── Step 3: Strip "Answer:" prefix variants ───────────────────────────
+		// Handles both "Answer: " and "Answer:" (no space) at string start.
+		$clean = preg_replace( '/^\s*Answer:\s*/i', '', $clean );
+
+		// ── Step 4: Collapse whitespace and trim ──────────────────────────────
+		$clean = trim( preg_replace( '/\s+/', ' ', $clean ) );
+
+		return $clean;
 	}
 }
 
