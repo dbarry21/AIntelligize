@@ -1,3 +1,10 @@
+## 7.9.12.1 — 2026-03-16
+
+### Fixed
+- **Undefined `$current_id`** in `inc/schema/providers/organization.php` line 154 —
+  added `get_queried_object_id()` before the filter call. This warning corrupted
+  AJAX JSON responses when `display_errors` was enabled.
+
 ## 7.9.12 — 2026-03-15
 
 ### Changed — Elementor Builder prompt v5
