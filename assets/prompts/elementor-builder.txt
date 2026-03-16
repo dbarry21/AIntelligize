@@ -6,156 +6,180 @@ Phone: {{PHONE}} | Email: {{EMAIL}}
 Page Description & Instructions:
 {{DESCRIPTION}}
 
-BUSINESS PROFILE USAGE:
-A "Business Profile" block will be appended to this prompt containing the business's Google rating,
-review count, awards, certifications, and other verified facts.
-- Reference the star rating and review count naturally in the hero subtitle or CTA section
-  (e.g. "Rated 4.9 Stars by 87+ Customers in {{CITY}}")
-- Reference any awards or certifications in at least one feature card title or description
-- If the business is veteran-owned, military-affiliated, or holds a notable credential,
-  mention it once naturally — not as a badge dump
-- Never fabricate facts not present in the Business Profile block
+== CITY RESOLUTION — read first ==
+Determine the correct city using this priority order:
+  1. If the Description contains "TARGET_CITY: [value]" — use that value everywhere. Ignore {{CITY}}.
+  2. If no TARGET_CITY in Description — use the {{CITY}} token value.
+Use the resolved city consistently across all sections. Do not mix city names.
 
-CONTENT RULES:
-- Write for local customers searching for this service in {{CITY}}
-- Use {{PAGE_TITLE}} keywords naturally in headings and body text
-- Mention {{CITY}} 2-3 times across the page — do not force it into every section
-- Do NOT fabricate business-specific claims (awards, years, guarantees) unless stated in the
-  description or Business Profile block
-- Use concrete, specific language — name techniques, timelines, materials, and outcomes
-- Every sentence must earn its place — no filler
+== BUSINESS PROFILE BLOCK ==
+A "--- Business Profile ---" block is appended at the end of this prompt by the plugin.
+It contains the real Google rating, review count, awards, certifications, service areas,
+business hours, and other verified facts pulled from Schema settings.
+  - Use the real star rating and review count in the hero subtitle AND trust bar
+  - Use awards and certifications in at least one feature card description
+  - If the business is veteran-owned or military-affiliated, mention it once naturally in body copy
+  - Never invent or estimate any business fact — only use what appears in the Business Profile block
+  - If the Business Profile block is empty or absent, use only what is in the Description
 
-GEO WRITING RULES (Generative Engine Optimization):
-- WIKI-VOICE: Write declaratively, as if for an encyclopedia. Remove all subjective phrases.
-  BAD: "We believe our service is the best choice."
-  GOOD: "Professional pressure washing removes mold, mildew, and built-up grime that standard
-  garden hoses cannot reach."
-- FACT DENSITY: Replace vague quantifiers with specific data wherever possible.
-  BAD: "Many homeowners choose soft washing."
-  GOOD: "Soft washing uses water pressure under 500 PSI with a biodegradable surfactant solution."
-- ISLAND TEST: Every paragraph must make sense when read in isolation, with no prior context.
-  Replace pronouns like "it," "they," and "this" with the specific noun they refer to.
-  BAD: "It is important to do this regularly."
-  GOOD: "Driveway sealing should be reapplied every 2-3 years to maintain water resistance."
-- BRAND REPETITION: Use the full business name ({{BUSINESS_NAME}}) at least once naturally
-  in the body copy — not just in the hero. This reinforces entity recognition.
-- QUESTION-FORMAT HEADINGS: At least 2 of the section headings (intro, features, or process)
-  must be phrased as a direct question matching real search intent.
-  GOOD: "Why Does {{CITY}} Concrete Stain So Quickly?" or "How Long Does Paver Sealing Last?"
+== HOW TO READ THE DESCRIPTION ==
+Before writing, read every labeled section in the Description above:
+  TARGET_CITY ........ resolved city (see CITY RESOLUTION above)
+  SHOW_PRICING ....... false = omit pricing key entirely / true or absent = include it
+  SERVICE FACTS ...... specific numbers to use throughout for fact density
+  SURFACES ........... reference naturally in intro, features, rich_content
+  TECHNIQUES ......... name these explicitly — never use vague terms like "our process"
+  PROCESS STEPS ...... use the exact step content provided for the process section
+  COMPARISON TABLE ... render as full HTML <table> inside rich_content
+  KEY ANGLES ......... incorporate these framings into intro and features naturally
 
-PHASE 2 — AI VISIBILITY SECTIONS (include these in every page):
-- TL;DR: Write a single 40–60 word plain-text sentence that directly answers the implicit question
-  "What is [service] and who does it in [city]?" Lead with the service outcome, include city,
-  a measurable fact, and the business name. This is the first sentence AI crawlers extract.
-  GOOD: "Premier Pro Wash & Seal provides professional pressure washing in Apollo Beach, FL,
-  removing mold, algae, and oil stains from driveways, pool decks, and house siding using
-  commercial-grade equipment at 1,500–4,000 PSI — rated 4.9 stars by 893+ customers."
-- TRUST BAR: Generate exactly 4 stats from the Business Profile block below.
-  Pull the real rating (e.g. "4.9★"), real review count (e.g. "893+"), first award short name
-  (e.g. "People's Choice"), and one credential (e.g. "Licensed & Insured" or "Veteran-Owned").
-  Each stat must be a plain number or short phrase — no full sentences.
-- RICH CONTENT: Between Feature Cards and How It Works, write 200–300 words of structured HTML.
-  Format: one <h3> question sub-heading, two wiki-voice paragraphs (60–80 words each), one <ul>
-  with 4–5 <li> items of specific facts (technique names, measurements, materials, timelines).
-  Each paragraph and list item must pass the Island Test — self-contained, no pronouns.
-  Use H3 not H2. No marketing language. This is the citation-density layer.
-  GOOD H3: "What Happens to Unsealed Concrete After One Florida Summer?"
-  GOOD LI: "<li>Soft washing applies biodegradable surfactant solution at under 500 PSI to prevent surface etching on painted or stucco exteriors.</li>"
-- PRICING HEADING: Write a direct H2 question about cost in {{CITY}}, e.g.
-  "How Much Does Pressure Washing Cost in {{CITY}}?" The price table is auto-generated from
-  saved settings — only output the heading and a one-sentence caveat.
+== WORD COUNT — DISTRIBUTE EVENLY ==
+Total body copy: 600–800 words spread across sections as follows:
+  intro paragraphs ............. 150–180 words  (3 paragraphs, ~55 words each)
+  feature card descriptions ..... 150–180 words  (4 cards, ~40 words each)
+  rich_content body ............. 180–220 words  (h3 + 2 paragraphs + bullet list)
+  process step descriptions ..... 120–150 words  (4 steps, ~35 words each)
+Do not front-load words into intro and leave other sections thin.
+Every section must hit its budget — under-length sections fail GEO.
 
-ICON RULES:
-- Use Font Awesome 5 solid icons only (fas prefix)
-- Choose icons that clearly match the concept
-- Useful icons: fas fa-shield-alt, fas fa-paw, fas fa-graduation-cap, fas fa-star,
-  fas fa-check-circle, fas fa-heart, fas fa-bolt, fas fa-users, fas fa-home,
-  fas fa-phone, fas fa-calendar-alt, fas fa-clipboard-list, fas fa-medal,
-  fas fa-thumbs-up, fas fa-dog, fas fa-clock, fas fa-map-marker-alt
+== CONTENT RULES ==
+- Write for local customers searching for this service in the resolved city
+- Use {{PAGE_TITLE}} keywords naturally in headings and body copy
+- Mention the resolved city 2–3 times across the full page — not in every section
+- Never fabricate any fact not in SERVICE FACTS or the Business Profile block
+- Name specific techniques, PSI values, timelines, and materials from the Description
+- Every sentence must earn its place — no filler, no throat-clearing openers
+- Incorporate KEY ANGLES into intro and features where they fit naturally
 
-OUTPUT RULES:
-- Output ONLY a valid JSON object — nothing else
-- No markdown, no code fences, no backticks, no explanation before or after
+== GEO WRITING RULES ==
+WIKI-VOICE: Write declaratively — as if for an encyclopedia entry.
+  Remove all first-person and subjective phrases.
+  BAD:  "We believe our service is the best choice for your home."
+  GOOD: "Professional pressure washing removes mold, mildew, and embedded grime
+         that standard garden hoses operating under 200 PSI cannot dislodge."
+
+FACT DENSITY: Replace every vague claim with a specific number from SERVICE FACTS.
+  BAD:  "Soft washing is a gentler option many homeowners prefer."
+  GOOD: "Soft washing applies biodegradable surfactant at under 500 PSI,
+         preventing surface etching on stucco and vinyl siding."
+
+ISLAND TEST: Every paragraph and list item must make sense read in isolation.
+  Replace "it," "they," "this" with the specific noun they refer to.
+  BAD:  "It is important to do this on a regular basis."
+  GOOD: "Pressure washing should be scheduled every 12–18 months on Tampa Bay
+         driveways and pool decks to prevent mold penetration into concrete pores."
+
+BRAND REPETITION: Use {{BUSINESS_NAME}} at least once naturally in body copy
+  beyond the hero — woven into a factual statement, not a standalone badge.
+
+QUESTION HEADINGS: At least 2 of the intro, features, and process headings must
+  be phrased as direct questions matching real search intent.
+
+== TRUST BAR RULE ==
+Pull all 4 stats from the Business Profile block appended below.
+Real values only — never invent numbers or ratings.
+  Stat 1: Google star rating      → label "Google Rating"
+  Stat 2: Total review count      → label "Verified Reviews"
+  Stat 3: First award short name  → label with award year
+  Stat 4: Top credential          → label its meaning (e.g. "Licensed & Insured")
+
+== RICH CONTENT RULE ==
+Sits between features and process. Citation-density layer — no marketing language.
+Build the html string in this exact order:
+  1. <h3> — question sub-heading about a specific challenge or outcome
+  2. <p>  — 80–100 words, wiki-voice, specific technique + PSI or measurement
+  3. <p>  — 80–100 words, different angle: outcome, cost of neglect, or Florida climate
+  4. <ul> — 4–5 <li> items, each a standalone fact: technique + number or timeline
+  5. <table> — full HTML for the COMPARISON TABLE from the Description:
+       <thead><tr><th> for each column
+       <tbody><tr><td> for each data row
+       <p class="table-note"> below with the footer note from Description
+Every element passes the Island Test. Use H3 not H2. Zero marketing language.
+
+== ICON RULES ==
+Font Awesome 5 solid only (fas prefix). Match icon to concept clearly.
+Available: fas fa-shield-alt, fas fa-star, fas fa-check-circle, fas fa-clock,
+fas fa-users, fas fa-medal, fas fa-home, fas fa-phone, fas fa-calendar-alt,
+fas fa-clipboard-list, fas fa-graduation-cap, fas fa-thumbs-up, fas fa-bolt,
+fas fa-tint, fas fa-broom, fas fa-water, fas fa-leaf, fas fa-map-marker-alt
+
+== OUTPUT RULES ==
+- Output ONLY a valid JSON object — nothing else before or after
+- No markdown, no code fences, no backticks, no preamble, no commentary
 - All strings must be properly JSON-escaped
-- Start directly with { and end with }
+- Start with { and end with }
+- Omit "pricing" key entirely if SHOW_PRICING is false in the Description
 
-OUTPUT THIS EXACT JSON STRUCTURE:
+== JSON STRUCTURE ==
+Replace every [bracketed placeholder] with real generated content.
 
 {
   "hero": {
-    "title": "Primary H1 — service + city, action-oriented",
-    "subtitle": "One compelling benefit statement. Include star rating + review count from Business Profile if available. Keep under 20 words.",
-    "button_text": "Clear CTA verb phrase",
+    "title": "[H1: service + resolved city. Action-oriented. 8 words or fewer.]",
+    "subtitle": "[Benefit statement using real star rating and review count from Business Profile. 18 words or fewer.]",
+    "button_text": "[CTA verb phrase — 3 to 5 words]",
     "button_url": "/contact/"
   },
   "tldr": {
-    "text": "Single 40–60 word sentence. Direct answer: what is this service, who does it, where, measurable fact, business name. No fluff."
+    "text": "[Single sentence, 40–60 words. What service + who does it + resolved city + one measurable fact from SERVICE FACTS + business name. Standalone — no marketing language. AI crawlers extract this first.]"
   },
   "trust_bar": {
     "stats": [
-      { "icon": "fas fa-star",      "stat": "4.9★",             "label": "Google Rating"    },
-      { "icon": "fas fa-users",     "stat": "893+",             "label": "Verified Reviews" },
-      { "icon": "fas fa-medal",     "stat": "People's Choice",  "label": "2024 Winner"      },
-      { "icon": "fas fa-shield-alt","stat": "Licensed",         "label": "& Insured"        }
+      { "icon": "[fas icon]", "stat": "[star rating from Business Profile]",    "label": "Google Rating"    },
+      { "icon": "[fas icon]", "stat": "[review count from Business Profile]",   "label": "Verified Reviews" },
+      { "icon": "[fas icon]", "stat": "[award name from Business Profile]",     "label": "[award year from Business Profile]" },
+      { "icon": "[fas icon]", "stat": "[credential from Business Profile]",     "label": "[credential meaning]" }
     ]
   },
   "intro": {
-    "heading": "H2 — phrase as a direct question matching real search intent",
+    "heading": "[H2 phrased as a direct question matching real search intent for this service]",
     "paragraphs": [
-      "First paragraph: what this service is, who needs it. Use declarative wiki-voice prose.",
-      "Second paragraph: how it works or what makes this business different in {{CITY}}. Name specific techniques or materials.",
-      "Third paragraph (optional): outcome or reassurance. Must make sense in isolation."
+      "[~55 words. What this service is and what problem it solves in the resolved city. Wiki-voice. Use a KEY ANGLE from Description.]",
+      "[~55 words. How {{BUSINESS_NAME}} delivers this service. Name a specific technique or PSI value from SERVICE FACTS. No first-person opinions.]",
+      "[~55 words. Outcome — what the property owner ends up with. Must stand alone if excerpted. Use a second KEY ANGLE if not yet used.]"
     ]
   },
   "features": {
-    "heading": "H2 — phrase as a direct question OR a specific benefit statement",
+    "heading": "[H2 phrased as a direct question or clear benefit statement — distinct from intro heading]",
     "items": [
-      { "icon": "fas fa-shield-alt", "title": "Feature Title", "description": "One or two specific sentences. Reference a credential or award from Business Profile if relevant." },
-      { "icon": "fas fa-paw",        "title": "Feature Title", "description": "One or two sentences. Include a measurable fact or technique name." },
-      { "icon": "fas fa-star",       "title": "Feature Title", "description": "One or two sentences. Be specific — name a material, timeline, or outcome." },
-      { "icon": "fas fa-clock",      "title": "Feature Title", "description": "One or two sentences. Each feature card must cover a distinct benefit." }
+      { "icon": "[fas icon]", "title": "[Distinct benefit — not repeated in intro or process]", "description": "[~40 words. Specific fact or technique from SERVICE FACTS. Reference a credential from Business Profile if it fits naturally.]" },
+      { "icon": "[fas icon]", "title": "[Distinct benefit]", "description": "[~40 words. Specific material, timeline, or measurable outcome from SERVICE FACTS.]" },
+      { "icon": "[fas icon]", "title": "[Distinct benefit]", "description": "[~40 words. Different surface type or protection angle. No overlap with other cards.]" },
+      { "icon": "[fas icon]", "title": "[Distinct benefit]", "description": "[~40 words. Final unique benefit — each card covers entirely different ground.]" }
     ]
   },
   "rich_content": {
-    "html": "<h3>Question sub-heading about a specific service challenge or outcome</h3><p>First paragraph: 60–80 words. Declarative wiki-voice. Name specific technique, material, or measurement. Must make sense in isolation.</p><p>Second paragraph: 60–80 words. Different angle — outcome, timeline, or comparison. Island Test: no 'it', 'they', 'this' without antecedent.</p><ul><li>Specific fact 1: technique name + measurement or timeline.</li><li>Specific fact 2: material + outcome.</li><li>Specific fact 3: comparison or condition.</li><li>Specific fact 4: local relevance ({{CITY}} or Florida climate).</li></ul>"
+    "html": "[Full HTML per RICH CONTENT RULE: h3 + p (~90 words) + p (~90 words) + ul (4–5 li items) + full comparison table + table-note p. All Island Test. No marketing language. Properly JSON-escaped.]"
   },
   "process": {
-    "heading": "H2 — customer journey heading (e.g. How Does the Service Work?)",
+    "heading": "[H2 customer-journey question — how does this service work from start to finish?]",
     "steps": [
-      { "icon": "fas fa-phone",           "title": "Step 1 title", "description": "What happens and what the customer gets. Write as a self-contained sentence." },
-      { "icon": "fas fa-clipboard-list",  "title": "Step 2 title", "description": "What happens and what the customer gets." },
-      { "icon": "fas fa-graduation-cap",  "title": "Step 3 title", "description": "What happens and what the customer gets." },
-      { "icon": "fas fa-check-circle",    "title": "Step 4 title", "description": "The result or outcome for the customer." }
+      { "icon": "fas fa-phone",          "title": "[Step 1 name from PROCESS STEPS]", "description": "[~35 words using Step 1 content from Description. Name stain types or surfaces evaluated.]" },
+      { "icon": "fas fa-clipboard-list", "title": "[Step 2 name from PROCESS STEPS]", "description": "[~35 words using Step 2 content. Name pre-treatment technique and landscaping protection.]" },
+      { "icon": "fas fa-graduation-cap", "title": "[Step 3 name from PROCESS STEPS]", "description": "[~35 words using Step 3 content. State PSI range and name the soft wash method.]" },
+      { "icon": "fas fa-check-circle",   "title": "[Step 4 name from PROCESS STEPS]", "description": "[~35 words using Step 4 content. End with the customer sign-off outcome.]" }
     ]
   },
-  "pricing": {
-    "heading": "H2 question about cost — e.g. How Much Does Pressure Washing Cost in {{CITY}}?",
-    "caveat": "One sentence: final pricing depends on [specific factor]. Contact us for a free estimate."
-  },
   "cta": {
-    "heading": "Action-oriented H2 that creates urgency or desire",
-    "subtitle": "One sentence value proposition. Mention {{CITY}} naturally. If Business Profile has a rating, reference it here.",
-    "button_text": "Strong CTA verb phrase",
+    "heading": "[Action-oriented H2 — urgency or desire. Meaningfully distinct from hero title.]",
+    "subtitle": "[One sentence value proposition. Mention resolved city naturally. Do not repeat hero subtitle.]",
+    "button_text": "[Strong CTA verb phrase — 3 to 5 words]",
     "button_url": "/contact/"
   }
 }
 
-ANTI-DUPLICATION:
-- Do not repeat the same benefit across features items and intro paragraphs
-- Feature items and process steps should not overlap in content
-- Each section heading must be meaningfully distinct from the others
-- Do not reuse the same sentence structure across intro paragraphs
+== ANTI-DUPLICATION — verify before outputting ==
+- No benefit appears in more than one of: intro, features, process
+- Every section heading is meaningfully distinct from all others
+- No sentence structure reused across the three intro paragraphs
+- rich_content introduces facts and angles not already in intro or features
 
-BANNED PHRASES:
+== BANNED PHRASES ==
 "Whether you need", "Look no further", "Our team of experts", "We pride ourselves",
 "second to none", "comprehensive solutions", "dedicated to providing",
 "committed to excellence", "state-of-the-art", "world-class", "in the heart of",
-"we believe", "we are proud", "passion for"
-
-OPTIONAL KEYS (include only if the SITE CONTEXT block below says images are used):
-If the site uses image widgets, you may include an "image_section" array. Each entry:
-  { "alt": "descriptive alt text", "caption": "optional short caption" }
-This tells the builder to place an image widget (or placeholder) in that position.
-Maximum 2 image_section entries. Only include if SITE CONTEXT explicitly says "Include image slots."
+"we believe", "we are proud", "passion for", "game-changer",
+"take it to the next level", "at the end of the day", "needless to say",
+"it goes without saying", "transformative", "tailored solutions"
 
 OUTPUT: Respond with ONLY the JSON object. Start with { and end with }. Nothing else.

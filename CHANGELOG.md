@@ -1,3 +1,27 @@
+## 7.9.12 — 2026-03-15
+
+### Changed — Elementor Builder prompt v5
+- `assets/prompts/elementor-builder.txt`: Full replacement with v5 prompt template.
+  - Added CITY RESOLUTION logic (TARGET_CITY in Description overrides {{CITY}} token)
+  - Added BUSINESS PROFILE BLOCK instructions referencing auto-appended Schema data
+  - Added SHOW_PRICING flag support (false = omit pricing key from JSON output)
+  - Added per-section word count targets (600–800 total, distributed across all sections)
+  - Removed hardcoded trust_bar stat values — all stats now pulled from Business Profile block
+  - Added COMPARISON TABLE rule in RICH CONTENT section (renders as HTML `<table>`)
+  - Updated JSON structure to use [bracketed placeholders] with inline word count guidance
+  - Expanded BANNED PHRASES list with 6 additional AI filler phrases
+  - Added fas fa-tint, fa-broom, fa-water, fa-leaf, fa-map-marker-alt to icon list
+
+- `inc/ajax/ai-elementor-builder.php` (myls_elb_parse_and_build): Replaced hardcoded
+  template filler prompt (~lines 1218–1235) with GEO-compliant version.
+  - Added full WIKI-VOICE rule with BAD/GOOD examples targeting first-person violations
+  - Added FACT DENSITY rule with measurement-specific examples
+  - Added ISLAND TEST rule with pronoun-replacement examples
+  - Added BANNED PHRASES list eliminating marketing language from template slots
+  - Added SECTION ANGLES guidance (benefits / process / local relevance)
+  - Enforces 200–280 words per AI-Content block with structured h3+p+ul+p format
+  - Eliminates first-person pronouns ("our specialists", "we employ") from all template fills
+
 ## 7.9.11 — 2026-03-14
 
 ### Fixed — Bullet styles and city_state critical error
