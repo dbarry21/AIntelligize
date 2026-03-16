@@ -151,6 +151,7 @@ add_filter('myls_schema_graph', function(array $graph) {
 	// duplicate entity signals since Organization is the site-wide identifier only.
 
 	// Allow last-mile tweaks
+	$current_id = get_queried_object_id();
 	$node = apply_filters('myls_schema_org_node', $node, $current_id);
 
 	if ( is_array($node) && ! empty($node) ) {
