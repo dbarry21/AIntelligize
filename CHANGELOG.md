@@ -1,3 +1,28 @@
+## 7.9.13 — 2026-03-16
+
+### Fixed
+- `inc/schema/helpers.php` — `myls_strip_answer_prefix()`: FAQ schema answer
+  length reduced from 127–188 words to 40–60 words in `acceptedAnswer.text`.
+
+  **Before:** The full multi-paragraph answer HTML was stripped of only the
+  `<strong>Answer:</strong>` label, then written verbatim to schema — producing
+  answers of 127–188 words that AI models (ChatGPT, Gemini, Perplexity) cannot
+  cleanly extract or quote.
+
+  **After:** Only the first `<p>` tag content is used for schema — the concise
+  40–60 word opening answer block that the FAQ generator is specifically prompted
+  to write as a standalone citable fact. The full HTML answer continues to render
+  in the on-page accordion unchanged.
+
+  All three FAQ schema rendering paths are fixed by this single function change:
+  - `inc/schema/providers/faq.php` (per-post FAQPage schema — primary path)
+  - `inc/schema/providers/service-faq-page.php` (service FAQ page shortcode)
+  - `inc/schema/render.php` (legacy global FAQ schema from options)
+
+  Fallback: if no `<p>` tag is found in the answer HTML (e.g. plain-text answers
+  saved before the FAQ generator was in use), the full text is stripped of HTML
+  and used — safe and backward-compatible.
+
 ## 7.9.12.1 — 2026-03-16
 
 ### Fixed

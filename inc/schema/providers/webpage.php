@@ -38,7 +38,8 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 		'@id'          => trailingslashit( $permalink ) . '#webpage',
 		'name'         => get_the_title( $post_id ),
 		'url'          => $permalink,
-		'dateModified' => get_the_modified_date( 'c', $post_id ),
+		'datePublished' => get_the_date( 'c', $post_id ),
+		'dateModified'  => get_the_modified_date( 'c', $post_id ),
 	];
 
 	// isPartOf — link to WebSite (correct range for CreativeWork property)
