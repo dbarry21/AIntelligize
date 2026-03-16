@@ -1215,24 +1215,58 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
                 $page_title_ctx = $section_flags['page_title'] ?? '';
                 $desc_ctx       = $section_flags['description'] ?? '';
 
-                $ai_fill_prompt  = "You are filling placeholder widgets in an Elementor template about \"{$focus}\".\n";
-                $ai_fill_prompt .= "Page title: {$page_title_ctx}. Angle for this section: {$angle}.\n";
+                $ai_fill_prompt  = "You are filling placeholder widgets in an Elementor template.\n\n";
+                $ai_fill_prompt .= "Context:\n";
+                $ai_fill_prompt .= "- Page topic: {$focus}\n";
+                $ai_fill_prompt .= "- Page title: {$page_title_ctx}\n";
+                $ai_fill_prompt .= "- Section angle: {$angle}\n";
                 if ( $desc_ctx ) {
-                    $ai_fill_prompt .= 'Page description: ' . mb_substr( wp_strip_all_tags( $desc_ctx ), 0, 400 ) . "\n";
+                    $ai_fill_prompt .= '- Page description: ' . mb_substr( wp_strip_all_tags( $desc_ctx ), 0, 400 ) . "\n";
                 }
-                if ( $tpl_kg_ctx )   $ai_fill_prompt .= "\nKnowledge Graph facts (rewrite in your own words):\n" . $tpl_kg_ctx . "\n";
-                if ( $tpl_wiki_ctx ) $ai_fill_prompt .= "\nWikipedia reference (synthesize, do NOT copy):\n" . $tpl_wiki_ctx . "\n";
+                if ( $tpl_kg_ctx )   $ai_fill_prompt .= "\nKnowledge Graph facts (rewrite in your own words, do not copy):\n" . $tpl_kg_ctx . "\n";
+                if ( $tpl_wiki_ctx ) $ai_fill_prompt .= "\nWikipedia reference (synthesize only, do not copy):\n" . $tpl_wiki_ctx . "\n";
 
-                $ai_fill_prompt .= "\nReturn a JSON object with exactly these keys:\n";
-                $ai_fill_prompt .= "  content_blocks: array of {$ph_counts['content']} HTML string(s). Each block must follow this exact structure:\n";
-                $ai_fill_prompt .= "    1. <h3> — angle-based heading (5-9 words) that naturally includes the focus keyword \"{$focus}\"\n";
-                $ai_fill_prompt .= "    2. <p>  — intro paragraph (2-3 sentences)\n";
-                $ai_fill_prompt .= "    3. <ul> — 3-4 <li> items, each starting with <strong>key point</strong>\n";
-                $ai_fill_prompt .= "    4. <p>  — closing paragraph (1-2 sentences)\n";
-                $ai_fill_prompt .= "    Total ~300 words per block. Tags allowed: <h3> <p> <ul> <li> <strong>.\n";
-                $ai_fill_prompt .= "  h2_headings: array of {$ph_counts['h2']} short H2 heading string(s)\n";
-                $ai_fill_prompt .= "  h3_headings: array of {$ph_counts['h3']} short H3 heading string(s)\n";
-                $ai_fill_prompt .= "Output ONLY the JSON object. No markdown. Start with { end with }.";
+                $ai_fill_prompt .= "\n== CRITICAL: GEO WRITING RULES ==\n";
+                $ai_fill_prompt .= "These rules apply to every word. No exceptions.\n\n";
+                $ai_fill_prompt .= "WIKI-VOICE: Write declaratively — as if for an encyclopedia entry.\n";
+                $ai_fill_prompt .= "Remove ALL first-person and subjective phrases entirely.\n";
+                $ai_fill_prompt .= "  BAD:  \"Our specialists utilize cutting-edge equipment tailored to your needs.\"\n";
+                $ai_fill_prompt .= "  BAD:  \"We employ variable pressure settings for your surfaces.\"\n";
+                $ai_fill_prompt .= "  BAD:  \"Experience the difference our team makes for your property.\"\n";
+                $ai_fill_prompt .= "  GOOD: \"Professional pressure washing equipment delivers 1,500–4,000 PSI, removing embedded organic growth that consumer washers operating under 1,500 PSI cannot dislodge.\"\n";
+                $ai_fill_prompt .= "  GOOD: \"Variable pressure settings — from 500 PSI soft washing for stucco to 4,000 PSI for concrete — prevent surface damage while achieving commercial-grade cleaning results.\"\n\n";
+                $ai_fill_prompt .= "FACT DENSITY: Replace vague claims with specific measurements.\n";
+                $ai_fill_prompt .= "  BAD:  \"Regular cleaning keeps surfaces looking great.\"\n";
+                $ai_fill_prompt .= "  GOOD: \"Professional exterior cleaning scheduled every 12–18 months prevents the mold penetration that occurs in Florida's 74% average humidity environment within 6–12 months.\"\n\n";
+                $ai_fill_prompt .= "ISLAND TEST: Every paragraph and list item must make sense in isolation.\n";
+                $ai_fill_prompt .= "Replace all pronouns (it, they, this, our, we, us) with the specific noun.\n";
+                $ai_fill_prompt .= "  BAD:  \"It prevents this from happening on your surfaces.\"\n";
+                $ai_fill_prompt .= "  GOOD: \"Professional pressure washing prevents mold colonization from occurring on concrete driveways and pool decks.\"\n\n";
+                $ai_fill_prompt .= "BANNED PHRASES — never use these:\n";
+                $ai_fill_prompt .= "\"remarkable transformations\", \"cutting-edge\", \"tailored solutions\", \"dedicated to\",\n";
+                $ai_fill_prompt .= "\"committed to excellence\", \"world-class\", \"state-of-the-art\", \"experience the difference\",\n";
+                $ai_fill_prompt .= "\"we are proud\", \"our passion\", \"look no further\", \"our team\", \"we believe\"\n\n";
+                $ai_fill_prompt .= "== SECTION ANGLES ==\n";
+                $ai_fill_prompt .= "Use the angle to focus each block:\n";
+                $ai_fill_prompt .= "  \"benefits and value proposition\" → measurable outcomes, prevention costs, property value. All declarative.\n";
+                $ai_fill_prompt .= "  \"process, methodology and what to expect\" → technique names, equipment specs, step sequences, certifications.\n";
+                $ai_fill_prompt .= "  \"local relevance, trust factors and why choose us\" → local climate facts, verifiable credentials, review counts. Third-person declarative only.\n\n";
+                $ai_fill_prompt .= "== CONTENT STRUCTURE ==\n";
+                $ai_fill_prompt .= "For each AI-Content placeholder, write exactly:\n";
+                $ai_fill_prompt .= "  1. <h3> — question sub-heading (5–9 words, matches the section angle)\n";
+                $ai_fill_prompt .= "  2. <p>  — 60–80 words, wiki-voice, specific technique or measurement, Island Test pass\n";
+                $ai_fill_prompt .= "  3. <ul> — 3–4 <li> items, each starting with <strong>key point label:</strong> followed by a specific fact\n";
+                $ai_fill_prompt .= "  4. <p>  — 40–60 words, different angle from opening paragraph, Island Test pass\n";
+                $ai_fill_prompt .= "  Allowed tags only: <h3> <p> <ul> <li> <strong>\n";
+                $ai_fill_prompt .= "  Total per block: 200–280 words\n\n";
+                $ai_fill_prompt .= "For each AI-H2 placeholder: single plain-text H2 heading, question format preferred, 6–10 words, no marketing language, no first-person.\n";
+                $ai_fill_prompt .= "For each AI-H3 placeholder: single plain-text H3 heading, 4–8 words, factual, descriptive.\n\n";
+                $ai_fill_prompt .= "== OUTPUT FORMAT ==\n";
+                $ai_fill_prompt .= "Return a JSON object with exactly these keys:\n";
+                $ai_fill_prompt .= "  content_blocks: array of {$ph_counts['content']} HTML string(s) per CONTENT STRUCTURE above\n";
+                $ai_fill_prompt .= "  h2_headings: array of {$ph_counts['h2']} plain-text H2 heading string(s)\n";
+                $ai_fill_prompt .= "  h3_headings: array of {$ph_counts['h3']} plain-text H3 heading string(s)\n";
+                $ai_fill_prompt .= "Output ONLY the JSON object. No markdown. No code fences. Start with { end with }.";
 
                 $ai_fill_raw = function_exists('myls_ai_chat') ? myls_ai_chat( $ai_fill_prompt, [
                     'max_tokens'  => 1600,

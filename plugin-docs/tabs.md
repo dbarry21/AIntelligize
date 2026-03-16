@@ -175,6 +175,11 @@ Subtabs are auto-discovered from `admin/tabs/utilities/subtab-*.php`.
   1. Analyzes the active Elementor Kit for container width, global colors, and typography.
   2. Samples existing posts of the same type to detect widget patterns.
   3. Appends a SITE CONTEXT block to the AI prompt so the output mirrors existing pages.
+
+  **Elementor Builder prompt** (v5, 2026-03-15): Now reads TARGET_CITY from Description field,
+  references auto-appended Business Profile block for all business facts, supports SHOW_PRICING
+  flag, enforces 600–800 word distribution across sections. Template filler updated with full
+  GEO wiki-voice rules — eliminates first-person marketing language from AI-Content slots.
 - **Empty Anchor Fix** — Automatically adds `aria-label` attributes to links with no visible anchor text. Resolves SEMRush/Ahrefs audit warnings.
 - **FAQ Editor** — Edit MYLS FAQ items per-post with WYSIWYG editor and batch `.docx` export.
 - **FAQ Migration** — Migrate FAQ data from ACF repeater fields to the native MYLS `_myls_faq_items` format.
