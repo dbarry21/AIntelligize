@@ -2496,7 +2496,7 @@ add_action( 'wp_ajax_myls_elb_generate_single_image', function () {
 
             if ( $image_type === 'hero' ) {
                 // Find hero container and set background image
-                myls_elb_walk_elements( $elements, function ( &$el ) use ( $attach_id, $attach_url, &$patched ) {
+                myls_elb_patch_walk( $elements, function ( &$el ) use ( $attach_id, $attach_url, &$patched ) {
                     if ( ( $el['elType'] ?? '' ) === 'container'
                          && ( $el['settings']['myls_section_type'] ?? '' ) === 'hero' ) {
                         $el['settings']['background_image'] = [
@@ -2514,7 +2514,7 @@ add_action( 'wp_ajax_myls_elb_generate_single_image', function () {
             } elseif ( $image_type === 'feature_card' ) {
                 // Find the nth image-box or image widget in the features section
                 $img_widget_count = 0;
-                myls_elb_walk_elements( $elements, function ( &$el ) use ( $attach_id, $attach_url, $image_index, &$img_widget_count, &$patched, $topic, $alt_suffix ) {
+                myls_elb_patch_walk( $elements, function ( &$el ) use ( $attach_id, $attach_url, $image_index, &$img_widget_count, &$patched, $topic, $alt_suffix ) {
                     if ( ( $el['elType'] ?? '' ) === 'widget'
                          && in_array( $el['widgetType'] ?? '', [ 'image-box', 'image' ], true ) ) {
                         if ( $img_widget_count === $image_index ) {
@@ -2554,12 +2554,12 @@ add_action( 'wp_ajax_myls_elb_generate_single_image', function () {
  * Walk Elementor elements tree recursively, calling $callback on each element.
  * Callback receives element by reference so it can modify in place.
  */
-if ( ! function_exists( 'myls_elb_walk_elements' ) ) {
-    function myls_elb_walk_elements( array &$elements, callable $callback ): void {
+if ( ! function_exists( 'myls_elb_patch_walk' ) ) {
+    function myls_elb_patch_walk( array &$elements, callable $callback ): void {
         foreach ( $elements as &$el ) {
             $callback( $el );
             if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
-                myls_elb_walk_elements( $el['elements'], $callback );
+                myls_elb_patch_walk( $el['elements'], $callback );
             }
         }
     }
