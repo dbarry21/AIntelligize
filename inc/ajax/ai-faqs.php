@@ -1389,7 +1389,10 @@ add_action('wp_ajax_myls_ai_faqs_generate_v1', function(){
   }
 
   // Params (fallback to options)
-  $tokens = max(1, (int) ($_POST['tokens'] ?? (int) get_option('myls_ai_faqs_tokens', 10000)));
+  // Metabox: cap tokens at 4000 to keep response time under 30s
+  $default_tokens = ($source === 'metabox') ? 4000 : 10000;
+  $tokens = max(1, (int) ($_POST['tokens'] ?? (int) get_option('myls_ai_faqs_tokens', $default_tokens)));
+  if ( $source === 'metabox' && $tokens > 4000 ) $tokens = 4000;
   $temp   = (float) ($_POST['temperature'] ?? (float) get_option('myls_ai_faqs_temperature', 0.5));
   $model  = isset($_POST['model']) && is_string($_POST['model']) ? trim($_POST['model']) : '';
 
@@ -1427,7 +1430,9 @@ add_action('wp_ajax_myls_ai_faqs_generate_v1', function(){
     }
 
     // ── Variation Engine: duplicate guard for FAQs ──
-    if ( $raw !== '' && class_exists('MYLS_Variation_Engine') ) {
+    // Skip for metabox: single-post generation doesn't need batch dedup, and the
+    // potential rewrite call doubles response time (another 30-60s AI call).
+    if ( $raw !== '' && $source !== 'metabox' && class_exists('MYLS_Variation_Engine') ) {
       // Only run guard on first attempt to avoid burning extra API calls on retries
       if ( $attempt === 1 ) {
         $raw = MYLS_Variation_Engine::guard_duplicates(
