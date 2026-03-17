@@ -1,3 +1,20 @@
+## 7.9.18.5 — 2026-03-17
+
+### Fixed — FAQ Generator 504 Timeout (all sources)
+- **Removed permalink HTTP fetch entirely** — All FAQ generation now uses
+  `myls_get_post_plain_text()` which reads stored content directly (handles
+  Elementor, Beaver Builder, DIVI, WPBakery, and classic). Eliminates 20s
+  HTTP overhead and PHP-FPM worker deadlock risk.
+- **Single attempt per AJAX call** — JS already loops per-post and UI has
+  retry button. Removes 2 extra AI API calls that tripled response time.
+- **Disabled duplicate guard** — The rewrite callback fired another full AI
+  call (30-60s) doubling response time. Angle injection still provides
+  diversity across batch runs.
+- **Extended PHP time limit** — `set_time_limit(300)` at handler start
+  prevents PHP timeout during AI API call.
+- **Consistent for all sources** — Both FAQ tab and post metabox now use
+  the same optimized path (previously only metabox was optimized).
+
 ## 7.9.18.4 — 2026-03-17
 
 ### Fixed — FAQ Generator 504 Timeout

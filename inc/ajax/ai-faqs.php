@@ -1283,6 +1283,7 @@ add_action('wp_ajax_myls_ai_faqs_get_posts_v1', function(){
  * ------------------------------------------------------------------------- */
 add_action('wp_ajax_myls_ai_faqs_generate_v1', function(){
   myls_ai_check_nonce();
+  @set_time_limit(300); // Extend PHP timeout for AI API call
   $start_time = microtime(true);
   if ( class_exists('MYLS_Variation_Engine') ) { MYLS_Variation_Engine::reset_log(); }
 
@@ -1329,17 +1330,13 @@ add_action('wp_ajax_myls_ai_faqs_generate_v1', function(){
     }
   }
 
-  // Page text: skip permalink HTTP fetch for single-post metabox generation
-  // (avoids 20s HTTP overhead + potential PHP-FPM worker deadlock on low-worker hosts)
+  // Page text: always use stored post text (avoids 20s permalink HTTP fetch +
+  // PHP-FPM worker deadlock on low-worker hosts). myls_get_post_plain_text()
+  // handles Elementor, Beaver Builder, DIVI, WPBakery, and classic content.
   $source = sanitize_text_field( $_POST['source'] ?? '' );
-  if ( $source === 'metabox' ) {
-    $page_text = function_exists('myls_get_post_plain_text') ? myls_get_post_plain_text( $post_id ) : preg_replace('/\s+/u',' ', trim( wp_strip_all_tags( (string) $p->post_content ) ));
-  } else {
-    $page_text = myls_ai_fetch_permalink_text((string)$url);
-    if ( $page_text === '' ) {
-      $page_text = function_exists('myls_get_post_plain_text') ? myls_get_post_plain_text( $post_id ) : preg_replace('/\s+/u',' ', trim( wp_strip_all_tags( (string) $p->post_content ) ));
-    }
-  }
+  $page_text = function_exists('myls_get_post_plain_text')
+    ? myls_get_post_plain_text( $post_id )
+    : preg_replace('/\s+/u',' ', trim( wp_strip_all_tags( (string) $p->post_content ) ));
 
   // Get city/state from post meta (try multiple possible meta keys)
   $city_state = '';
@@ -1389,10 +1386,7 @@ add_action('wp_ajax_myls_ai_faqs_generate_v1', function(){
   }
 
   // Params (fallback to options)
-  // Metabox: cap tokens at 4000 to keep response time under 30s
-  $default_tokens = ($source === 'metabox') ? 4000 : 10000;
-  $tokens = max(1, (int) ($_POST['tokens'] ?? (int) get_option('myls_ai_faqs_tokens', $default_tokens)));
-  if ( $source === 'metabox' && $tokens > 4000 ) $tokens = 4000;
+  $tokens = max(1, (int) ($_POST['tokens'] ?? (int) get_option('myls_ai_faqs_tokens', 4000)));
   $temp   = (float) ($_POST['temperature'] ?? (float) get_option('myls_ai_faqs_temperature', 0.5));
   $model  = isset($_POST['model']) && is_string($_POST['model']) ? trim($_POST['model']) : '';
 
@@ -1404,8 +1398,8 @@ add_action('wp_ajax_myls_ai_faqs_generate_v1', function(){
     'post_id'     => $post_id,
   ];
 
-  // ── Retry loop: metabox gets 1 attempt (user can click again), bulk gets 3 ──
-  $max_attempts  = ($source === 'metabox') ? 1 : 3;
+  // ── Single attempt per AJAX call (JS loops per-post; user can retry from UI) ──
+  $max_attempts  = 1;
   $raw           = '';
   $clean         = '';
   $validation    = ['valid' => false, 'faq_count' => 0, 'reason' => 'not_started'];
@@ -1430,9 +1424,10 @@ add_action('wp_ajax_myls_ai_faqs_generate_v1', function(){
     }
 
     // ── Variation Engine: duplicate guard for FAQs ──
-    // Skip for metabox: single-post generation doesn't need batch dedup, and the
-    // potential rewrite call doubles response time (another 30-60s AI call).
-    if ( $raw !== '' && $source !== 'metabox' && class_exists('MYLS_Variation_Engine') ) {
+    // Disabled: the rewrite callback fires another full AI call (30-60s) which
+    // doubles response time and causes 504s. The angle injection above already
+    // provides diversity; dedup can be re-enabled once async generation is built.
+    if ( false && $raw !== '' && class_exists('MYLS_Variation_Engine') ) {
       // Only run guard on first attempt to avoid burning extra API calls on retries
       if ( $attempt === 1 ) {
         $raw = MYLS_Variation_Engine::guard_duplicates(
