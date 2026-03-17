@@ -70,6 +70,7 @@ Manages all structured data output for the site.
   - YouTube duration fetched from YouTube Data API v3, cached 30 days per video ID (`myls_yt_dur_{id}` transient).
   - Theme Builder condition matching *(fixed v7.8.76)*: parses Elementor's actual slash-delimited string format (`"include/general"`, `"include/singular/front_page"`) — not the associative array format that was previously expected.
   - Cross-validation fix *(v7.9.0)*: validation now includes Elementor Theme Builder template content (header/footer), so videos in site-wide templates get proper VideoObject schema.
+  - Cross-validation **removed** *(v7.9.16)*: calling `apply_filters('the_content')` and Elementor's `get_builder_content()` during schema rendering triggered nested content renders that corrupted Elementor's Loop Grid state, breaking flip-box widgets and other loop-based elements. Phantom videos in schema are a minor SEO nuisance; broken page layout is not acceptable.
 
 - **ItemList** *(v7.9.0)*: no UI — auto-runs on the front page.
   - **File:** `inc/schema/providers/itemlist.php`

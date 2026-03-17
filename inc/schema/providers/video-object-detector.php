@@ -792,48 +792,13 @@ if ( ! function_exists('myls_detect_videos_in_post') ) {
 		// manually embedded iframes, auto-embed URLs, etc.).
 		$merge( myls_extract_videos_content($raw_content, $post_id) );
 
-		// ── Cross-validate against rendered front-end output ──────────────
-		// Removes phantom videos stored in builder data but not actually
-		// rendered on the page (e.g. orphaned Elementor widget data).
-		// Uses Elementor's own renderer for Elementor pages, standard
-		// the_content filter for everything else.
-		// Also includes Elementor Theme Builder template content (header/footer)
-		// so videos in site-wide templates pass validation.
-		if ( apply_filters( 'myls_video_detection_validate_against_rendered', true ) && ! empty( $all ) ) {
-			$rendered = '';
-
-			// Elementor: use its front-end renderer (CSS disabled to avoid side-effects)
-			if ( class_exists( '\Elementor\Plugin' ) ) {
-				$doc = \Elementor\Plugin::$instance->documents->get( $post_id );
-				if ( $doc && $doc->is_built_with_elementor() ) {
-					$rendered = \Elementor\Plugin::$instance->frontend->get_builder_content( $post_id, false );
-				}
-			}
-
-			// Fallback: standard WordPress content rendering
-			if ( $rendered === '' || $rendered === false ) {
-				$rendered = apply_filters( 'the_content', get_post_field( 'post_content', $post_id ) );
-			}
-
-			// Append Elementor Theme Builder template content (header/footer/section).
-			// Videos in site-wide templates are legitimately rendered on the page
-			// but get_builder_content() above only covers the page's own content.
-			if ( ! empty( $tpl_ids ) && class_exists( '\Elementor\Plugin' ) ) {
-				foreach ( $tpl_ids as $tpl_id ) {
-					$tpl_rendered = \Elementor\Plugin::$instance->frontend->get_builder_content( (int) $tpl_id, false );
-					if ( is_string( $tpl_rendered ) && $tpl_rendered !== '' ) {
-						$rendered .= $tpl_rendered;
-					}
-				}
-			}
-
-			if ( is_string( $rendered ) && $rendered !== '' ) {
-				$all = array_values( array_filter( $all, function ( $item ) use ( $rendered ) {
-					if ( $item['video_id'] === '' ) return true;
-					return strpos( $rendered, $item['video_id'] ) !== false;
-				} ) );
-			}
-		}
+		// ── Cross-validation REMOVED (v7.9.16) ─────────────────────────
+		// Previously re-rendered the page content via apply_filters('the_content')
+		// or Elementor's get_builder_content() to filter out phantom videos.
+		// This caused nested content rendering that corrupted Elementor's
+		// Loop Grid state, breaking flip-box widgets and other loop-based
+		// elements on the page. Removed entirely — phantom videos in schema
+		// are a minor SEO nuisance; broken page layout is not acceptable.
 
 		return apply_filters('myls_detected_video_items', $all, $post_id);
 	}

@@ -1,3 +1,13 @@
+## 7.9.16 — 2026-03-17
+
+### Fixed
+- **Elementor Loop Grid / flip-box breakage** — Removed video cross-validation
+  in `inc/schema/providers/video-object-detector.php` that called
+  `apply_filters('the_content')` and Elementor's `get_builder_content()` during
+  schema rendering. This triggered nested content renders that corrupted
+  Elementor's Loop Grid state, causing flip-box widgets and other loop-based
+  elements to disappear from the page. Issue present since v7.8.78.
+
 ## 7.9.15 — 2026-03-17
 
 ### Fixed
