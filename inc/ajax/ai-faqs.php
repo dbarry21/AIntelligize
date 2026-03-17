@@ -1306,9 +1306,9 @@ add_action('wp_ajax_myls_ai_faqs_generate_v1', function(){
   $title = get_the_title($post_id);
   $url   = get_permalink($post_id);
 
-  // Template: prefer request, then v2 option, then legacy option, then built-in safe default.
-  // v2 supports LONG/SHORT variants + multi-block answers with <h3> + bullets.
+  // Template: prefer request, then v3 option, then v2, then legacy v1, then built-in safe default.
   $template = isset($_POST['template']) ? wp_unslash((string)$_POST['template']) : '';
+  if ( trim($template) === '' ) $template = (string) get_option('myls_ai_faqs_prompt_template_v3', '');
   if ( trim($template) === '' ) $template = (string) get_option('myls_ai_faqs_prompt_template_v2', '');
   if ( trim($template) === '' ) $template = (string) get_option('myls_ai_faqs_prompt_template', '');
 
@@ -1329,10 +1329,16 @@ add_action('wp_ajax_myls_ai_faqs_generate_v1', function(){
     }
   }
 
-  // Permalink-based page text
-  $page_text = myls_ai_fetch_permalink_text((string)$url);
-  if ( $page_text === '' ) {
+  // Page text: skip permalink HTTP fetch for single-post metabox generation
+  // (avoids 20s HTTP overhead + potential PHP-FPM worker deadlock on low-worker hosts)
+  $source = sanitize_text_field( $_POST['source'] ?? '' );
+  if ( $source === 'metabox' ) {
     $page_text = function_exists('myls_get_post_plain_text') ? myls_get_post_plain_text( $post_id ) : preg_replace('/\s+/u',' ', trim( wp_strip_all_tags( (string) $p->post_content ) ));
+  } else {
+    $page_text = myls_ai_fetch_permalink_text((string)$url);
+    if ( $page_text === '' ) {
+      $page_text = function_exists('myls_get_post_plain_text') ? myls_get_post_plain_text( $post_id ) : preg_replace('/\s+/u',' ', trim( wp_strip_all_tags( (string) $p->post_content ) ));
+    }
   }
 
   // Get city/state from post meta (try multiple possible meta keys)
@@ -1395,8 +1401,8 @@ add_action('wp_ajax_myls_ai_faqs_generate_v1', function(){
     'post_id'     => $post_id,
   ];
 
-  // ── Retry loop: attempt generation up to 3 times ──
-  $max_attempts  = 3;
+  // ── Retry loop: metabox gets 1 attempt (user can click again), bulk gets 3 ──
+  $max_attempts  = ($source === 'metabox') ? 1 : 3;
   $raw           = '';
   $clean         = '';
   $validation    = ['valid' => false, 'faq_count' => 0, 'reason' => 'not_started'];
