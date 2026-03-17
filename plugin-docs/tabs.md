@@ -187,6 +187,10 @@ Subtabs are auto-discovered from `admin/tabs/utilities/subtab-*.php`.
   references auto-appended Business Profile block for all business facts, supports SHOW_PRICING
   flag, enforces 600–800 word distribution across sections. Template filler updated with full
   GEO wiki-voice rules — eliminates first-person marketing language from AI-Content slots.
+
+  **Deferred image generation** (v7.9.18): DALL-E images now generate one at a time after the
+  page is created via sequential AJAX calls (`myls_elb_generate_single_image`). Prevents server
+  timeouts on multi-image builds. Live progress updates show each image as it completes.
 - **Empty Anchor Fix** — Automatically adds `aria-label` attributes to links with no visible anchor text. Resolves SEMRush/Ahrefs audit warnings.
 - **FAQ Editor** — Edit MYLS FAQ items per-post with WYSIWYG editor and batch `.docx` export.
 - **FAQ Migration** — Migrate FAQ data from ACF repeater fields to the native MYLS `_myls_faq_items` format.

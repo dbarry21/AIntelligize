@@ -1645,143 +1645,57 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
     $prompt .= "\n\n[GRID INSTRUCTION] The Feature Cards section must contain exactly {$card_count_total} items (cols={$feature_cols} × rows={$feature_rows}). Generate exactly that many items in the features.items array.";
     $prompt .= "\n[GRID INSTRUCTION] The How It Works / Process section must contain exactly {$process_step_total} steps (cols={$process_cols} × rows={$process_rows}). Generate exactly that many items in the process.steps array.";
 
-    // ── Pre-generate images (reuses page builder helpers) ───────────────
+    // ── Deferred image generation — build pending_images manifest ───────
+    // Images are no longer generated in this request. Instead, we build a
+    // manifest of pending images and return it to the client. The JS then
+    // fires one AJAX call per image via myls_elb_generate_single_image,
+    // preventing server timeouts on multi-image builds.
     $generated_images = [];
     $image_log        = [];
+    $pending_images   = [];
 
     if ( $integrate_images && function_exists('myls_pb_dall_e_generate') ) {
         $api_key = function_exists('myls_openai_get_api_key') ? myls_openai_get_api_key() : '';
         if ( ! empty( $api_key ) ) {
-            $style_map = [
-                'photo'             => 'Professional photograph, real camera shot, natural lighting, high resolution, sharp focus, authentic scene, no illustrations, no digital art',
-                'modern-flat'       => 'Modern flat design illustration, clean lines, soft gradients, professional color palette, minimalist',
-                'photorealistic'    => 'Professional stock photography style, high quality, well-lit, clean background',
-                'isometric'         => 'Isometric 3D illustration, colorful, tech-forward, clean white background',
-                'watercolor'        => 'Soft watercolor style illustration, artistic, professional, warm tones',
-                'gradient-abstract' => 'Abstract gradient art, flowing shapes, modern tech aesthetic, vivid colors',
-            ];
-            $style_suffix = $style_map[ $image_style ] ?? $style_map['photo'];
-            $dalle_style  = ( $image_style === 'photo' ) ? 'natural' : 'vivid';
 
             if ( $gen_hero_img ) {
-                $image_log[] = '🎨 Generating hero image…';
-                $hero_prompt = "Create a wide banner/hero image for a webpage about: {$page_title}. ";
-                if ( $description ) {
-                    $hero_prompt .= 'Context: ' . mb_substr( wp_strip_all_tags( $description ), 0, 300 ) . '. ';
-                }
-                $hero_prompt .= "Style: {$style_suffix}. Landscape orientation, 1792x1024, no text or words in the image.";
-
-                $result = myls_pb_dall_e_generate( $api_key, $hero_prompt, '1792x1024', $dalle_style );
-                if ( $result['ok'] ) {
-                    $attach_id = myls_pb_upload_image_from_url(
-                        $result['url'],
-                        sanitize_title( $page_title ) . '-hero',
-                        $page_title . ' - Hero Image',
-                        0
-                    );
-                    if ( $attach_id ) {
-                        $generated_images[] = [
-                            'type'    => 'hero',
-                            'id'      => $attach_id,
-                            'url'     => wp_get_attachment_url( $attach_id ),
-                            'alt'     => $page_title . ' - Hero Image',
-                            'subject' => $page_title,
-                        ];
-                        $image_log[] = "   ✅ Hero image saved to Media Library (ID: {$attach_id})";
-                    } else {
-                        $image_log[] = '   ❌ Hero: DALL-E returned an image but Media Library sideload failed. Check PHP error_log.';
-                    }
-                } else {
-                    $image_log[] = '   ❌ Hero DALL-E error: ' . $result['error'];
-                }
+                $pending_images[] = [
+                    'type'    => 'hero',
+                    'subject' => $page_title,
+                    'size'    => '1792x1024',
+                    'index'   => 0,
+                ];
+                $image_log[] = '🖼️ Hero image queued for generation (1792×1024)';
             }
 
-            // ── Standalone Featured Image — when set_featured=true but no hero ──
-            // Generate a 1792×1024 image used only as post thumbnail (not injected
-            // into the Elementor layout as a hero background).
             if ( ! $gen_hero_img && $set_featured ) {
-                $image_log[] = '🎨 Generating standalone featured image (1792×1024) for post thumbnail…';
-                $feat_prompt  = "Create a wide featured image for a webpage about: {$page_title}. ";
-                if ( $description ) {
-                    $feat_prompt .= 'Context: ' . mb_substr( wp_strip_all_tags( $description ), 0, 300 ) . '. ';
-                }
-                $feat_prompt .= "Style: {$style_suffix}. Landscape orientation, 1792x1024, no text or words in the image.";
-
-                $feat_result = myls_pb_dall_e_generate( $api_key, $feat_prompt, '1792x1024', $dalle_style );
-                if ( $feat_result['ok'] ) {
-                    $feat_attach_id = myls_pb_upload_image_from_url(
-                        $feat_result['url'],
-                        sanitize_title( $page_title ) . '-featured',
-                        $page_title . ' - Featured Image',
-                        0
-                    );
-                    if ( $feat_attach_id ) {
-                        $generated_images[] = [
-                            'type'    => 'featured',
-                            'id'      => $feat_attach_id,
-                            'url'     => wp_get_attachment_url( $feat_attach_id ),
-                            'alt'     => $page_title . ' - Featured Image',
-                            'subject' => $page_title,
-                        ];
-                        $image_log[] = "   ✅ Featured image saved to Media Library (ID: {$feat_attach_id})";
-                    } else {
-                        $image_log[] = '   ❌ Featured: DALL-E returned image but Media Library sideload failed.';
-                    }
-                } else {
-                    $image_log[] = '   ❌ Featured image DALL-E error: ' . $feat_result['error'];
-                }
+                $pending_images[] = [
+                    'type'    => 'featured',
+                    'subject' => $page_title,
+                    'size'    => '1792x1024',
+                    'index'   => 0,
+                ];
+                $image_log[] = '🖼️ Featured image queued for generation (1792×1024)';
             }
 
-            // ── Feature Card Images — one per card slot (cols × rows) ────
-            // Stored as type 'feature_card'; myls_elb_build_features() maps
-            // them by index into image-box containers in the grid.
             if ( $gen_feature_cards ) {
-                $card_count  = $card_count_total; // derived from cols × rows above
-                $image_log[] = "🎨 Generating {$card_count} Feature Card Image(s) ({$feature_cols} cols × {$feature_rows} rows, 1024×1024 square)…";
-
-                // Generate distinct visual subjects for each card slot
+                $card_count    = $card_count_total;
                 $card_subjects = function_exists('myls_pb_suggest_image_subjects')
                     ? myls_pb_suggest_image_subjects( $page_title, $description, $card_count )
                     : array_fill( 0, $card_count, $page_title );
 
-                $card_img_size    = '1024x1024';
-                $card_dalle_style = $dalle_style;
-
                 for ( $c = 0; $c < $card_count; $c++ ) {
-                    $card_subject  = $card_subjects[ $c ] ?? $page_title;
-                    $card_num      = $c + 1;
-                    $card_prompt   = "Create a professional square image for a service feature card about: {$page_title}. "
-                                   . "Card {$card_num} of {$card_count}. Subject: {$card_subject}. "
-                                   . "Style: {$style_suffix}. Square format 1024x1024. No text or words in the image.";
-
-                    $card_result = myls_pb_dall_e_generate( $api_key, $card_prompt, $card_img_size, $card_dalle_style );
-
-                    if ( $card_result['ok'] ) {
-                        $card_attach_id = myls_pb_upload_image_from_url(
-                            $card_result['url'],
-                            sanitize_title( $page_title ) . '-card-' . $card_num,
-                            $page_title . ' - Feature Card ' . $card_num,
-                            0
-                        );
-                        if ( $card_attach_id ) {
-                            $generated_images[] = [
-                                'type'    => 'feature_card',
-                                'id'      => $card_attach_id,
-                                'url'     => wp_get_attachment_url( $card_attach_id ),
-                                'alt'     => $page_title . ' - Feature Card ' . $card_num,
-                                'subject' => $card_subject,
-                            ];
-                            $image_log[] = "   ✅ Feature Card {$card_num} saved to Media Library (ID: {$card_attach_id})";
-                        } else {
-                            $image_log[] = "   ❌ Feature Card {$card_num}: DALL-E succeeded but Media Library upload failed.";
-                        }
-                    } else {
-                        $image_log[] = "   ❌ Feature Card {$card_num}: " . ( $card_result['error'] ?? 'DALL-E error' );
-                    }
+                    $pending_images[] = [
+                        'type'    => 'feature_card',
+                        'subject' => $card_subjects[ $c ] ?? $page_title,
+                        'size'    => '1024x1024',
+                        'index'   => $c,
+                    ];
                 }
+                $image_log[] = "🖼️ {$card_count} feature card image(s) queued for generation (1024×1024)";
             }
 
-            if ( ! $gen_hero_img && ! $gen_feature_cards ) {
+            if ( empty( $pending_images ) ) {
                 $image_log[] = 'ℹ️ No images requested — only template image widgets will be scanned.';
             }
         }
@@ -2427,6 +2341,9 @@ Rules:
         'view_url'        => $view_url,
         'ai_used'         => $ai_used,
         'images'          => $generated_images,
+        'pending_images'  => $pending_images,
+        'image_style'     => $image_style,
+        'set_featured'    => $set_featured,
         'section_count'   => $section_count,
         'elementor_active'=> $elementor_active,
         'status'          => 'saved',
@@ -2459,6 +2376,194 @@ add_action( 'wp_ajax_myls_elb_save_prompt', function () {
     update_option( 'myls_elb_prompt_template', wp_kses_post( $_POST['prompt_template'] ?? '' ) );
     wp_send_json_success( ['message' => 'Elementor prompt template saved.'] );
 } );
+
+/* -------------------------------------------------------------------------
+ * AJAX: Generate a single DALL-E image and attach to an existing post
+ *
+ * Called sequentially from the JS after the page is created. Each call
+ * generates ONE image, uploads it to the Media Library, and patches the
+ * Elementor JSON so the image appears in the correct widget/container.
+ * This prevents server timeouts that occurred when all images were
+ * generated in a single blocking request.
+ * ------------------------------------------------------------------------- */
+add_action( 'wp_ajax_myls_elb_generate_single_image', function () {
+    if ( ! current_user_can('manage_options') ) {
+        wp_send_json_error( ['message' => 'Forbidden'], 403 );
+    }
+    if ( ! wp_verify_nonce( $_POST['_wpnonce'] ?? '', 'myls_elb_create' ) ) {
+        wp_send_json_error( ['message' => 'Bad nonce'], 400 );
+    }
+
+    $post_id     = (int) ( $_POST['post_id'] ?? 0 );
+    $image_type  = sanitize_key( $_POST['image_type'] ?? '' );   // hero | featured | feature_card
+    $image_index = (int) ( $_POST['image_index'] ?? 0 );
+    $subject     = sanitize_text_field( $_POST['subject'] ?? '' );
+    $size        = sanitize_text_field( $_POST['size'] ?? '1024x1024' );
+    $image_style = sanitize_text_field( $_POST['image_style'] ?? 'photo' );
+    $set_featured = ! empty( $_POST['set_featured'] );
+    $page_title  = sanitize_text_field( $_POST['page_title'] ?? '' );
+    $description = sanitize_textarea_field( wp_unslash( $_POST['description'] ?? '' ) );
+
+    if ( ! $post_id || ! get_post( $post_id ) ) {
+        wp_send_json_error( ['message' => 'Invalid post ID.'], 400 );
+    }
+    if ( ! in_array( $image_type, [ 'hero', 'featured', 'feature_card' ], true ) ) {
+        wp_send_json_error( ['message' => 'Invalid image type.'], 400 );
+    }
+    if ( ! function_exists('myls_pb_dall_e_generate') || ! function_exists('myls_pb_upload_image_from_url') ) {
+        wp_send_json_error( ['message' => 'Image generation helpers not available.'], 500 );
+    }
+
+    $api_key = function_exists('myls_openai_get_api_key') ? myls_openai_get_api_key() : '';
+    if ( empty( $api_key ) ) {
+        wp_send_json_error( ['message' => 'OpenAI API key not configured.'], 500 );
+    }
+
+    // Style mapping (same as main handler)
+    $style_map = [
+        'photo'             => 'Professional photograph, real camera shot, natural lighting, high resolution, sharp focus, authentic scene, no illustrations, no digital art',
+        'modern-flat'       => 'Modern flat design illustration, clean lines, soft gradients, professional color palette, minimalist',
+        'photorealistic'    => 'Professional stock photography style, high quality, well-lit, clean background',
+        'isometric'         => 'Isometric 3D illustration, colorful, tech-forward, clean white background',
+        'watercolor'        => 'Soft watercolor style illustration, artistic, professional, warm tones',
+        'gradient-abstract' => 'Abstract gradient art, flowing shapes, modern tech aesthetic, vivid colors',
+    ];
+    $style_suffix = $style_map[ $image_style ] ?? $style_map['photo'];
+    $dalle_style  = ( $image_style === 'photo' ) ? 'natural' : 'vivid';
+
+    // Build prompt based on image type
+    $topic = $subject ?: $page_title ?: get_the_title( $post_id );
+    switch ( $image_type ) {
+        case 'hero':
+            $prompt = "Create a wide banner/hero image for a webpage about: {$topic}. ";
+            if ( $description ) {
+                $prompt .= 'Context: ' . mb_substr( wp_strip_all_tags( $description ), 0, 300 ) . '. ';
+            }
+            $prompt .= "Style: {$style_suffix}. Landscape orientation, 1792x1024, no text or words in the image.";
+            $slug_suffix = '-hero';
+            $alt_suffix  = ' - Hero Image';
+            break;
+        case 'featured':
+            $prompt = "Create a wide featured image for a webpage about: {$topic}. ";
+            if ( $description ) {
+                $prompt .= 'Context: ' . mb_substr( wp_strip_all_tags( $description ), 0, 300 ) . '. ';
+            }
+            $prompt .= "Style: {$style_suffix}. Landscape orientation, 1792x1024, no text or words in the image.";
+            $slug_suffix = '-featured';
+            $alt_suffix  = ' - Featured Image';
+            break;
+        case 'feature_card':
+        default:
+            $card_num = $image_index + 1;
+            $prompt   = "Create a professional square image for a service feature card about: {$topic}. "
+                      . "Subject: {$subject}. "
+                      . "Style: {$style_suffix}. Square format 1024x1024. No text or words in the image.";
+            $slug_suffix = '-card-' . $card_num;
+            $alt_suffix  = ' - Feature Card ' . $card_num;
+            break;
+    }
+
+    // Generate the image
+    $result = myls_pb_dall_e_generate( $api_key, $prompt, $size, $dalle_style );
+    if ( ! $result['ok'] ) {
+        wp_send_json_error( ['message' => 'DALL-E error: ' . ( $result['error'] ?? 'Unknown error' )], 500 );
+    }
+
+    // Upload to Media Library
+    $attach_id = myls_pb_upload_image_from_url(
+        $result['url'],
+        sanitize_title( $topic ) . $slug_suffix,
+        $topic . $alt_suffix,
+        $post_id
+    );
+    if ( ! $attach_id ) {
+        wp_send_json_error( ['message' => 'DALL-E succeeded but Media Library upload failed.'], 500 );
+    }
+
+    $attach_url = wp_get_attachment_url( $attach_id );
+
+    // Set post thumbnail if applicable
+    if ( $set_featured && in_array( $image_type, [ 'hero', 'featured' ], true ) ) {
+        set_post_thumbnail( $post_id, $attach_id );
+    }
+
+    // ── Patch Elementor JSON to inject the image into the correct widget ──
+    $elementor_data = get_post_meta( $post_id, '_elementor_data', true );
+    if ( $elementor_data && is_string( $elementor_data ) ) {
+        $elements = json_decode( $elementor_data, true );
+        if ( is_array( $elements ) ) {
+            $patched = false;
+
+            if ( $image_type === 'hero' ) {
+                // Find hero container and set background image
+                myls_elb_walk_elements( $elements, function ( &$el ) use ( $attach_id, $attach_url, &$patched ) {
+                    if ( ( $el['elType'] ?? '' ) === 'container'
+                         && ( $el['settings']['myls_section_type'] ?? '' ) === 'hero' ) {
+                        $el['settings']['background_image'] = [
+                            'url' => $attach_url,
+                            'id'  => $attach_id,
+                        ];
+                        $el['settings']['background_position'] = 'center center';
+                        $el['settings']['background_size']     = 'cover';
+                        $el['settings']['background_repeat']   = 'no-repeat';
+                        $el['settings']['background_overlay_background'] = 'classic';
+                        $el['settings']['background_overlay_color']      = 'rgba(0,0,0,0.45)';
+                        $patched = true;
+                    }
+                });
+            } elseif ( $image_type === 'feature_card' ) {
+                // Find the nth image-box or image widget in the features section
+                $img_widget_count = 0;
+                myls_elb_walk_elements( $elements, function ( &$el ) use ( $attach_id, $attach_url, $image_index, &$img_widget_count, &$patched, $topic, $alt_suffix ) {
+                    if ( ( $el['elType'] ?? '' ) === 'widget'
+                         && in_array( $el['widgetType'] ?? '', [ 'image-box', 'image' ], true ) ) {
+                        if ( $img_widget_count === $image_index ) {
+                            $el['settings']['image'] = [
+                                'url' => $attach_url,
+                                'id'  => $attach_id,
+                                'alt' => $topic . $alt_suffix,
+                            ];
+                            $patched = true;
+                        }
+                        $img_widget_count++;
+                    }
+                });
+            }
+
+            if ( $patched ) {
+                $new_json = wp_json_encode( $elements );
+                update_post_meta( $post_id, '_elementor_data', wp_slash( $new_json ) );
+                // Clear CSS cache so Elementor regenerates
+                delete_post_meta( $post_id, '_elementor_css' );
+                delete_post_meta( $post_id, '_elementor_element_cache' );
+            }
+        }
+    }
+
+    wp_send_json_success( [
+        'type'    => $image_type,
+        'index'   => $image_index,
+        'id'      => $attach_id,
+        'url'     => $attach_url,
+        'alt'     => $topic . $alt_suffix,
+        'subject' => $subject,
+    ] );
+} );
+
+/**
+ * Walk Elementor elements tree recursively, calling $callback on each element.
+ * Callback receives element by reference so it can modify in place.
+ */
+if ( ! function_exists( 'myls_elb_walk_elements' ) ) {
+    function myls_elb_walk_elements( array &$elements, callable $callback ): void {
+        foreach ( $elements as &$el ) {
+            $callback( $el );
+            if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+                myls_elb_walk_elements( $el['elements'], $callback );
+            }
+        }
+    }
+}
 
 /* -------------------------------------------------------------------------
  * AJAX: Get nav posts (mirrors page builder — reuses same logic)

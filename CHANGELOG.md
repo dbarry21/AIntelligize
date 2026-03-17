@@ -1,3 +1,17 @@
+## 7.9.18 — 2026-03-17
+
+### Changed — Deferred Image Generation
+- **Elementor Builder images now generate one at a time** after the page is created,
+  preventing server timeouts on multi-image builds. Each DALL-E call (~60 sec) runs
+  as a separate AJAX request with live progress updates in the UI.
+- **New AJAX handler** `myls_elb_generate_single_image` — generates one DALL-E image,
+  uploads to Media Library, and patches the Elementor JSON to inject the image into
+  the correct widget/container (hero background or feature card image-box).
+- **JS fetch timeout** — Added 5-minute AbortController timeout on Phase 1 and
+  3-minute timeout per image in Phase 2 to prevent silent browser hangs.
+- **Sequential progress UI** — Log shows "🖼️ Generating Hero (1/5)…" → "✅ Hero saved"
+  for each image, with image grid preview building incrementally.
+
 ## 7.9.17 — 2026-03-17
 
 ### Fixed
