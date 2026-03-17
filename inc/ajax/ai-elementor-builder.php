@@ -1124,7 +1124,9 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
                     if ( ! empty( $data['features'] ) ) {
                         $fcols = max( 1, min( 6, (int) ( $item['cols'] ?? 3 ) ) );
                         $frows = max( 1, min( 6, (int) ( $item['rows'] ?? 1 ) ) );
-                        $use_image_boxes = ! empty( $feature_images ); // icons when no images generated
+                        // Use image-box widgets when images exist OR when deferred image gen is pending
+                        $use_image_boxes = ! empty( $feature_images )
+                            || ( ! empty( $section_flags['integrate_images'] ) && ! empty( $section_flags['gen_feature_cards'] ) );
                         $elements[] = myls_elb_build_features( (array) $data['features'], $feature_images, $use_image_boxes, $container_width, $fcols, $frows );
                         $section_count++;
                     }
@@ -1857,7 +1859,8 @@ Rules:
         'description'      => $description,
         'contact_url'      => $contact_url,    // resolved CTA/button URL for this generation
         // Template image generation flags — forwarded to parse_and_build
-        'integrate_images' => (bool) $integrate_images,
+        'integrate_images'  => (bool) $integrate_images,
+        'gen_feature_cards' => (bool) $gen_feature_cards,
         'dalle_api_key'    => $integrate_images && function_exists('myls_openai_get_api_key')
                                 ? ( myls_openai_get_api_key() ?: '' )
                                 : '',
