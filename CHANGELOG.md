@@ -1,3 +1,12 @@
+## 7.9.14 — 2026-03-17
+
+### Fixed
+- `assets/css/myls-accordion.css` — **Scoped all selectors to `.ssseo-accordion`**.
+  Bare `.accordion`, `.accordion-button`, `.accordion-item`, `.accordion-body`
+  selectors were overriding the theme's own accordion/Bootstrap styles on every
+  page (home page stylesheet breakage since v7.9.5). All rules now only apply
+  inside our `.ssseo-accordion` wrapper. Updated `.min.css` to match.
+
 ## 7.9.13 — 2026-03-16
 
 ### Fixed

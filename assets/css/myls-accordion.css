@@ -1,8 +1,8 @@
 /* ============================================================
-   AIntelligize – Global Accordion Styles (Enhanced)
+   AIntelligize – Accordion Styles (scoped to .ssseo-accordion)
    ============================================================ */
 
-.accordion {
+.ssseo-accordion {
   --hover-background: #000;
   --item-background: #136B92;
   --item-text-color: #FFFFFF;
@@ -12,31 +12,29 @@
 }
 
 /* Accordion wrapper */
-.accordion {
+.ssseo-accordion {
   border: var(--item-border);
   border-radius: var(--item-radius);
   box-shadow: var(--item-shadow);
-  /* Remove overflow:hidden — it clips button text near the right edge.
-     Rounded corners are handled per-item below instead. */
   overflow: visible;
   max-width: 100%;
   box-sizing: border-box;
 }
 
 /* Clip rounded corners per-item instead of on the wrapper */
-.accordion-item:first-of-type {
+.ssseo-accordion .accordion-item:first-of-type {
   border-top-left-radius: var(--item-radius);
   border-top-right-radius: var(--item-radius);
   overflow: hidden;
 }
-.accordion-item:last-of-type {
+.ssseo-accordion .accordion-item:last-of-type {
   border-bottom-left-radius: var(--item-radius);
   border-bottom-right-radius: var(--item-radius);
   overflow: hidden;
 }
 
 /* Accordion header button */
-.accordion-button {
+.ssseo-accordion .accordion-button {
   background: var(--item-background) !important;
   color: var(--item-text-color) !important;
   font-weight: bold;
@@ -44,44 +42,41 @@
   border-radius: 0 !important;
   transition: background-color 0.2s ease-in-out;
   box-shadow: none !important;
-  /* Force text to wrap — Bootstrap sets white-space:nowrap in some builds */
   white-space: normal !important;
   word-break: break-word !important;
   overflow-wrap: break-word !important;
-  /* Fill available width, shrink properly as a flex child */
   width: 100% !important;
   min-width: 0 !important;
-  /* Room for the chevron icon on the right */
   padding-right: 3.5rem !important;
   text-align: left !important;
 }
 
 /* Hover & focus effects */
-.accordion-button:hover,
-.accordion-button:focus {
+.ssseo-accordion .accordion-button:hover,
+.ssseo-accordion .accordion-button:focus {
   background-color: var(--hover-background) !important;
   outline: none !important;
   box-shadow: none !important;
 }
 
 /* Accordion item container */
-.accordion-item {
+.ssseo-accordion .accordion-item {
   border-bottom: var(--item-border);
 }
 
 /* Rounded corners for first & last button (background fill) */
-.accordion-item:first-of-type .accordion-button {
+.ssseo-accordion .accordion-item:first-of-type .accordion-button {
   border-top-left-radius: var(--item-radius) !important;
   border-top-right-radius: var(--item-radius) !important;
 }
 
-.accordion-item:last-of-type .accordion-button.collapsed {
+.ssseo-accordion .accordion-item:last-of-type .accordion-button.collapsed {
   border-bottom-left-radius: var(--item-radius) !important;
   border-bottom-right-radius: var(--item-radius) !important;
 }
 
 /* Accordion body content */
-.accordion-body {
+.ssseo-accordion .accordion-body {
   background: #ffffff;
   color: #333333;
   padding: 1rem 1.25rem;
@@ -91,7 +86,6 @@
 .ssseo-accordion-header .accordion-button {
   display: flex !important;
   align-items: center !important;
-  /* Do NOT use justify-content:space-between — it doesn't constrain text width */
 }
 
 /* The text content inside the button must shrink below its natural width */
