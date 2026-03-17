@@ -1,3 +1,14 @@
+## 7.9.18.3 — 2026-03-17
+
+### Fixed — FAQ Generator 504 Timeout
+- **Prompt version mismatch** — Metabox and AJAX handler now read v3 prompt template
+  first (matching what the admin tab saves), with v2/v1 fallbacks.
+- **Skip permalink fetch for metabox** — Single-post FAQ generation uses stored post
+  text directly instead of `wp_remote_get`, avoiding ~20s HTTP overhead and PHP-FPM
+  worker deadlock on low-worker hosts.
+- **Reduce retries** — Metabox generation uses 1 attempt instead of 3; user can click
+  "Generate" again manually if needed.
+
 ## 7.9.18 — 2026-03-17
 
 ### Changed — Deferred Image Generation
