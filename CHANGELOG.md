@@ -1,3 +1,21 @@
+## 7.9.15 — 2026-03-17
+
+### Fixed
+- **Accordion CSS no longer loads globally** — Changed `wp_enqueue_style` to
+  `wp_register_style` in `aintelligize.php`. CSS is now only enqueued when an
+  accordion shortcode actually renders (`faq-schema-accordion.php`,
+  `service-faq-page.php`, `video-transcript-frontend.php`). This eliminates
+  all theme stylesheet interference on pages without our accordions.
+
+- **frontend.css fully namespaced** — Removed all bare/global selectors that
+  were overriding theme styles:
+  - `:root { --myls-primary-color }` → scoped to `.myls-flip-box, .ssseo-card, .myls-grid`
+  - `.card-body h3 a` → `.myls-flip-box .card-body h3 a`
+  - `.flip-excerpt` → `.myls-flip-box .flip-excerpt`
+  - `a.flip-button` → `.myls-flip-box a.flip-button`
+  - `:root { --myls-min-col }` responsive overrides → `.myls-row { --myls-min-col }`
+  - Fixes purple background bleed and broken flip-box styles on theme cards
+
 ## 7.9.14 — 2026-03-17
 
 ### Fixed

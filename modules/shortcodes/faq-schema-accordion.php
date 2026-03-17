@@ -214,6 +214,9 @@ JS;
 
 		$vars_attr = $css_vars ? ' style="' . implode( ' ', $css_vars ) . '"' : '';
 
+		// Enqueue accordion CSS only when this shortcode renders.
+		wp_enqueue_style( 'myls-accordion' );
+
 		ob_start();
 		?>
 

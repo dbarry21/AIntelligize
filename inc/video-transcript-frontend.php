@@ -41,6 +41,9 @@ function myls_vt_append_transcript_accordion( $content ) {
 		return $content;
 	}
 
+	// Enqueue accordion CSS only when transcript renders.
+	wp_enqueue_style( 'myls-accordion' );
+
 	$accordion_id = 'myls-vt-accordion-' . esc_attr($video_id);
 	$collapse_id  = 'myls-vt-collapse-' . esc_attr($video_id);
 	$transcript   = wpautop( esc_html($row['transcript']) );

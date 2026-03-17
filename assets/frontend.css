@@ -1,3 +1,7 @@
+/* =============================================================
+   AIntelligize – Frontend Styles (all selectors namespaced)
+   ============================================================= */
+
 /* Public shell */
 .myls{font-family:var(--myls-font); color:var(--myls-text)}
 
@@ -13,18 +17,17 @@
 
 /* MYLS responsive card grid (center last row, CSS-variable columns) */
 .myls-grid {
-  /* knobs you can tweak per-instance or globally */
   --gap: 1rem;
   --mobile-columns: 1;
   --tablet-columns: 2;
-  --desktop-columns: 3;   /* e.g. set to 2 via inline style */
+  --desktop-columns: 3;
   --wide-columns: 4;
 
   display: flex;
   flex-wrap: wrap;
   gap: var(--gap);
-  justify-content: center;            /* <-- centers the last row */
-  margin: 0;                          /* neutralize .row gutters */
+  justify-content: center;
+  margin: 0;
   padding: 0;
 }
 
@@ -36,30 +39,37 @@
 
 /* Each item width = (container - gaps) / columns, last row centered */
 .myls-grid > .col {
-  /* remove Bootstrap's internal column paddings when used inside myls-grid */
   padding: 0 !important;
   flex: 0 1 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols));
   max-width: calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols));
 }
-:root {
---myls-primary-color:#136B92;
-	}
+
+/* Primary color scoped to our components only (NOT :root) */
+.myls-flip-box,
+.ssseo-card,
+.myls-grid {
+  --myls-primary-color: #136B92;
+}
+
 .myls-flip-box {
 	border:2px solid var(--myls-primary-color);
 	padding:0.25em 0.25em 1em 0.25em;
 	border-radius:1em;
 }
-.card-body h3 a {
-	color:var(--myls-primary-color) ;
+/* Scoped to our flip-box cards only */
+.myls-flip-box .card-body h3 a {
+	color:var(--myls-primary-color);
 }
-.flip-excerpt {padding:0.5em 0 1em 0;}
+.myls-flip-box .flip-excerpt {padding:0.5em 0 1em 0;}
+
 /* Optional: make cards stretch equal height nicely */
 .myls-grid .card {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
-a.flip-button {
+/* Scoped to our flip-box cards only */
+.myls-flip-box a.flip-button {
 	background-color:var(--myls-primary-color);
 }
 .myls-grid .card-body {
@@ -82,8 +92,6 @@ a.flip-button {
 
 
 /* ============= SSSEO Card Grid (responsive, variable columns) ============= */
-/* Tweak per instance using inline vars on .ssseo-grid: 
-   --mobile-columns, --tablet-columns, --desktop-columns, --wide-columns, --gap */
 .ssseo-grid {
   --gap: 1rem;
   --mobile-columns: 1;
@@ -94,11 +102,10 @@ a.flip-button {
   display: flex;
   flex-wrap: wrap;
   gap: var(--gap);
-  justify-content: center; /* centers the last row */
+  justify-content: center;
   margin: 0;
   padding: 0;
 
-  /* active column bucket (changes by breakpoint) */
   --cols: var(--mobile-columns);
 }
 @media (min-width: 768px)  { .ssseo-grid { --cols: var(--tablet-columns); } }
@@ -113,7 +120,6 @@ a.flip-button {
 
 /* ============= Card ============= */
 .ssseo-card {
-  /* 2px solid border with theme primary color; fallback if Bootstrap var missing */
   --ssseo-primary: var(--bs-primary, #0d6efd);
   background: var(--bs-body-bg, #fff);
   border: 2px solid var(--ssseo-primary);
@@ -179,7 +185,6 @@ a.flip-button {
   /* If Bootstrap exists, this inherits the primary style */
 }
 .ssseo-card .flip-button:not(.btn) {
-  /* Just in case .btn class is stripped, give a basic style */
   display: inline-block;
   border: 1px solid var(--myls-primary-color);
   background: var(--myls-primary-color);
@@ -194,7 +199,7 @@ a.flip-button {
   color: #fff;
 }
 
-/* Small utility: ensure buttons don’t stretch full width unless needed */
+/* Small utility: ensure buttons don't stretch full width unless needed */
 .ssseo-card .flip-button {
   align-self: center;
 }
@@ -207,7 +212,7 @@ a.flip-button {
   display:flex;
   flex-wrap:wrap;
   gap:var(--myls-gap);
-  align-items:stretch;      /* equalize column heights */
+  align-items:stretch;
   margin:0; padding:0; width:100%;
   box-sizing:border-box;
 }
@@ -216,7 +221,7 @@ a.flip-button {
 .myls-col{
   flex:1 1 var(--myls-min-col);
   min-width:var(--myls-min-col);
-  display:flex;             /* lets child box stretch to equal height */
+  display:flex;
   box-sizing:border-box;
 }
 
@@ -224,12 +229,12 @@ a.flip-button {
 .myls-box{
   display:flex;
   flex-direction:column;
-  flex:1 1 auto;            /* fill the column height */
+  flex:1 1 auto;
   border:1px solid var(--myls-primary);
   border-radius:var(--myls-radius);
   padding:1rem;
   text-align:center;
-  overflow:hidden;          /* keeps rounded corners on media */
+  overflow:hidden;
   background:#fff;
 }
 
@@ -272,7 +277,6 @@ border:1px solid var(--myls-primary);
 }
 /* ---------------------------------------------------------
    UTILITIES – Fixed column counts (apply to .myls-row)
-   These compute exact flex-basis per column including the gap.
    --------------------------------------------------------- */
 .myls-row.cols-2 .myls-col{
   flex:0 0 calc((100% - var(--myls-gap)) / 2);
@@ -292,11 +296,11 @@ border:1px solid var(--myls-primary);
 }
 
 /* ---------------------------------------------------------
-   RESPONSIVE TUNING – flex auto-fit behavior
+   RESPONSIVE TUNING – scoped to .myls-row (NOT :root)
    --------------------------------------------------------- */
-@media (max-width:1200px){ :root{ --myls-min-col:260px; } }
-@media (max-width:992px){  :root{ --myls-min-col:320px; } }  /* tends toward 2–3 columns */
-@media (max-width:768px){  :root{ --myls-min-col:100%; } }   /* single column on phones */
+@media (max-width:1200px){ .myls-row{ --myls-min-col:260px; } }
+@media (max-width:992px){  .myls-row{ --myls-min-col:320px; } }
+@media (max-width:768px){  .myls-row{ --myls-min-col:100%; } }
 
 /* ---------------------------------------------------------
    OPTIONAL: full-bleed row inside constrained parents
