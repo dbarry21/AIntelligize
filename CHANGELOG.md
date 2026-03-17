@@ -1,3 +1,11 @@
+## 7.9.17 — 2026-03-17
+
+### Fixed
+- **Elementor Builder AJAX error** — `$post_id` was referenced before assignment
+  on line 1940 of `ai-elementor-builder.php`, causing a PHP warning that corrupted
+  the JSON response (`<!DOCTYPE` parse error). Defaulted to `0` since the real
+  post ID is assigned after insert/update.
+
 ## 7.9.16 — 2026-03-17
 
 ### Fixed

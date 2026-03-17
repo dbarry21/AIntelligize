@@ -1937,7 +1937,7 @@ Rules:
     // template interleaving — all in one pass inside myls_elb_parse_and_build().
     $section_flags  = [
         'sections_order'   => $sections_order,
-        'post_id'          => $post_id,
+        'post_id'          => 0, // real post_id assigned after insert/update below
         'seo_keyword'      => $seo_keyword,
         'page_title'       => $page_title,
         'description'      => $description,
