@@ -1,3 +1,12 @@
+## 7.9.15 — 2026-03-17
+
+### Fixed
+- **Accordion CSS no longer loads globally** — Changed `wp_enqueue_style` to
+  `wp_register_style` in `aintelligize.php`. CSS is now only enqueued when an
+  accordion shortcode actually renders (`faq-schema-accordion.php`,
+  `service-faq-page.php`, `video-transcript-frontend.php`). This eliminates
+  all theme stylesheet interference on pages without our accordions.
+
 ## 7.9.14 — 2026-03-17
 
 ### Fixed
