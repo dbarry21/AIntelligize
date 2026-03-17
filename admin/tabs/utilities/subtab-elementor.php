@@ -1316,10 +1316,13 @@ return [
                 fd.append('contact_url',       '<?php echo esc_js( esc_url_raw($elb_resolved_url) ); ?>');
 
                 try {
-                    const res  = await fetch(ajaxurl, { method:'POST', body:fd });
+                    // Phase 1: Build page content (no images yet)
+                    const controller = new AbortController();
+                    const fetchTimeout = setTimeout(() => controller.abort(), 300000); // 5 min safety
+                    const res  = await fetch(ajaxurl, { method:'POST', body:fd, signal: controller.signal });
+                    clearTimeout(fetchTimeout);
                     const data = await res.json();
                     if (data?.success) {
-                        progressDone(true);
                         lastPostId = data.data.post_id || 0;
                         logEl.textContent = data.data.log_text || data.data.message || 'Done.';
                         if (data.data.section_count) {
@@ -1330,25 +1333,70 @@ return [
                         if (dbgEl && lastPostId) dbgEl.value = lastPostId;
                         if (data.data.edit_url) {
                             $('myls_elb_edit_url').href = data.data.edit_url;
-                            // view_url is the page permalink — open in new tab for quick preview
                             if (data.data.view_url) {
                                 $('myls_elb_preview_url').href = data.data.view_url;
                             }
                             editLink.style.display = '';
                         }
-                        if (data.data.images && data.data.images.length) {
+
+                        // Phase 2: Generate images one at a time (deferred)
+                        const pending = data.data.pending_images || [];
+                        if (pending.length > 0) {
+                            const nonce      = $('myls_elb_nonce').value;
+                            const imgStyle   = data.data.image_style || 'photo';
+                            const setFeat    = data.data.set_featured ? '1' : '0';
                             const imgGrid    = $('myls_elb_img_grid');
                             const imgPreview = $('myls_elb_img_preview');
                             imgGrid.innerHTML = '';
-                            data.data.images.forEach(img => {
-                                const div = document.createElement('div');
-                                div.style.cssText = 'width:140px;text-align:center;';
-                                div.innerHTML = '<img src="'+img.url+'" style="width:140px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #ddd;" alt="'+(img.subject||img.type)+'">'
-                                    + '<div class="small text-muted mt-1">'+img.type+(img.subject?': '+img.subject:'')+'</div>';
-                                imgGrid.appendChild(div);
-                            });
                             imgPreview.style.display = '';
+                            let completed = 0;
+
+                            for (const img of pending) {
+                                completed++;
+                                const label = img.type === 'feature_card'
+                                    ? 'Feature Card ' + (img.index + 1)
+                                    : img.type.charAt(0).toUpperCase() + img.type.slice(1);
+                                logEl.textContent += '\n🖼️ Generating ' + label + ' (' + completed + '/' + pending.length + ')…';
+                                btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Image ' + completed + '/' + pending.length + '…';
+
+                                try {
+                                    const imgFd = new FormData();
+                                    imgFd.append('action',       'myls_elb_generate_single_image');
+                                    imgFd.append('_wpnonce',     nonce);
+                                    imgFd.append('post_id',      lastPostId);
+                                    imgFd.append('image_type',   img.type);
+                                    imgFd.append('image_index',  img.index);
+                                    imgFd.append('subject',      img.subject || '');
+                                    imgFd.append('size',         img.size || '1024x1024');
+                                    imgFd.append('image_style',  imgStyle);
+                                    imgFd.append('set_featured', setFeat);
+                                    imgFd.append('page_title',   title);
+                                    imgFd.append('description',  $('myls_elb_description').value);
+
+                                    const imgCtrl    = new AbortController();
+                                    const imgTimeout = setTimeout(() => imgCtrl.abort(), 180000); // 3 min per image
+                                    const imgRes     = await fetch(ajaxurl, { method:'POST', body:imgFd, signal: imgCtrl.signal });
+                                    clearTimeout(imgTimeout);
+                                    const imgData    = await imgRes.json();
+
+                                    if (imgData?.success) {
+                                        logEl.textContent += '\n   ✅ ' + label + ' saved (ID: ' + imgData.data.id + ')';
+                                        const div = document.createElement('div');
+                                        div.style.cssText = 'width:140px;text-align:center;';
+                                        div.innerHTML = '<img src="'+imgData.data.url+'" style="width:140px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #ddd;" alt="'+(imgData.data.subject||imgData.data.type)+'">'
+                                            + '<div class="small text-muted mt-1">'+imgData.data.type+(imgData.data.subject?': '+imgData.data.subject:'')+'</div>';
+                                        imgGrid.appendChild(div);
+                                    } else {
+                                        logEl.textContent += '\n   ❌ ' + label + ': ' + (imgData?.data?.message || 'Failed');
+                                    }
+                                } catch(imgErr) {
+                                    logEl.textContent += '\n   ❌ ' + label + ': ' + imgErr.message;
+                                }
+                            }
+                            logEl.textContent += '\n\n🎉 Image generation complete (' + completed + ' processed).';
                         }
+
+                        progressDone(true);
                     } else {
                         progressDone(false);
                         logEl.textContent = '❌ ' + (data?.data?.message || 'Unknown error.');
