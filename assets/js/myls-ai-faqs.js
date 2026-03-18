@@ -352,6 +352,11 @@
   }
 
   persistCheckbox(cbAllowLinks, "allow_links");
+  // v7.9.18.5: default changed to unchecked (append mode). Clear old persisted value once.
+  if (localStorage.getItem(STORAGE_PREFIX + "skip_existing_reset") !== "1") {
+    localStorage.removeItem(STORAGE_PREFIX + "skip_existing");
+    localStorage.setItem(STORAGE_PREFIX + "skip_existing_reset", "1");
+  }
   persistCheckbox(cbSkipExisting, "skip_existing");
   persistCheckbox(cbReplaceExisting, "acf_replace");
 
