@@ -1,3 +1,11 @@
+## 7.9.18.6 — 2026-03-17
+
+### Changed — FAQ Builder defaults to append mode
+- **"Skip posts with existing MYLS FAQs" now unchecked by default** — FAQ
+  generation appends new FAQs to existing ones (with hash dedup) instead of
+  skipping posts that already have FAQs.
+- One-time localStorage reset ensures existing users pick up the new default.
+
 ## 7.9.18.5 — 2026-03-17
 
 ### Fixed — FAQ Generator 504 Timeout (all sources)
