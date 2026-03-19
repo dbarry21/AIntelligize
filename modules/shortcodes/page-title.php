@@ -41,7 +41,9 @@ if ( ! function_exists( 'myls_page_title_shortcode' ) ) {
 
 		if ( ! $post_id ) return '';
 
-		$title = get_the_title( $post_id );
+		// Prefer alternate page title if set.
+		$alt = get_post_meta( $post_id, '_myls_alt_page_title', true );
+		$title = ( is_string( $alt ) && trim( $alt ) !== '' ) ? trim( $alt ) : get_the_title( $post_id );
 		$title = is_string( $title ) ? $title : '';
 
 		// Plain-text output (safe for placing inside headings/attributes)

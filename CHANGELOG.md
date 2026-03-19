@@ -1,3 +1,12 @@
+## 7.9.18.8 — 2026-03-18
+
+### Added — Alternate Page Title custom field
+- **New field "Alternate Page Title"** in the MYLS City, State sidebar metabox
+  on all public post types. Stored as `_myls_alt_page_title`.
+- **`[page_title]` shortcode** now checks the alternate title first — if set,
+  uses it instead of the WordPress page title. Works in Elementor Theme Builder
+  heading widgets.
+
 ## 7.9.18.7 — 2026-03-18
 
 ### Added — Meta Description Post-Processor

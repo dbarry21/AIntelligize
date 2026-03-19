@@ -83,6 +83,14 @@ add_action('add_meta_boxes', function() {
 function myls_render_city_state_metabox( $post ) {
 	wp_nonce_field('myls_city_state_save', 'myls_city_state_nonce');
 	$val = myls_get_city_state_meta((int)$post->ID);
+	$alt_title = get_post_meta((int)$post->ID, '_myls_alt_page_title', true);
+	$alt_title = is_string($alt_title) ? $alt_title : '';
+
+	echo '<p><label for="myls_alt_page_title"><strong>Alternate Page Title</strong></label></p>';
+	echo '<input type="text" class="widefat" id="myls_alt_page_title" name="myls_alt_page_title" value="' . esc_attr($alt_title) . '" placeholder="Leave blank to use WP page title" />';
+	echo '<p style="margin-top:4px;"><small>Used by <code>[page_title]</code> shortcode. Saved to <code>_myls_alt_page_title</code>.</small></p>';
+
+	echo '<hr style="margin:12px 0;" />';
 
 	echo '<p><label for="myls_city_state"><strong>City, State</strong></label></p>';
 	echo '<input type="text" class="widefat" id="myls_city_state" name="myls_city_state" value="' . esc_attr($val) . '" placeholder="Tampa, FL" />';
@@ -173,7 +181,7 @@ add_action('save_post', function( $post_id ) {
 	if ( wp_is_post_revision($post_id) ) return;
 	if ( ! current_user_can('edit_post', $post_id) ) return;
 
-	// City/State
+	// City/State + Alternate Page Title
 	if ( isset($_POST['myls_city_state_nonce']) && wp_verify_nonce($_POST['myls_city_state_nonce'], 'myls_city_state_save') ) {
 		if ( isset($_POST['myls_city_state']) ) {
 			$val = sanitize_text_field((string)$_POST['myls_city_state']);
@@ -181,6 +189,15 @@ add_action('save_post', function( $post_id ) {
 				delete_post_meta($post_id, '_myls_city_state');
 			} else {
 				update_post_meta($post_id, '_myls_city_state', $val);
+			}
+		}
+
+		if ( isset($_POST['myls_alt_page_title']) ) {
+			$alt = sanitize_text_field((string)$_POST['myls_alt_page_title']);
+			if ( $alt === '' ) {
+				delete_post_meta($post_id, '_myls_alt_page_title');
+			} else {
+				update_post_meta($post_id, '_myls_alt_page_title', $alt);
 			}
 		}
 	}
