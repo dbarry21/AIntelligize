@@ -1,3 +1,18 @@
+## 7.9.18.7 — 2026-03-18
+
+### Added — Meta Description Post-Processor
+- **New class `MYLS_Meta_Postprocessor`** (`inc/class-myls-meta-postprocessor.php`)
+  validates AI-generated meta descriptions before Yoast save.
+- **Sanitise:** strips tags, wrapping quotes, collapses whitespace.
+- **Hard-fail checks:** rejects first-person pronouns (we/our/us/your), brand name
+  ("Premier Pro"), single blocked city names, and question marks.
+- **CTA enforcement:** description must end with an approved CTA phrase. Attempts
+  salvage by truncating at last sentence boundary and appending shortest fitting CTA.
+- **Length trim:** descriptions over 160 chars are trimmed at word boundary while
+  preserving the CTA intact.
+- Integrated into `myls_ai_generate_meta` AJAX handler — runs only for `kind=desc`,
+  rejected descriptions are logged with error details and not saved.
+
 ## 7.9.18.6 — 2026-03-17
 
 ### Changed — FAQ Builder defaults to append mode

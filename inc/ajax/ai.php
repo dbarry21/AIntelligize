@@ -349,6 +349,20 @@ add_action('wp_ajax_myls_ai_generate_meta', function(){
 		// Clear error on success
 		$GLOBALS['myls_ai_last_error'] = '';
 
+		// ── Meta description post-processor: enforce quality rules before save ──
+		if ( $kind === 'desc' && class_exists( 'MYLS_Meta_Postprocessor' ) ) {
+			$enforced = MYLS_Meta_Postprocessor::enforce( $new );
+			if ( is_wp_error( $enforced ) ) {
+				$row['old']   = $old;
+				$row['new']   = $new;
+				$row['saved'] = false;
+				$row['error'] = $enforced->get_error_message();
+				$items[] = $row;
+				continue;
+			}
+			$new = $enforced;
+		}
+
 		$row['old']    = $old;
 		$row['new']    = $new;
 		$row['dryrun'] = !!$dryrun;
