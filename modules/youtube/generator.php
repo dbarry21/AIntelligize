@@ -185,6 +185,11 @@ if ( ! class_exists('MYLS_YT_Generator') ) {
 					}
 					$results['updated']++;
 					update_post_meta($existing_id, '_myls_video_id', $video_id);
+					// Store thumbnail if not already set
+					if ( get_post_meta($existing_id, '_myls_video_thumb_url', true) === '' ) {
+						$thumb_url = isset($it['thumb']) && $it['thumb'] !== '' ? $it['thumb'] : ( function_exists('myls_yt_thumbnail_url') ? myls_yt_thumbnail_url( $video_id ) : "https://i.ytimg.com/vi/{$video_id}/hqdefault.jpg" );
+						update_post_meta($existing_id, '_myls_video_thumb_url', $thumb_url);
+					}
 				} else {
 					$new_id = wp_insert_post( $postarr, true );
 					if ( is_wp_error($new_id) ) {
@@ -193,6 +198,9 @@ if ( ! class_exists('MYLS_YT_Generator') ) {
 					}
 					if ( $cat_id > 0 ) wp_set_post_categories( $new_id, [ $cat_id ], false );
 					update_post_meta( $new_id, '_myls_video_id', $video_id );
+					// Store YouTube thumbnail URL
+					$thumb_url = isset($it['thumb']) && $it['thumb'] !== '' ? $it['thumb'] : ( function_exists('myls_yt_thumbnail_url') ? myls_yt_thumbnail_url( $video_id ) : "https://i.ytimg.com/vi/{$video_id}/hqdefault.jpg" );
+					update_post_meta( $new_id, '_myls_video_thumb_url', $thumb_url );
 					$results['created']++;
 				}
 			}

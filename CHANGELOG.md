@@ -1,3 +1,30 @@
+## 7.9.18.10 — 2026-03-19
+
+### Added — YouTube Thumbnail URL Storage & Schema Consistency
+- **New helper `myls_yt_thumbnail_url()`** in `modules/youtube/helpers.php` — canonical
+  thumbnail resolution: checks stored `_myls_video_thumb_url` meta first, then constructs
+  from video ID (`hqdefault.jpg`). Used everywhere instead of inline URL construction.
+- **New helper `myls_yt_find_video_post_id()`** — finds local video CPT post by YouTube
+  video ID across all three meta keys (`_myls_youtube_video_id`, `_myls_video_id`, `_ssseo_video_id`).
+- **Video post creation** now stores `_myls_video_thumb_url` meta with the YouTube
+  thumbnail URL (both `MYLS_Youtube` class and `MYLS_YT_Generator`). Prefers API-returned
+  thumbnail from `snippet.thumbnails`, falls back to constructed `hqdefault.jpg`.
+- **Video metabox** replaced placeholder with functional sidebar showing: YouTube Video ID
+  (read-only + link), editable Thumbnail URL field, and live image preview.
+- **Schema providers** updated for consistency:
+  - `video-archive.php` — uses stored meta via helper (upgraded from `mqdefault` to `hqdefault`)
+  - `video-object-detector.php` — checks stored meta for local video posts before constructing
+  - `video-collection-head.php` — uses stored meta via helper for local video posts
+  - `channel-list.php` — prefers stored meta when local video post exists
+- **Backfill Thumbnails** button in YT Video Blog tab — scans all existing video posts
+  and populates `_myls_video_thumb_url` for any missing thumbnails.
+
+**Files changed:** `modules/youtube/helpers.php`, `modules/youtube/class-myls-youtube.php`,
+`modules/youtube/generator.php`, `modules/cpt/video-metaboxes.php`,
+`inc/schema/providers/video-archive.php`, `inc/schema/providers/video-object-detector.php`,
+`inc/schema/providers/video-collection-head.php`, `modules/shortcodes/channel-list.php`,
+`admin/tabs/yt-video-blog.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.9 — 2026-03-19
 
 ### Added — `[heading_title]` shortcode

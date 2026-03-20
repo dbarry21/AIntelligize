@@ -100,7 +100,7 @@ function myls_ycl_itemlists_into_head() {
 					$link    = get_permalink($p) ?: '';
 					$vid_meta= get_post_meta($p->ID, '_myls_video_id', true);
 					if (!$vid_meta) $vid_meta = get_post_meta($p->ID, '_ssseo_video_id', true);
-					$thumb   = $vid_meta ? ('https://i.ytimg.com/vi/' . rawurlencode($vid_meta) . '/mqdefault.jpg') : '';
+					$thumb   = function_exists('myls_yt_thumbnail_url') ? myls_yt_thumbnail_url( (string) $vid_meta, (int) $p->ID ) : ( $vid_meta ? ('https://i.ytimg.com/vi/' . rawurlencode($vid_meta) . '/hqdefault.jpg') : '' );
 					$embed   = $vid_meta ? ('https://www.youtube.com/embed/' . rawurlencode($vid_meta)) : '';
 					$schema_list[] = [
 						'title'      => $title,

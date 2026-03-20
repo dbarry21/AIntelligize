@@ -115,6 +115,56 @@ add_filter('myls_ytvb_prepare_title', function( $title, $args = array() ){
 
 
 /* -----------------------------------------------------------------------------
+ * AJAX: Backfill thumbnail URLs for existing video posts
+ * ---------------------------------------------------------------------------*/
+add_action('wp_ajax_myls_youtube_backfill_thumbs', function() {
+	check_ajax_referer('myls_ytvb_ajax', 'nonce');
+	if ( ! current_user_can('manage_options') ) wp_send_json_error(['message'=>'Forbidden']);
+
+	$posts = get_posts([
+		'post_type'      => 'video',
+		'post_status'    => 'any',
+		'posts_per_page' => -1,
+		'fields'         => 'ids',
+		'no_found_rows'  => true,
+	]);
+
+	$updated = 0;
+	$skipped = 0;
+	$no_id   = 0;
+
+	foreach ( $posts as $pid ) {
+		// Already has a thumbnail URL
+		$existing = get_post_meta( $pid, '_myls_video_thumb_url', true );
+		if ( is_string( $existing ) && $existing !== '' ) {
+			$skipped++;
+			continue;
+		}
+
+		// Find video ID
+		$vid = '';
+		foreach ( ['_myls_youtube_video_id', '_myls_video_id', '_ssseo_video_id'] as $key ) {
+			$val = get_post_meta( $pid, $key, true );
+			if ( is_string( $val ) && trim( $val ) !== '' ) {
+				$vid = trim( $val );
+				break;
+			}
+		}
+
+		if ( $vid === '' ) {
+			$no_id++;
+			continue;
+		}
+
+		$thumb = function_exists('myls_yt_thumbnail_url') ? myls_yt_thumbnail_url( $vid ) : "https://i.ytimg.com/vi/{$vid}/hqdefault.jpg";
+		update_post_meta( $pid, '_myls_video_thumb_url', $thumb );
+		$updated++;
+	}
+
+	wp_send_json_success([ 'updated' => $updated, 'skipped' => $skipped, 'no_id' => $no_id ]);
+});
+
+/* -----------------------------------------------------------------------------
  * Admin Tab (settings + runner UI)
  * ---------------------------------------------------------------------------*/
 myls_register_admin_tab(array(
@@ -442,6 +492,20 @@ myls_register_admin_tab(array(
 				<pre id="myls-ytvb-log" class="myls-results-terminal">Ready.</pre>
 			</div>
 
+			<!-- Card 5: Thumbnail Backfill -->
+			<div class="myls-card">
+				<div class="myls-card-header">
+					<h2 class="myls-card-title"><i class="bi bi-image"></i> Thumbnail Backfill</h2>
+				</div>
+				<p class="myls-text-muted">Scan existing video posts and populate <code>_myls_video_thumb_url</code> for any that are missing a stored thumbnail URL.</p>
+				<div class="myls-actions">
+					<button type="button" class="btn btn-outline-primary" id="myls-ytvb-backfill-thumbs" data-nonce="<?php echo esc_attr($ajax_nonce); ?>">
+						<i class="bi bi-arrow-repeat me-1"></i> Backfill Thumbnails
+					</button>
+				</div>
+				<div id="myls-ytvb-backfill-result" class="myls-status" style="display:none;margin-top:10px;"></div>
+			</div>
+
 			<!-- Token Preview -->
 			<details class="myls-card" style="cursor:pointer;">
 				<summary style="font-weight:600;display:flex;align-items:center;gap:.5rem;">
@@ -554,6 +618,20 @@ jQuery(function($){
 	$('#myls-ytvb-log-clear').on('click', function(){
 		$.post(ajaxurl, { action:'myls_youtube_clear_log', nonce: nonce })
 		 .done(function(){ $('#myls-ytvb-log').text('(cleared)'); });
+	});
+
+	// Thumbnail Backfill
+	$('#myls-ytvb-backfill-thumbs').on('click', function(){
+		const $out = $('#myls-ytvb-backfill-result');
+		const bfNonce = $(this).data('nonce');
+		paint($out, true, '<em>Scanning video posts&hellip;</em>');
+		$.post(ajaxurl, { action:'myls_youtube_backfill_thumbs', nonce: bfNonce })
+		 .done(function(r){
+			if (!r || !r.success) return paint($out, false, (r && r.data && r.data.message) ? r.data.message : 'Failed');
+			const d = r.data || {};
+			paint($out, true, 'Updated: ' + (d.updated || 0) + ' &bull; Already set: ' + (d.skipped || 0) + ' &bull; No video ID: ' + (d.no_id || 0));
+		 })
+		 .fail(function(){ paint($out, false, 'Network error'); });
 	});
 });
 </script>
