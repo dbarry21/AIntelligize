@@ -241,6 +241,11 @@ myls_register_admin_tab(array(
 			$play_color = isset($_POST['myls_ytvb_play_button_color']) ? sanitize_hex_color( wp_unslash($_POST['myls_ytvb_play_button_color']) ) : '';
 			update_option('myls_ytvb_play_button_color', $play_color ?: '');
 
+			// Default fallback video ID
+			$default_vid = isset($_POST['myls_ytvb_default_video_id']) ? preg_replace( '/[^A-Za-z0-9_-]/', '', wp_unslash($_POST['myls_ytvb_default_video_id']) ) : '';
+			if ( $default_vid !== '' && strlen( $default_vid ) !== 11 ) $default_vid = '';
+			update_option('myls_ytvb_default_video_id', $default_vid);
+
 			echo '<div class="notice notice-success is-dismissible"><p>YT Video Blog settings saved.</p></div>';
 		}
 
@@ -260,6 +265,7 @@ myls_register_admin_tab(array(
 		$overwrite       = get_option('myls_ytvb_overwrite', '0');
 		$fetch_transcript= get_option('myls_ytvb_fetch_transcript', '0');
 		$play_btn_color  = get_option('myls_ytvb_play_button_color', '');
+		$default_video_id = get_option('myls_ytvb_default_video_id', '');
 		$notify_enabled  = get_option('myls_ytvb_notify_email_enabled', '0');
 		$notify_email    = get_option('myls_ytvb_notify_email', '');
 		$last_run        = get_option('myls_ytvb_last_run_time', '');
@@ -403,6 +409,11 @@ myls_register_admin_tab(array(
 								<code id="myls-play-color-hex"><?php echo esc_html( $play_btn_color ?: '#FF0000' ); ?></code>
 							</div>
 							<div class="form-text">Default: YouTube Red (#FF0000). Used by <code>[myls_youtube_embed]</code> shortcode globally.</div>
+						</div>
+						<div class="col-md-4">
+							<label class="form-label" for="myls_ytvb_default_video_id"><strong>Default Fallback Video ID</strong></label>
+							<input type="text" class="form-control" id="myls_ytvb_default_video_id" name="myls_ytvb_default_video_id" value="<?php echo esc_attr( $default_video_id ); ?>" placeholder="e.g. dQw4w9WgXcQ" maxlength="11" style="font-family:monospace;">
+							<div class="form-text">11-char YouTube video ID. Used as fallback when <code>use_page_video="1"</code> but page has no video URL.</div>
 						</div>
 					</div>
 				</div>
