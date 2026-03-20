@@ -8,10 +8,12 @@
  *
  * Usage:
  * - [myls_youtube_embed video_id="dQw4w9WgXcQ"]
+ * - [myls_youtube_embed url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"]
  * - [myls_youtube_embed video_id="dQw4w9WgXcQ" title="My Video"]
  *
  * Attributes:
- * - video_id  (required) YouTube video ID (11 chars)
+ * - video_id  YouTube video ID (11 chars). Required if url not provided.
+ * - url       Full YouTube URL (watch, embed, shorts, youtu.be). Extracts ID automatically.
  * - title     (optional) Video title for schema/alt text. Defaults to post title.
  * - autoplay  (optional) 1 = autoplay + mute on click. Default: 1.
  */
@@ -23,17 +25,26 @@ function myls_youtube_embed_shortcode( $atts = [] ) {
 
 	$atts = shortcode_atts(
 		[
-			'video_id'  => '',
-			'title'     => '',
-			'autoplay'  => '1',
+			'video_id'    => '',
+			'url'         => '',
+			'title'       => '',
+			'autoplay'    => '1',
+			'play_color'  => '',
 		],
 		$atts,
 		'myls_youtube_embed'
 	);
 
-	$video_id = preg_replace( '/[^A-Za-z0-9_-]/', '', (string) $atts['video_id'] );
-	if ( $video_id === '' ) {
-		return '<p><em>No video_id provided.</em></p>';
+	// Resolve video ID: from video_id attribute, or extract from url attribute
+	$video_id = trim( (string) $atts['video_id'] );
+	if ( $video_id === '' && $atts['url'] !== '' ) {
+		if ( preg_match( '%(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/))([A-Za-z0-9_-]{11})%i', $atts['url'], $m ) ) {
+			$video_id = $m[1];
+		}
+	}
+	$video_id = preg_replace( '/[^A-Za-z0-9_-]/', '', $video_id );
+	if ( $video_id === '' || strlen( $video_id ) !== 11 ) {
+		return '<p><em>Invalid or missing YouTube video ID.</em></p>';
 	}
 
 	// Resolve title
@@ -43,11 +54,15 @@ function myls_youtube_embed_shortcode( $atts = [] ) {
 	}
 	$title = wp_strip_all_tags( $title );
 
-	// Thumbnail URL via canonical helper
+	// Thumbnail URL — prefer maxresdefault (fills 16:9), fall back to hqdefault
 	$post_id   = (int) get_the_ID();
-	$thumb_url = function_exists( 'myls_yt_thumbnail_url' )
-		? myls_yt_thumbnail_url( $video_id, $post_id )
-		: 'https://i.ytimg.com/vi/' . rawurlencode( $video_id ) . '/hqdefault.jpg';
+	$thumb_url = '';
+	if ( function_exists( 'myls_yt_thumbnail_url' ) ) {
+		$thumb_url = myls_yt_thumbnail_url( $video_id, $post_id );
+	}
+	if ( $thumb_url === '' ) {
+		$thumb_url = 'https://i.ytimg.com/vi/' . rawurlencode( $video_id ) . '/maxresdefault.jpg';
+	}
 
 	// Embed URL
 	$autoplay  = $atts['autoplay'] === '1';
@@ -70,19 +85,27 @@ function myls_youtube_embed_shortcode( $atts = [] ) {
 		$css_printed = true;
 		add_action( 'wp_footer', function() {
 			echo '<style>
-.myls-yt-facade{position:relative;width:100%;cursor:pointer;background:#000;overflow:hidden;border-radius:6px;}
-.myls-yt-facade::before{content:"";display:block;padding-top:56.25%;}
-.myls-yt-facade img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.myls-yt-embed-wrap{width:100%;}
+.myls-yt-facade{position:relative;width:100%;padding-top:56.25%;cursor:pointer;background:#000;overflow:hidden;border-radius:6px;}
+.myls-yt-facade img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;}
 .myls-yt-facade .myls-yt-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:48px;pointer-events:none;z-index:2;}
 .myls-yt-facade .myls-yt-play svg{width:100%;height:100%;}
-.myls-yt-facade:hover .myls-yt-play svg .ytp-bg{fill:#f00;}
-.myls-yt-facade iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+.myls-yt-facade .myls-yt-play svg .ytp-bg{fill:var(--myls-yt-play-color,#1a73e8);transition:fill .2s;}
+.myls-yt-facade:hover .myls-yt-play svg .ytp-bg{fill:var(--myls-yt-play-hover,#1558b0);}
+.myls-yt-facade iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
 </style>';
 		}, 99 );
 	}
 
+	// Play button color override
+	$play_style = '';
+	$play_color = trim( (string) $atts['play_color'] );
+	if ( $play_color !== '' ) {
+		$play_style = ' style="--myls-yt-play-color:' . esc_attr( $play_color ) . ';"';
+	}
+
 	// Build HTML
-	$html  = '<div class="myls-yt-embed-wrap" style="width:100%;">';
+	$html  = '<div class="myls-yt-embed-wrap"' . $play_style . '>';
 	$html .= '<div id="' . $uid . '" class="myls-yt-facade" data-embed="' . esc_attr( $embed_url ) . '" role="button" tabindex="0" aria-label="' . esc_attr( 'Play video: ' . $title ) . '">';
 	$html .= '<img src="' . esc_url( $thumb_url ) . '" alt="' . esc_attr( $title ) . '" loading="lazy" />';
 	// YouTube-style play button SVG

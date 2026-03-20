@@ -1,3 +1,17 @@
+## 7.9.18.13 — 2026-03-19
+
+### Improved — `[myls_youtube_embed]` play button, URL support, thumbnail fix
+- **Play button color** defaults to blue (`#1a73e8`) with darker hover. Override
+  via `play_color` attribute (e.g. `play_color="#ff6600"`). Uses CSS custom
+  property `--myls-yt-play-color` so it can also be set in theme CSS.
+- **URL attribute** — accepts full YouTube URLs (watch, embed, shorts, youtu.be)
+  in addition to bare `video_id`. Extracts the 11-char ID automatically.
+- **Thumbnail fix** — uses `maxresdefault.jpg` instead of `hqdefault.jpg` so
+  vertical/Shorts thumbnails are cropped properly by `object-fit: cover`.
+- **Play button positioning fix** — replaced `::before` pseudo-element with
+  direct `padding-top: 56.25%` on the facade for reliable centering.
+- **Validates 11-char ID** — rejects invalid IDs with a clear error message.
+
 ## 7.9.18.12 — 2026-03-19
 
 ### Changed — `[myls_youtube_embed]` fully responsive
