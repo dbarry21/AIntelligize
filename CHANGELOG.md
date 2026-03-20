@@ -1,3 +1,9 @@
+## 7.9.18.12 — 2026-03-19
+
+### Changed — `[myls_youtube_embed]` fully responsive
+- Removed `max_width` attribute — embed is now purely responsive 16:9 within
+  its parent container. No fixed width constraint.
+
 ## 7.9.18.11 — 2026-03-19
 
 ### Added — `[myls_youtube_embed]` shortcode

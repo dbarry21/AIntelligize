@@ -551,13 +551,11 @@ function mlseo_compile_shortcode_documentation() {
             'attributes' => [
                 'video_id'  => ['default' => '',    'description' => 'YouTube video ID (11 chars). Required.'],
                 'title'     => ['default' => '',    'description' => 'Video title for schema and alt text. Defaults to current page title.'],
-                'max_width' => ['default' => '100%','description' => 'CSS max-width for container. Fills parent by default.'],
                 'autoplay'  => ['default' => '1',   'description' => 'Autoplay + mute on click. Set 0 to disable.'],
             ],
             'examples' => [
                 ['label' => 'Basic embed',            'code' => '[myls_youtube_embed video_id="dQw4w9WgXcQ"]'],
                 ['label' => 'With custom title',      'code' => '[myls_youtube_embed video_id="dQw4w9WgXcQ" title="Paver Sealing Demo"]'],
-                ['label' => 'Constrained width',      'code' => '[myls_youtube_embed video_id="dQw4w9WgXcQ" max_width="600px"]'],
             ],
             'tips' => [
                 'Thumbnail placeholder — iframe only loads on click (saves ~500KB per embed)',
