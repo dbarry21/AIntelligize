@@ -521,6 +521,18 @@ add_filter('myls_schema_graph', function(array $graph) {
 
 	$provider = $localbiz_id ? [ '@id' => $localbiz_id ] : $org_provider;
 
+	// Wrap provider as array and append first enabled Person @id if any
+	$person_profiles_svc = get_option( 'myls_person_profiles', [] );
+	if ( is_array( $person_profiles_svc ) && ! empty( $person_profiles_svc ) ) {
+		foreach ( $person_profiles_svc as $fp ) {
+			if ( empty( $fp['name'] ) || ( $fp['enabled'] ?? '1' ) !== '1' ) continue;
+			$person_provider_ref = [ '@id' => home_url( '/#person-' . sanitize_title( $fp['name'] ) ) ];
+			// Make provider an array of [business, person] for maximum entity coverage
+			$provider = [ $provider, $person_provider_ref ];
+			break; // first enabled person only
+		}
+	}
+
 	/* ----------------------------
 	 * Service basics
 	 * ---------------------------- */

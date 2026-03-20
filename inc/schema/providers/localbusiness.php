@@ -110,21 +110,17 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 		// Tells AI crawlers exactly which topics/services this business covers.
 		$knows_about = function_exists('myls_get_knows_about') ? myls_get_knows_about() : [];
 
-		// employee: reference Person @id on front page when Person schema is enabled
+		// employee + founder — Person @id references on all pages (not front-page-only)
 		$employee = null;
-		if ( is_front_page() ) {
-			$person_profiles = get_option( 'myls_person_profiles', [] );
-			if ( is_array( $person_profiles ) && ! empty( $person_profiles ) ) {
-				$emp_refs = [];
-				foreach ( $person_profiles as $p ) {
-					if ( empty( $p['name'] ) ) continue;
-					if ( ( $p['enabled'] ?? '1' ) !== '1' ) continue;
-					$person_slug = sanitize_title( $p['name'] );
-					$emp_refs[]  = [ '@id' => home_url( '/#person-' . $person_slug ) ];
-				}
-				if ( ! empty( $emp_refs ) ) {
-					$employee = count( $emp_refs ) === 1 ? $emp_refs[0] : $emp_refs;
-				}
+		$person_profiles = get_option( 'myls_person_profiles', [] );
+		if ( is_array( $person_profiles ) && ! empty( $person_profiles ) ) {
+			$emp_refs = [];
+			foreach ( $person_profiles as $fp ) {
+				if ( empty( $fp['name'] ) || ( $fp['enabled'] ?? '1' ) !== '1' ) continue;
+				$emp_refs[] = [ '@id' => home_url( '/#person-' . sanitize_title( $fp['name'] ) ) ];
+			}
+			if ( ! empty( $emp_refs ) ) {
+				$employee = count( $emp_refs ) === 1 ? $emp_refs[0] : $emp_refs;
 			}
 		}
 
@@ -225,8 +221,9 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			'openingHoursSpecification' => $hours ?: null,
 			'aggregateRating' => function_exists('myls_schema_build_aggregate_rating') ? myls_schema_build_aggregate_rating() : null,
 
-			// employee: Person @id reference (front page only)
+			// employee + founder: Person @id references (all pages)
 			'employee' => $employee,
+			'founder'  => $employee,  // owners are founders — same @id refs
 
 			// Link to Organization entity by @id reference (not inline duplicate)
 			'parentOrganization' => [ '@id' => home_url( '/#organization' ) ],

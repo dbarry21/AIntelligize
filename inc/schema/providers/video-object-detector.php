@@ -898,6 +898,16 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 		// isPartOf — @id reference to WebSite
 		$node['isPartOf'] = [ '@id' => home_url( '/#website' ) ];
 
+		// director — first enabled Person @id (creator/director credit for AI engines)
+		$person_profiles_vid = get_option( 'myls_person_profiles', [] );
+		if ( is_array( $person_profiles_vid ) && ! empty( $person_profiles_vid ) ) {
+			foreach ( $person_profiles_vid as $fp ) {
+				if ( empty( $fp['name'] ) || ( $fp['enabled'] ?? '1' ) !== '1' ) continue;
+				$node['director'] = [ '@id' => home_url( '/#person-' . sanitize_title( $fp['name'] ) ) ];
+				break;
+			}
+		}
+
 		/**
 		 * Filter individual VideoObject node before it enters the graph.
 		 *
