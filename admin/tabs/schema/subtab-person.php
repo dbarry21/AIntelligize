@@ -927,7 +927,7 @@ $spec = [
                     </div>
                     <?php endforeach; ?>
                   </div>
-                  <button type="button" class="myls-btn-sm myls-btn-add" onclick="mylsPersonAddComposite(this, 'interaction_stats', ['type','count'], ['Interaction Type','Count'], ['ReviewAction','898'])"><i class="bi bi-plus-circle"></i> Add Stat</button>
+                  <button type="button" class="myls-btn-sm myls-btn-add" onclick="mylsPersonAddComposite(this, 'interaction_stats', ['type','count'], ['Interaction Type','Count'], ['ReviewAction','898'], {type:[{value:'ReviewAction',label:'ReviewAction (reviews received)'},{value:'FollowAction',label:'FollowAction (followers)'},{value:'LikeAction',label:'LikeAction (likes)'}]})"><i class="bi bi-plus-circle"></i> Add Stat</button>
                 </div>
 
               </div><!-- /col-main -->
@@ -1038,7 +1038,7 @@ $spec = [
       };
 
       /* ── Composite repeater: knowsAbout, credentials, alumni, memberOf ── */
-      window.mylsPersonAddComposite = function(btn, field, keys, labels, placeholders) {
+      window.mylsPersonAddComposite = function(btn, field, keys, labels, placeholders, selects) {
         var container = btn.previousElementSibling;
         var idx       = container.dataset.idx;
         var subIdx    = container.querySelectorAll('.myls-composite-row').length;
@@ -1047,15 +1047,26 @@ $spec = [
         row.className = 'myls-composite-row ' + colClass;
         var html = '';
         for (var i = 0; i < keys.length; i++) {
+          var fieldName = 'myls_person['+idx+']['+field+']['+subIdx+']['+keys[i]+']';
           html += '<div><label class="form-label">'+labels[i]+'</label>';
-          var inputType = keys[i].includes('url') || keys[i].includes('wikidata') || keys[i].includes('wikipedia') ? 'url' : 'text';
-          html += '<input type="'+inputType+'" name="myls_person['+idx+']['+field+']['+subIdx+']['+keys[i]+']" value="" placeholder="'+placeholders[i]+'" />';
+          if (selects && selects[keys[i]]) {
+            html += '<select name="'+fieldName+'" class="form-select">';
+            html += '<option value="">\u2014 Select \u2014</option>';
+            selects[keys[i]].forEach(function(opt) {
+              html += '<option value="'+opt.value+'">'+opt.label+'</option>';
+            });
+            html += '</select>';
+          } else {
+            var inputType = keys[i].includes('url') || keys[i].includes('wikidata') || keys[i].includes('wikipedia') ? 'url' : 'text';
+            html += '<input type="'+inputType+'" name="'+fieldName+'" value="" placeholder="'+placeholders[i]+'" />';
+          }
           html += '</div>';
         }
         html += '<button type="button" class="row-remove" onclick="this.parentElement.remove()" title="Remove">×</button>';
         row.innerHTML = html;
         container.appendChild(row);
-        row.querySelector('input').focus();
+        var firstInput = row.querySelector('input,select');
+        if (firstInput) firstInput.focus();
       };
 
       /* ── Image picker via WP Media ── */
