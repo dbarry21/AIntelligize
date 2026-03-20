@@ -61,8 +61,8 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 			if ( is_array( $raw ) ) {
 				foreach ( $raw as $row ) {
 					if ( ! is_array( $row ) ) continue;
-					$q = trim( sanitize_text_field( (string) ( $row['q'] ?? '' ) ) );
-					$a = trim( wp_kses_post( (string) ( $row['a'] ?? '' ) ) );
+					$q = trim( wp_specialchars_decode( wp_strip_all_tags( (string) ( $row['q'] ?? '' ) ), ENT_QUOTES ) );
+					$a = trim( wp_specialchars_decode( wp_strip_all_tags( (string) ( $row['a'] ?? '' ) ), ENT_QUOTES ) );
 					if ( $q !== '' && $a !== '' ) {
 						$items[] = [ 'q' => $q, 'a' => $a ];
 					}

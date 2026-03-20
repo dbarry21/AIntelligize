@@ -1,3 +1,16 @@
+## 7.9.18.16 — 2026-03-19
+
+### Fixed — Schema JSON-LD encoding and type correctness
+- **FAQ answers:** replaced `wp_kses_post()` with `wp_strip_all_tags()` +
+  `wp_specialchars_decode()` in all schema collectors (`render.php`, `faq.php`,
+  `service-faq-page.php`). Eliminates HTML entities (`&amp;`, `&quot;`) in
+  JSON-LD output that caused Google Rich Results validation failures.
+- **AggregateRating numbers:** `ratingValue` now outputs as a JSON number
+  (`4.5`) instead of string (`"4.5"`). `bestRating`/`worstRating` changed from
+  `"5"`/`"1"` strings to `5`/`1` integers. `reviewCount` cast to `(int)`.
+- **Service description:** replaced `wp_kses_post()` with plain-text decode
+  to prevent HTML entities in schema output.
+
 ## 7.9.18.15 — 2026-03-19
 
 ### Fixed — `[myls_youtube_embed]` title overlay shows video title, not page title

@@ -41,8 +41,8 @@ if ( ! function_exists('myls_faq_collect_items_native') ) {
 		$out = [];
 		foreach ( $items as $row ) {
 			if ( ! is_array($row) ) continue;
-			$q = trim( sanitize_text_field( (string) ( $row['q'] ?? '' ) ) );
-			$a = trim( wp_kses_post( (string) ( $row['a'] ?? '' ) ) );
+			$q = trim( wp_specialchars_decode( wp_strip_all_tags( (string) ( $row['q'] ?? '' ) ), ENT_QUOTES ) );
+			$a = trim( wp_specialchars_decode( wp_strip_all_tags( (string) ( $row['a'] ?? '' ) ), ENT_QUOTES ) );
 			if ( $q === '' || $a === '' ) continue;
 			$out[] = [ 'q' => $q, 'a' => $a ];
 		}
@@ -53,7 +53,7 @@ if ( ! function_exists('myls_faq_collect_items_native') ) {
 if ( ! function_exists('myls_faq_collect_items_acf') ) {
 	/**
 	 * Legacy fallback: ACF repeater faq_items.
-	 * Returns normalized array of ['q' => string, 'a' => string(html)]
+	 * Returns normalized array of ['q' => string, 'a' => string(plain text)]
 	 */
 	function myls_faq_collect_items_acf( int $post_id ) : array {
 		if ( ! function_exists('have_rows') || ! function_exists('get_sub_field') ) return [];
@@ -62,8 +62,8 @@ if ( ! function_exists('myls_faq_collect_items_acf') ) {
 		$out = [];
 		while ( have_rows('faq_items', $post_id) ) {
 			the_row();
-			$q = trim( sanitize_text_field( (string) get_sub_field('question') ) );
-			$a = trim( wp_kses_post( (string) get_sub_field('answer') ) );
+			$q = trim( wp_specialchars_decode( wp_strip_all_tags( (string) get_sub_field('question') ), ENT_QUOTES ) );
+			$a = trim( wp_specialchars_decode( wp_strip_all_tags( (string) get_sub_field('answer') ), ENT_QUOTES ) );
 			if ( $q === '' || $a === '' ) continue;
 			$out[] = [ 'q' => $q, 'a' => $a ];
 		}
