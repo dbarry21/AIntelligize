@@ -9,12 +9,10 @@
  * Usage:
  * - [myls_youtube_embed video_id="dQw4w9WgXcQ"]
  * - [myls_youtube_embed video_id="dQw4w9WgXcQ" title="My Video"]
- * - [myls_youtube_embed video_id="dQw4w9WgXcQ" max_width="100%"]
  *
  * Attributes:
  * - video_id  (required) YouTube video ID (11 chars)
  * - title     (optional) Video title for schema/alt text. Defaults to post title.
- * - max_width (optional) CSS max-width for container. Default: 100% (fills parent).
  * - autoplay  (optional) 1 = autoplay + mute on click. Default: 1.
  */
 if ( ! defined( 'ABSPATH' ) ) exit;
@@ -27,7 +25,6 @@ function myls_youtube_embed_shortcode( $atts = [] ) {
 		[
 			'video_id'  => '',
 			'title'     => '',
-			'max_width' => '100%',
 			'autoplay'  => '1',
 		],
 		$atts,
@@ -64,9 +61,6 @@ function myls_youtube_embed_shortcode( $atts = [] ) {
 	$embed_url = 'https://www.youtube.com/embed/' . rawurlencode( $video_id ) . '?' . http_build_query( $embed_params );
 	$watch_url = 'https://www.youtube.com/watch?v=' . rawurlencode( $video_id );
 
-	// Max width
-	$max_width = esc_attr( $atts['max_width'] );
-
 	// Unique ID for this instance
 	$uid = 'myls-yt-' . esc_attr( $video_id ) . '-' . wp_unique_id();
 
@@ -88,7 +82,7 @@ function myls_youtube_embed_shortcode( $atts = [] ) {
 	}
 
 	// Build HTML
-	$html  = '<div class="myls-yt-embed-wrap" style="max-width:' . $max_width . ';width:100%;margin:0 auto;">';
+	$html  = '<div class="myls-yt-embed-wrap" style="width:100%;">';
 	$html .= '<div id="' . $uid . '" class="myls-yt-facade" data-embed="' . esc_attr( $embed_url ) . '" role="button" tabindex="0" aria-label="' . esc_attr( 'Play video: ' . $title ) . '">';
 	$html .= '<img src="' . esc_url( $thumb_url ) . '" alt="' . esc_attr( $title ) . '" loading="lazy" />';
 	// YouTube-style play button SVG
