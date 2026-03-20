@@ -1,3 +1,20 @@
+## 7.9.18.18 — 2026-03-20
+
+### Added — Page video URL migration + use_page_video shortcode attribute
+- **Shortcode:** `[myls_youtube_embed]` now supports `use_page_video="1"` to read
+  video URL from current page meta, with fallback chain: `_myls_page_video_url` →
+  ACF `video_url` → `fallback_id` attribute → site-wide default video ID.
+- **Admin:** Default Fallback Video ID setting in YT Video Blog > Display Settings.
+- **Metabox:** New "YouTube Video URL" metabox on pages — saves to
+  `_myls_page_video_url` with thumbnail preview and lazy ACF migration.
+- **Migration:** Batch migration utility (ACF `video_url` → `_myls_page_video_url`)
+  in Utilities > Migration tab.
+- **Docs:** Updated shortcode documentation with new attributes and examples.
+
+**Files changed:** `youtube-embed.php`, `yt-video-blog.php`, `page-video-url.php` (new),
+`acf-migrations.php`, `subtab-migration.php`, `myls-utilities.js`, `shortcode-data.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.17 — 2026-03-20
 
 ### Added — Enhanced Person schema + cross-entity references
