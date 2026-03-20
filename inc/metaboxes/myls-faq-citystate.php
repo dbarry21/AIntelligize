@@ -88,7 +88,7 @@ function myls_render_city_state_metabox( $post ) {
 
 	echo '<p><label for="myls_alt_page_title"><strong>Alternate Page Title</strong></label></p>';
 	echo '<input type="text" class="widefat" id="myls_alt_page_title" name="myls_alt_page_title" value="' . esc_attr($alt_title) . '" placeholder="Leave blank to use WP page title" />';
-	echo '<p style="margin-top:4px;"><small>Used by <code>[page_title]</code> shortcode. Saved to <code>_myls_alt_page_title</code>.</small></p>';
+	echo '<p style="margin-top:4px;"><small>Used by <code>[heading_title]</code> shortcode. Saved to <code>_myls_alt_page_title</code>.</small></p>';
 
 	echo '<hr style="margin:12px 0;" />';
 

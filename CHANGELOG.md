@@ -1,3 +1,19 @@
+## 7.9.18.9 — 2026-03-19
+
+### Added — `[heading_title]` shortcode
+- **New `[heading_title]` shortcode** checks the "Alternate Page Title" field
+  (`_myls_alt_page_title`) first — if set, uses it; otherwise falls back to
+  the WordPress page title. Designed for Elementor Theme Builder heading widgets.
+- Supports `prefix`, `suffix`, and `id` attributes (same as `[page_title]`).
+- **`[page_title]` reverted** to always return the WordPress page title — no
+  longer checks `_myls_alt_page_title`. This prevents unintended side effects
+  when `[page_title]` is used inside other shortcodes (e.g. FAQ accordion heading).
+- Auto-loaded via `modules/shortcodes/heading-title.php`.
+
+**Files changed:** `modules/shortcodes/heading-title.php` (new),
+`modules/shortcodes/page-title.php`, `inc/metaboxes/myls-faq-citystate.php`,
+`admin/docs/shortcode-data.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.8 — 2026-03-18
 
 ### Added — Alternate Page Title custom field

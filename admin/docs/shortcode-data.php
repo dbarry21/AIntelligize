@@ -502,19 +502,44 @@ function mlseo_compile_shortcode_documentation() {
         [
             'name' => 'page_title',
             'category' => 'schema',
-            'description' => 'Outputs the page title with configurable HTML tag. Useful when page builders strip the native title.',
+            'description' => 'Returns the current WordPress page title as plain text. Always uses the real WP title — does not check the Alternate Page Title field.',
             'basic_usage' => '[page_title]',
             'attributes' => [
-                'tag'   => ['default' => 'h1', 'description' => 'HTML wrapper tag: h1, h2, h3, p, span'],
-                'class' => ['default' => '',   'description' => 'CSS class on the tag'],
+                'id'     => ['default' => '',  'description' => 'Optional explicit post ID'],
+                'prefix' => ['default' => '',  'description' => 'Text prepended to the title'],
+                'suffix' => ['default' => '',  'description' => 'Text appended to the title'],
             ],
             'examples' => [
-                ['label' => 'Default H1', 'code' => '[page_title]'],
-                ['label' => 'As H2 with class', 'code' => '[page_title tag="h2" class="section-title"]'],
+                ['label' => 'Default',         'code' => '[page_title]'],
+                ['label' => 'With FAQs suffix','code' => '[page_title suffix=" FAQs"]'],
+                ['label' => 'Specific post',   'code' => '[page_title id="123"]'],
             ],
             'tips' => [
-                'Useful for ensuring proper H1 presence for SEO',
-                'Works with any page builder',
+                'Use inside other shortcode attributes (e.g. heading_sc=\'page_title suffix=" FAQs"\')',
+                'For alternate page titles in Theme Builder headings, use [heading_title] instead',
+                'Output is plain text (esc_html) — safe for use inside attributes',
+            ],
+        ],
+
+        [
+            'name' => 'heading_title',
+            'category' => 'schema',
+            'description' => 'Returns the Alternate Page Title if set, otherwise falls back to the WordPress page title. Designed for Elementor Theme Builder heading widgets where a custom heading is needed.',
+            'basic_usage' => '[heading_title]',
+            'attributes' => [
+                'id'     => ['default' => '',  'description' => 'Optional explicit post ID'],
+                'prefix' => ['default' => '',  'description' => 'Text prepended to the title'],
+                'suffix' => ['default' => '',  'description' => 'Text appended to the title'],
+            ],
+            'examples' => [
+                ['label' => 'Default',                'code' => '[heading_title]'],
+                ['label' => 'With prefix and suffix', 'code' => '[heading_title prefix="About " suffix=" Services"]'],
+                ['label' => 'Specific post',          'code' => '[heading_title id="123"]'],
+            ],
+            'tips' => [
+                'Set the "Alternate Page Title" field in the MYLS City, State metabox in the post editor',
+                'If the alternate title is blank, falls back to the standard WordPress page title',
+                'Output is plain text (esc_html) — safe for use inside heading widgets',
             ],
         ],
 
