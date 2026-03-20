@@ -4,7 +4,7 @@
  *
  * Lightweight YouTube video embed with thumbnail placeholder overlay.
  * No iframe loaded until the user clicks — great for page speed / CWV.
- * Outputs VideoObject JSON-LD schema inline.
+ * Outputs VideoObject JSON-LD schema inline. Title displayed over video.
  *
  * Usage:
  * - [myls_youtube_embed video_id="dQw4w9WgXcQ"]
@@ -12,10 +12,11 @@
  * - [myls_youtube_embed video_id="dQw4w9WgXcQ" title="My Video"]
  *
  * Attributes:
- * - video_id  YouTube video ID (11 chars). Required if url not provided.
- * - url       Full YouTube URL (watch, embed, shorts, youtu.be). Extracts ID automatically.
- * - title     (optional) Video title for schema/alt text. Defaults to post title.
- * - autoplay  (optional) 1 = autoplay + mute on click. Default: 1.
+ * - video_id   YouTube video ID (11 chars). Required if url not provided.
+ * - url        Full YouTube URL (watch, embed, shorts, youtu.be). Extracts ID automatically.
+ * - title      (optional) Video title for schema/alt text. Defaults to post title.
+ * - autoplay   (optional) 1 = autoplay + mute on click. Default: 1.
+ * - play_color (optional) Hex color for play button. Overrides admin setting.
  */
 if ( ! defined( 'ABSPATH' ) ) exit;
 
@@ -79,6 +80,15 @@ function myls_youtube_embed_shortcode( $atts = [] ) {
 	// Unique ID for this instance
 	$uid = 'myls-yt-' . esc_attr( $video_id ) . '-' . wp_unique_id();
 
+	// Resolve play button color: shortcode attr > admin option > YouTube Red default
+	$play_color = trim( (string) $atts['play_color'] );
+	if ( $play_color === '' ) {
+		$play_color = get_option( 'myls_ytvb_play_button_color', '' );
+	}
+	if ( $play_color === '' ) {
+		$play_color = '#FF0000';
+	}
+
 	// Enqueue inline CSS once
 	static $css_printed = false;
 	if ( ! $css_printed ) {
@@ -88,29 +98,25 @@ function myls_youtube_embed_shortcode( $atts = [] ) {
 .myls-yt-embed-wrap{width:100%;}
 .myls-yt-facade{position:relative;width:100%;padding-top:56.25%;cursor:pointer;background:#000;overflow:hidden;border-radius:6px;}
 .myls-yt-facade img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;}
+.myls-yt-facade .myls-yt-title{position:absolute;top:0;left:0;right:0;padding:12px 16px;color:#fff;font-size:16px;font-weight:600;line-height:1.3;background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent);z-index:3;pointer-events:none;}
 .myls-yt-facade .myls-yt-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:48px;pointer-events:none;z-index:2;}
 .myls-yt-facade .myls-yt-play svg{width:100%;height:100%;}
-.myls-yt-facade .myls-yt-play svg .ytp-bg{fill:var(--myls-yt-play-color,#1a73e8);transition:fill .2s;}
-.myls-yt-facade:hover .myls-yt-play svg .ytp-bg{fill:var(--myls-yt-play-hover,#1558b0);}
+.myls-yt-facade .myls-yt-play svg .ytp-bg{transition:opacity .2s;}
+.myls-yt-facade:hover .myls-yt-play svg .ytp-bg{opacity:1;}
 .myls-yt-facade iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
 </style>';
 		}, 99 );
 	}
 
-	// Play button color override
-	$play_style = '';
-	$play_color = trim( (string) $atts['play_color'] );
-	if ( $play_color !== '' ) {
-		$play_style = ' style="--myls-yt-play-color:' . esc_attr( $play_color ) . ';"';
-	}
-
 	// Build HTML
-	$html  = '<div class="myls-yt-embed-wrap"' . $play_style . '>';
+	$html  = '<div class="myls-yt-embed-wrap">';
 	$html .= '<div id="' . $uid . '" class="myls-yt-facade" data-embed="' . esc_attr( $embed_url ) . '" role="button" tabindex="0" aria-label="' . esc_attr( 'Play video: ' . $title ) . '">';
 	$html .= '<img src="' . esc_url( $thumb_url ) . '" alt="' . esc_attr( $title ) . '" loading="lazy" />';
-	// YouTube-style play button SVG
+	// Title overlay at top
+	$html .= '<span class="myls-yt-title">' . esc_html( $title ) . '</span>';
+	// YouTube-style play button SVG — fill driven by resolved $play_color, no inline fill-opacity
 	$html .= '<span class="myls-yt-play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg">'
-	        . '<path class="ytp-bg" d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55C3.97 2.33 2.27 4.81 1.48 7.74.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="#212121" fill-opacity=".8"/>'
+	        . '<path class="ytp-bg" d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55C3.97 2.33 2.27 4.81 1.48 7.74.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="' . esc_attr( $play_color ) . '" opacity=".85"/>'
 	        . '<path d="M45 24 27 14v20" fill="#fff"/>'
 	        . '</svg></span>';
 	$html .= '</div>';

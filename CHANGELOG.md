@@ -1,3 +1,15 @@
+## 7.9.18.14 — 2026-03-19
+
+### Improved — `[myls_youtube_embed]` admin color picker, title overlay, SVG fix
+- **Play Button Color picker** in YT Video Blog → Display Settings. YouTube Red
+  (#FF0000) default. Saved as `myls_ytvb_play_button_color` option.
+- **Title overlay** — video title displayed at the top of the thumbnail with a
+  gradient fade background. Hidden when iframe replaces facade on click.
+- **SVG fill fix** — removed inline `fill="#212121" fill-opacity=".8"` that
+  overrode CSS. Play button color now rendered server-side via `fill` attribute
+  using the resolved color (shortcode attr → admin option → #FF0000).
+- Color priority: `play_color` shortcode attr > admin option > YouTube Red.
+
 ## 7.9.18.13 — 2026-03-19
 
 ### Improved — `[myls_youtube_embed]` play button, URL support, thumbnail fix

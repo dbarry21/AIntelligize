@@ -237,6 +237,10 @@ myls_register_admin_tab(array(
 			$notify_email = isset($_POST['myls_ytvb_notify_email']) ? sanitize_email( wp_unslash($_POST['myls_ytvb_notify_email']) ) : '';
 			update_option('myls_ytvb_notify_email', $notify_email);
 
+			// Play button color
+			$play_color = isset($_POST['myls_ytvb_play_button_color']) ? sanitize_hex_color( wp_unslash($_POST['myls_ytvb_play_button_color']) ) : '';
+			update_option('myls_ytvb_play_button_color', $play_color ?: '');
+
 			echo '<div class="notice notice-success is-dismissible"><p>YT Video Blog settings saved.</p></div>';
 		}
 
@@ -255,6 +259,7 @@ myls_register_admin_tab(array(
 		$auto_refresh    = get_option('myls_ytvb_auto_refresh', '0');
 		$overwrite       = get_option('myls_ytvb_overwrite', '0');
 		$fetch_transcript= get_option('myls_ytvb_fetch_transcript', '0');
+		$play_btn_color  = get_option('myls_ytvb_play_button_color', '');
 		$notify_enabled  = get_option('myls_ytvb_notify_email_enabled', '0');
 		$notify_email    = get_option('myls_ytvb_notify_email', '');
 		$last_run        = get_option('myls_ytvb_last_run_time', '');
@@ -384,6 +389,28 @@ myls_register_admin_tab(array(
 						<div class="form-text">We recommend 5&ndash;6 words for concise, clicky titles.</div>
 					</div>
 				</div>
+
+				<!-- Card 2b: Display Settings -->
+				<div class="myls-card">
+					<div class="myls-card-header">
+						<h2 class="myls-card-title"><i class="bi bi-palette"></i> Display Settings</h2>
+					</div>
+					<div class="row g-3 align-items-end">
+						<div class="col-md-4">
+							<label class="form-label" for="myls_ytvb_play_button_color"><strong>Play Button Color</strong></label>
+							<div class="d-flex align-items-center gap-2">
+								<input type="color" class="form-control form-control-color" id="myls_ytvb_play_button_color" name="myls_ytvb_play_button_color" value="<?php echo esc_attr( $play_btn_color ?: '#FF0000' ); ?>" title="Choose play button color">
+								<code id="myls-play-color-hex"><?php echo esc_html( $play_btn_color ?: '#FF0000' ); ?></code>
+							</div>
+							<div class="form-text">Default: YouTube Red (#FF0000). Used by <code>[myls_youtube_embed]</code> shortcode globally.</div>
+						</div>
+					</div>
+				</div>
+				<script>
+				document.getElementById('myls_ytvb_play_button_color').addEventListener('input',function(){
+					document.getElementById('myls-play-color-hex').textContent=this.value;
+				});
+				</script>
 
 				<!-- Card 3: Scheduling & Behavior -->
 				<div class="myls-card">
