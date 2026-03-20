@@ -51,6 +51,12 @@ if (!function_exists('myls_person_default_profile')) {
       'member_of'        => [],
       'awards'           => [],
       'languages'        => [],
+      'gender'             => '',
+      'nationality'        => '',
+      'identifiers'        => [],
+      'occupation_name'    => '',
+      'occupation_skills'  => [],
+      'interaction_stats'  => [],
       'pages'            => [],
     ];
   }
@@ -625,6 +631,22 @@ $spec = [
                     </div>
                   </div>
 
+                  <div class="myls-field-half">
+                    <div class="myls-field-row">
+                      <label class="form-label">Gender</label>
+                      <select name="myls_person[<?php echo $idx; ?>][gender]" class="form-select">
+                        <option value="">— Not specified —</option>
+                        <option value="Male" <?php selected( $p['gender'] ?? '', 'Male' ); ?>>Male</option>
+                        <option value="Female" <?php selected( $p['gender'] ?? '', 'Female' ); ?>>Female</option>
+                        <option value="Non-binary" <?php selected( $p['gender'] ?? '', 'Non-binary' ); ?>>Non-binary</option>
+                      </select>
+                    </div>
+                    <div class="myls-field-row">
+                      <label class="form-label">Nationality</label>
+                      <input type="text" name="myls_person[<?php echo $idx; ?>][nationality]" value="<?php echo esc_attr( $p['nationality'] ?? '' ); ?>" placeholder="United States" />
+                    </div>
+                  </div>
+
                   <div class="myls-field-row">
                     <label class="form-label">Bio / Description</label>
                     <textarea name="myls_person[<?php echo $idx; ?>][description]" placeholder="Brief professional bio (1-3 sentences recommended)"><?php echo esc_textarea($p['description']); ?></textarea>
@@ -653,6 +675,56 @@ $spec = [
                       <button type="button" class="myls-btn-sm" onclick="mylsPersonPickImage(this, <?php echo $idx; ?>)"><i class="bi bi-image"></i> Choose Image</button>
                     </div>
                   </div>
+                </div>
+
+                <!-- Occupation (hasOccupation) -->
+                <div class="myls-fieldgroup">
+                  <div class="myls-fieldgroup-title"><i class="bi bi-briefcase"></i> Occupation (hasOccupation)</div>
+                  <div class="form-hint" style="margin-bottom:8px;">Structured occupation — strengthens E-E-A-T for skills-based expertise.</div>
+                  <div class="myls-field-row">
+                    <label class="form-label">Occupation / Role Name</label>
+                    <input type="text" name="myls_person[<?php echo $idx; ?>][occupation_name]" value="<?php echo esc_attr( $p['occupation_name'] ?? '' ); ?>" placeholder="Exterior Cleaning Technician" />
+                  </div>
+                  <div class="myls-field-row">
+                    <label class="form-label">Skills</label>
+                    <div class="myls-repeater" data-field="occupation_skills" data-idx="<?php echo $idx; ?>">
+                      <?php
+                      $occ_skills = (array)( $p['occupation_skills'] ?? [''] );
+                      if ( empty( $occ_skills ) ) $occ_skills = [''];
+                      foreach ( $occ_skills as $sk ): ?>
+                      <div class="myls-repeater-row">
+                        <input type="text" name="myls_person[<?php echo $idx; ?>][occupation_skills][]" value="<?php echo esc_attr( $sk ); ?>" placeholder="Paver sealing" />
+                        <button type="button" class="myls-btn-xs" onclick="this.parentElement.remove()">×</button>
+                      </div>
+                      <?php endforeach; ?>
+                    </div>
+                    <button type="button" class="myls-btn-sm myls-btn-add" onclick="mylsPersonAddRepeater(this, 'occupation_skills')"><i class="bi bi-plus-circle"></i> Add Skill</button>
+                  </div>
+                </div>
+
+                <!-- License Numbers (identifier) -->
+                <div class="myls-fieldgroup">
+                  <div class="myls-fieldgroup-title"><i class="bi bi-card-checklist"></i> License Numbers (identifier)</div>
+                  <div class="form-hint" style="margin-bottom:8px;">State contractor or trade license numbers. Different from Credentials — outputs as machine-readable PropertyValue for AI verification.</div>
+                  <div class="myls-composite-repeater" data-field="identifiers" data-idx="<?php echo $idx; ?>">
+                    <?php
+                    $ids = (array)( $p['identifiers'] ?? [] );
+                    if ( empty( $ids ) ) $ids = [['name'=>'','value'=>'']];
+                    foreach ( $ids as $ii => $id ): ?>
+                    <div class="myls-composite-row cols-2">
+                      <div>
+                        <label class="form-label">License Type</label>
+                        <input type="text" name="myls_person[<?php echo $idx; ?>][identifiers][<?php echo $ii; ?>][name]" value="<?php echo esc_attr( $id['name'] ?? '' ); ?>" placeholder="FL Contractor License" />
+                      </div>
+                      <div>
+                        <label class="form-label">License Number</label>
+                        <input type="text" name="myls_person[<?php echo $idx; ?>][identifiers][<?php echo $ii; ?>][value]" value="<?php echo esc_attr( $id['value'] ?? '' ); ?>" placeholder="CCC123456" />
+                      </div>
+                      <button type="button" class="row-remove" onclick="this.parentElement.remove()">×</button>
+                    </div>
+                    <?php endforeach; ?>
+                  </div>
+                  <button type="button" class="myls-btn-sm myls-btn-add" onclick="mylsPersonAddComposite(this, 'identifiers', ['name','value'], ['License Type','License Number'], ['FL Contractor License','CCC123456'])"><i class="bi bi-plus-circle"></i> Add License</button>
                 </div>
 
                 <!-- sameAs (Social / Profiles) -->
@@ -826,6 +898,36 @@ $spec = [
                     </div>
                     <button type="button" class="myls-btn-sm myls-btn-add" onclick="mylsPersonAddRepeater(this, 'languages')"><i class="bi bi-plus-circle"></i> Add</button>
                   </div>
+                </div>
+
+                <!-- Social Proof (interactionStatistic) -->
+                <div class="myls-fieldgroup">
+                  <div class="myls-fieldgroup-title"><i class="bi bi-graph-up"></i> Social Proof (interactionStatistic)</div>
+                  <div class="form-hint" style="margin-bottom:8px;">Review counts, follower counts — verifiable signals for AI citation. Use ReviewAction for review counts.</div>
+                  <div class="myls-composite-repeater" data-field="interaction_stats" data-idx="<?php echo $idx; ?>">
+                    <?php
+                    $int_stats = (array)( $p['interaction_stats'] ?? [] );
+                    if ( empty( $int_stats ) ) $int_stats = [['type'=>'','count'=>'']];
+                    foreach ( $int_stats as $ii => $int ): ?>
+                    <div class="myls-composite-row cols-2">
+                      <div>
+                        <label class="form-label">Interaction Type</label>
+                        <select name="myls_person[<?php echo $idx; ?>][interaction_stats][<?php echo $ii; ?>][type]" class="form-select">
+                          <option value="">— Select —</option>
+                          <option value="ReviewAction" <?php selected( $int['type'] ?? '', 'ReviewAction' ); ?>>ReviewAction (reviews received)</option>
+                          <option value="FollowAction" <?php selected( $int['type'] ?? '', 'FollowAction' ); ?>>FollowAction (followers)</option>
+                          <option value="LikeAction" <?php selected( $int['type'] ?? '', 'LikeAction' ); ?>>LikeAction (likes)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="form-label">Count</label>
+                        <input type="number" min="0" name="myls_person[<?php echo $idx; ?>][interaction_stats][<?php echo $ii; ?>][count]" value="<?php echo esc_attr( $int['count'] ?? '' ); ?>" placeholder="898" />
+                      </div>
+                      <button type="button" class="row-remove" onclick="this.parentElement.remove()">×</button>
+                    </div>
+                    <?php endforeach; ?>
+                  </div>
+                  <button type="button" class="myls-btn-sm myls-btn-add" onclick="mylsPersonAddComposite(this, 'interaction_stats', ['type','count'], ['Interaction Type','Count'], ['ReviewAction','898'])"><i class="bi bi-plus-circle"></i> Add Stat</button>
                 </div>
 
               </div><!-- /col-main -->
@@ -1954,6 +2056,41 @@ $spec = [
         foreach ($data['languages'] as $lg) {
           $lg = sanitize_text_field(wp_unslash(trim($lg)));
           if ($lg) $p['languages'][] = $lg;
+        }
+      }
+
+      // gender
+      $p['gender'] = sanitize_text_field( wp_unslash( $data['gender'] ?? '' ) );
+      // nationality
+      $p['nationality'] = sanitize_text_field( wp_unslash( $data['nationality'] ?? '' ) );
+      // occupation
+      $p['occupation_name']   = sanitize_text_field( wp_unslash( $data['occupation_name'] ?? '' ) );
+      $p['occupation_skills'] = [];
+      if ( ! empty( $data['occupation_skills'] ) && is_array( $data['occupation_skills'] ) ) {
+        foreach ( $data['occupation_skills'] as $sk ) {
+          $sk = sanitize_text_field( wp_unslash( trim( $sk ) ) );
+          if ( $sk ) $p['occupation_skills'][] = $sk;
+        }
+      }
+      // identifiers (license/contractor numbers)
+      $p['identifiers'] = [];
+      if ( ! empty( $data['identifiers'] ) && is_array( $data['identifiers'] ) ) {
+        foreach ( $data['identifiers'] as $id ) {
+          $id_name  = sanitize_text_field( wp_unslash( $id['name']  ?? '' ) );
+          $id_value = sanitize_text_field( wp_unslash( $id['value'] ?? '' ) );
+          if ( $id_name && $id_value ) $p['identifiers'][] = [ 'name' => $id_name, 'value' => $id_value ];
+        }
+      }
+      // interaction_stats (social proof counters)
+      $p['interaction_stats'] = [];
+      $valid_interaction_types = [ 'ReviewAction', 'FollowAction', 'LikeAction' ];
+      if ( ! empty( $data['interaction_stats'] ) && is_array( $data['interaction_stats'] ) ) {
+        foreach ( $data['interaction_stats'] as $int ) {
+          $int_type  = sanitize_text_field( wp_unslash( $int['type']  ?? '' ) );
+          $int_count = absint( $int['count'] ?? 0 );
+          if ( in_array( $int_type, $valid_interaction_types, true ) && $int_count > 0 ) {
+            $p['interaction_stats'][] = [ 'type' => $int_type, 'count' => $int_count ];
+          }
         }
       }
 

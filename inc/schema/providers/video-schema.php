@@ -235,6 +235,16 @@ if ( ! function_exists('myls_video_schema_single') ) {
 		// isPartOf — @id reference to WebSite
 		$video['isPartOf'] = [ '@id' => home_url( '/#website' ) ];
 
+		// director — first enabled Person @id
+		$person_profiles_vs = get_option( 'myls_person_profiles', [] );
+		if ( is_array( $person_profiles_vs ) && ! empty( $person_profiles_vs ) ) {
+			foreach ( $person_profiles_vs as $fp ) {
+				if ( empty( $fp['name'] ) || ( $fp['enabled'] ?? '1' ) !== '1' ) continue;
+				$video['director'] = [ '@id' => home_url( '/#person-' . sanitize_title( $fp['name'] ) ) ];
+				break;
+			}
+		}
+
 		// Transcript: manual override (myls_video_entries) > cache table
 		$vt_transcript = '';
 		$admin_entries = get_option('myls_video_entries', []);

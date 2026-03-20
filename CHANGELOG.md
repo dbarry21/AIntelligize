@@ -1,3 +1,24 @@
+## 7.9.18.17 — 2026-03-20
+
+### Added — Enhanced Person schema + cross-entity references
+- **Person schema:** 5 new properties — `gender`, `nationality` (typed Country),
+  `identifier` (PropertyValue for license numbers), `hasOccupation` (structured
+  Occupation with skills), `interactionStatistic` (InteractionCounter for social proof).
+- **Organization:** `founder` property — @id references to all enabled Person profiles.
+- **LocalBusiness:** `employee` now outputs on all pages (was front-page-only).
+  Added `founder` property using same Person @id references.
+- **Service:** `provider` is now an array of [LocalBusiness, Person] when a Person
+  profile exists, for maximum entity coverage in AI engines.
+- **VideoObject:** `director` property on both video-object-detector and video-schema
+  CPT — @id reference to first enabled Person for creator/director credit.
+- **Admin UI:** 4 new fieldgroups in Person schema tab — Gender/Nationality,
+  Occupation with repeatable skills, License Numbers (composite repeater),
+  and Social Proof interaction stats (ReviewAction/FollowAction/LikeAction).
+
+**Files changed:** `person.php`, `organization.php`, `localbusiness.php`,
+`build-service-schema.php`, `video-object-detector.php`, `video-schema.php`,
+`subtab-person.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.16 — 2026-03-19
 
 ### Fixed — Schema JSON-LD encoding and type correctness
