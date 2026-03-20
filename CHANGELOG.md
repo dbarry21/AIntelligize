@@ -1,3 +1,20 @@
+## 7.9.18.11 — 2026-03-19
+
+### Added — `[myls_youtube_embed]` shortcode
+- **Lightweight YouTube embed with thumbnail placeholder overlay** — no iframe
+  loaded until user clicks. Saves ~500KB per embed for page speed / Core Web Vitals.
+- Accepts `video_id` attribute (YouTube 11-char ID), plus optional `title`,
+  `max_width` (default `100%` — fills parent container), and `autoplay`.
+- **YouTube-style play button SVG** over the thumbnail. Keyboard accessible
+  (Enter/Space to play). Responsive 16:9 aspect ratio.
+- **Inline VideoObject JSON-LD schema** with `thumbnailUrl`, `embedUrl`,
+  `uploadDate`, and `duration` (when local video post exists).
+- Uses `myls_yt_thumbnail_url()` helper for canonical thumbnail resolution.
+- Auto-loaded via `modules/shortcodes/youtube-embed.php`.
+
+**Files changed:** `modules/shortcodes/youtube-embed.php` (new),
+`admin/docs/shortcode-data.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.10 — 2026-03-19
 
 ### Added — YouTube Thumbnail URL Storage & Schema Consistency
