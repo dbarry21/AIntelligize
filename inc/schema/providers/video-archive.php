@@ -114,7 +114,7 @@ function myls_insert_video_archive_itemlist_schema() {
 		$publish_c   = get_the_date('c', $post_id);
 		$video_id    = myls_get_video_id_for_post($post_id);
 
-		$thumbnail   = $video_id ? "https://i.ytimg.com/vi/{$video_id}/mqdefault.jpg" : '';
+		$thumbnail   = function_exists('myls_yt_thumbnail_url') ? myls_yt_thumbnail_url( $video_id, $post_id ) : ( $video_id ? "https://i.ytimg.com/vi/{$video_id}/hqdefault.jpg" : '' );
 		$embed_url   = $video_id ? "https://www.youtube.com/embed/{$video_id}" : '';
 		$description = get_the_excerpt($post_id);
 		if (empty($description)) $description = $title;
