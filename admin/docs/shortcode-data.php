@@ -549,12 +549,15 @@ function mlseo_compile_shortcode_documentation() {
             'description' => 'Lightweight YouTube video embed with thumbnail placeholder overlay. No iframe loaded until user clicks — great for page speed. Outputs inline VideoObject JSON-LD schema.',
             'basic_usage' => '[myls_youtube_embed video_id="dQw4w9WgXcQ"]',
             'attributes' => [
-                'video_id'  => ['default' => '',    'description' => 'YouTube video ID (11 chars). Required.'],
+                'video_id'  => ['default' => '',    'description' => 'YouTube video ID (11 chars). Required if url not provided.'],
+                'url'       => ['default' => '',    'description' => 'Full YouTube URL (watch, embed, shorts, youtu.be). Extracts ID automatically.'],
                 'title'     => ['default' => '',    'description' => 'Video title for schema and alt text. Defaults to current page title.'],
                 'autoplay'  => ['default' => '1',   'description' => 'Autoplay + mute on click. Set 0 to disable.'],
             ],
             'examples' => [
-                ['label' => 'Basic embed',            'code' => '[myls_youtube_embed video_id="dQw4w9WgXcQ"]'],
+                ['label' => 'By video ID',            'code' => '[myls_youtube_embed video_id="dQw4w9WgXcQ"]'],
+                ['label' => 'By URL',                 'code' => '[myls_youtube_embed url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"]'],
+                ['label' => 'From embed code',        'code' => '[myls_youtube_embed url="https://www.youtube.com/embed/dQw4w9WgXcQ"]'],
                 ['label' => 'With custom title',      'code' => '[myls_youtube_embed video_id="dQw4w9WgXcQ" title="Paver Sealing Demo"]'],
             ],
             'tips' => [
