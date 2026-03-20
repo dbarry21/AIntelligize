@@ -108,6 +108,7 @@ require_once MYLS_PATH . 'inc/metaboxes/ai-faq-generator.php';
 require_once MYLS_PATH . 'inc/metaboxes/service-tagline.php';
 require_once MYLS_PATH . 'inc/metaboxes/icon-image.php';
 require_once MYLS_PATH . 'inc/metaboxes/html-excerpt.php';
+require_once MYLS_PATH . 'inc/metaboxes/page-video-url.php';
 
 /** Admin AJAX + admin bar */
 require_once MYLS_PATH . 'inc/admin-ajax.php';

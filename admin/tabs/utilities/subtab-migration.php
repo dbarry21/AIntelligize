@@ -49,6 +49,18 @@ return [
 
 			<hr/>
 
+			<h3>Page Video URL Migration</h3>
+			<p>
+				Migrates legacy ACF <code>video_url</code> field into
+				<code>_myls_page_video_url</code> for use with <code>[myls_youtube_embed use_page_video="1"]</code>.
+			</p>
+
+			<button type="button" class="button" id="myls_run_page_video_migration">
+				Run Page Video URL Migration
+			</button>
+
+			<hr/>
+
 			<div class="myls-results-header">
 				<h5 class="mb-0">Results</h5>
 				<button type="button" class="myls-btn-export-pdf" data-log-target="myls_migration_log"><i class="bi bi-file-earmark-pdf"></i> PDF</button>

@@ -10,13 +10,17 @@
  * - [myls_youtube_embed video_id="dQw4w9WgXcQ"]
  * - [myls_youtube_embed url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"]
  * - [myls_youtube_embed video_id="dQw4w9WgXcQ" title="My Video"]
+ * - [myls_youtube_embed use_page_video="1"]
+ * - [myls_youtube_embed use_page_video="1" fallback_id="dQw4w9WgXcQ"]
  *
  * Attributes:
- * - video_id   YouTube video ID (11 chars). Required if url not provided.
- * - url        Full YouTube URL (watch, embed, shorts, youtu.be). Extracts ID automatically.
- * - title      (optional) Video title for schema/alt text. Defaults to post title.
- * - autoplay   (optional) 1 = autoplay + mute on click. Default: 1.
- * - play_color (optional) Hex color for play button. Overrides admin setting.
+ * - video_id       YouTube video ID (11 chars). Required if url/use_page_video not provided.
+ * - url            Full YouTube URL (watch, embed, shorts, youtu.be). Extracts ID automatically.
+ * - use_page_video 1 = read video URL from current page meta. Fallback chain: _myls_page_video_url → video_url (ACF) → fallback_id → site default.
+ * - fallback_id    (optional) Fallback video ID when use_page_video finds no URL.
+ * - title          (optional) Video title for schema/alt text. Defaults to post title.
+ * - autoplay       (optional) 1 = autoplay + mute on click. Default: 1.
+ * - play_color     (optional) Hex color for play button. Overrides admin setting.
  */
 if ( ! defined( 'ABSPATH' ) ) exit;
 
@@ -26,23 +30,59 @@ function myls_youtube_embed_shortcode( $atts = [] ) {
 
 	$atts = shortcode_atts(
 		[
-			'video_id'    => '',
-			'url'         => '',
-			'title'       => '',
-			'autoplay'    => '1',
-			'play_color'  => '',
+			'video_id'       => '',
+			'url'            => '',
+			'use_page_video' => '0',
+			'fallback_id'    => '',
+			'title'          => '',
+			'autoplay'       => '1',
+			'play_color'     => '',
 		],
 		$atts,
 		'myls_youtube_embed'
 	);
 
+	// Regex used to extract 11-char YouTube video ID from a URL
+	$yt_url_regex = '%(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/))([A-Za-z0-9_-]{11})%i';
+
 	// Resolve video ID: from video_id attribute, or extract from url attribute
 	$video_id = trim( (string) $atts['video_id'] );
 	if ( $video_id === '' && $atts['url'] !== '' ) {
-		if ( preg_match( '%(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/))([A-Za-z0-9_-]{11})%i', $atts['url'], $m ) ) {
+		if ( preg_match( $yt_url_regex, $atts['url'], $m ) ) {
 			$video_id = $m[1];
 		}
 	}
+
+	// use_page_video: read video URL from current page meta → fallback chain
+	if ( $video_id === '' && $atts['use_page_video'] === '1' ) {
+		$page_id = (int) get_the_ID();
+		if ( $page_id > 0 ) {
+			// 1. Plugin-native meta key
+			$page_url = get_post_meta( $page_id, '_myls_page_video_url', true );
+			// 2. Legacy ACF field
+			if ( ! is_string( $page_url ) || trim( $page_url ) === '' ) {
+				$page_url = get_post_meta( $page_id, 'video_url', true );
+			}
+			// Extract video ID from URL
+			if ( is_string( $page_url ) && trim( $page_url ) !== '' ) {
+				if ( preg_match( $yt_url_regex, $page_url, $m ) ) {
+					$video_id = $m[1];
+				}
+			}
+		}
+		// 3. Shortcode fallback_id attribute
+		if ( $video_id === '' && trim( (string) $atts['fallback_id'] ) !== '' ) {
+			$video_id = trim( (string) $atts['fallback_id'] );
+		}
+		// 4. Site-wide default video ID
+		if ( $video_id === '' ) {
+			$default_id = get_option( 'myls_ytvb_default_video_id', '' );
+			if ( is_string( $default_id ) && trim( $default_id ) !== '' ) {
+				$video_id = trim( $default_id );
+			}
+		}
+	}
+
 	$video_id = preg_replace( '/[^A-Za-z0-9_-]/', '', $video_id );
 	if ( $video_id === '' || strlen( $video_id ) !== 11 ) {
 		return '<p><em>Invalid or missing YouTube video ID.</em></p>';
