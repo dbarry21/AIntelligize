@@ -1,3 +1,13 @@
+## 7.9.18.19 — 2026-03-20
+
+### Fixed — Person schema interaction type dropdown
+- `mylsPersonAddComposite` JS function now supports `<select>` dropdowns via
+  optional `selects` parameter — dynamically added interaction stat rows render
+  a proper dropdown (ReviewAction/FollowAction/LikeAction) instead of a plain
+  text input.
+
+**Files changed:** `subtab-person.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.18 — 2026-03-20
 
 ### Added — Page video URL migration + use_page_video shortcode attribute
