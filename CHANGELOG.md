@@ -1,3 +1,10 @@
+## 7.9.18.15 — 2026-03-19
+
+### Fixed — `[myls_youtube_embed]` title overlay shows video title, not page title
+- Title now resolves from the local video post (`myls_yt_find_video_post_id`)
+  instead of the current page. Falls back to page title only if no video post exists.
+- Priority: `title` shortcode attr → video post title → current page title.
+
 ## 7.9.18.14 — 2026-03-19
 
 ### Improved — `[myls_youtube_embed]` admin color picker, title overlay, SVG fix

@@ -48,8 +48,14 @@ function myls_youtube_embed_shortcode( $atts = [] ) {
 		return '<p><em>Invalid or missing YouTube video ID.</em></p>';
 	}
 
-	// Resolve title
+	// Resolve title: shortcode attr → local video post title → page title fallback
 	$title = trim( (string) $atts['title'] );
+	if ( $title === '' && function_exists( 'myls_yt_find_video_post_id' ) ) {
+		$vid_pid = myls_yt_find_video_post_id( $video_id );
+		if ( $vid_pid > 0 ) {
+			$title = get_the_title( $vid_pid );
+		}
+	}
 	if ( $title === '' ) {
 		$title = get_the_title();
 	}
