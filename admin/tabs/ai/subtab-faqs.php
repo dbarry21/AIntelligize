@@ -266,7 +266,7 @@ return [
       </label>
 
       <label style="display:flex;align-items:center;gap:6px;margin:0;">
-        <input type="checkbox" id="myls_ai_faqs_skip_existing" checked>
+        <input type="checkbox" id="myls_ai_faqs_skip_existing">
         <strong>Skip posts with existing MYLS FAQs</strong>
       </label>
 

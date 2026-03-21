@@ -150,6 +150,19 @@ add_filter('myls_schema_graph', function(array $graph) {
 	// It lives on LocalBusiness (and Service) — adding it here creates
 	// duplicate entity signals since Organization is the site-wide identifier only.
 
+	// founder — @id references to all enabled Person profiles
+	$person_profiles = get_option( 'myls_person_profiles', [] );
+	if ( is_array( $person_profiles ) && ! empty( $person_profiles ) ) {
+		$founder_refs = [];
+		foreach ( $person_profiles as $fp ) {
+			if ( empty( $fp['name'] ) || ( $fp['enabled'] ?? '1' ) !== '1' ) continue;
+			$founder_refs[] = [ '@id' => home_url( '/#person-' . sanitize_title( $fp['name'] ) ) ];
+		}
+		if ( ! empty( $founder_refs ) ) {
+			$node['founder'] = count( $founder_refs ) === 1 ? $founder_refs[0] : $founder_refs;
+		}
+	}
+
 	// Allow last-mile tweaks
 	$current_id = get_queried_object_id();
 	$node = apply_filters('myls_schema_org_node', $node, $current_id);

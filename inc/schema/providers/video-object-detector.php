@@ -206,8 +206,9 @@ if ( ! function_exists('myls_make_video_item') ) {
 			$watch_url = 'https://www.youtube.com/watch?v=' . rawurlencode($video_id);
 			$embed_url = 'https://www.youtube.com/embed/'  . rawurlencode($video_id);
 			if ( $thumbnail === '' ) {
-				// hqdefault is always present; maxresdefault may 404 so use hq.
-				$thumbnail = 'https://i.ytimg.com/vi/' . rawurlencode($video_id) . '/hqdefault.jpg';
+				// Prefer stored meta via local video post, then construct from video ID
+				$local_pid = function_exists('myls_yt_find_video_post_id') ? myls_yt_find_video_post_id( $video_id ) : 0;
+				$thumbnail = function_exists('myls_yt_thumbnail_url') ? myls_yt_thumbnail_url( $video_id, $local_pid ) : 'https://i.ytimg.com/vi/' . rawurlencode($video_id) . '/hqdefault.jpg';
 			}
 		} elseif ( $source === 'vimeo' && $video_id !== '' ) {
 			$watch_url = 'https://vimeo.com/' . $video_id;
@@ -896,6 +897,16 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 
 		// isPartOf — @id reference to WebSite
 		$node['isPartOf'] = [ '@id' => home_url( '/#website' ) ];
+
+		// director — first enabled Person @id (creator/director credit for AI engines)
+		$person_profiles_vid = get_option( 'myls_person_profiles', [] );
+		if ( is_array( $person_profiles_vid ) && ! empty( $person_profiles_vid ) ) {
+			foreach ( $person_profiles_vid as $fp ) {
+				if ( empty( $fp['name'] ) || ( $fp['enabled'] ?? '1' ) !== '1' ) continue;
+				$node['director'] = [ '@id' => home_url( '/#person-' . sanitize_title( $fp['name'] ) ) ];
+				break;
+			}
+		}
 
 		/**
 		 * Filter individual VideoObject node before it enters the graph.

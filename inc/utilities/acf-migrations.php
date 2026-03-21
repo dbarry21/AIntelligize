@@ -421,6 +421,47 @@ add_action('wp_ajax_myls_util_clean_myls_faqs_batch', function(){
 	$res = myls_util_run_batch('myls_util_clean_myls_faq_for_post', $offset, $limit, $overwrite);
 	wp_send_json_success($res);
 });
+/* -------------------------------------------------------------------------
+ * Migration: video_url (ACF) → _myls_page_video_url
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Migrate a single post's ACF video_url to _myls_page_video_url.
+ */
+if ( ! function_exists('myls_util_migrate_page_video_url_for_post') ) {
+	function myls_util_migrate_page_video_url_for_post( int $post_id, bool $overwrite = false ) : string {
+		$existing = get_post_meta( $post_id, '_myls_page_video_url', true );
+		if ( ! $overwrite && is_string( $existing ) && $existing !== '' ) {
+			return 'skip';
+		}
+
+		$acf_val = get_post_meta( $post_id, 'video_url', true );
+		if ( ! is_string( $acf_val ) || trim( $acf_val ) === '' ) {
+			return 'skip';
+		}
+
+		update_post_meta( $post_id, '_myls_page_video_url', esc_url_raw( trim( $acf_val ) ) );
+		return 'migrated';
+	}
+}
+
+/**
+ * AJAX: Migrate page video_url batch
+ */
+add_action('wp_ajax_myls_util_migrate_page_video_url_batch', function(){
+	if ( ! current_user_can( myls_util_cap() ) ) {
+		wp_send_json_error(['message' => 'Permission denied'], 403);
+	}
+	check_ajax_referer( MYLS_UTIL_NONCE_ACTION, 'nonce' );
+
+	$offset    = isset($_POST['offset']) ? (int) $_POST['offset'] : 0;
+	$limit     = isset($_POST['limit'])  ? max(1, min(200, (int) $_POST['limit'])) : 25;
+	$overwrite = ! empty($_POST['overwrite']);
+
+	$res = myls_util_run_batch('myls_util_migrate_page_video_url_for_post', $offset, $limit, $overwrite);
+	wp_send_json_success($res);
+});
+
 /**
  * Enqueue Utilities JS only on MYLS admin page + Utilities tab.
  */

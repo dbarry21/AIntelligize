@@ -38,8 +38,8 @@ add_action( 'wp_head', function () {
 			'@context'   => 'https://schema.org',
 			'@type'      => 'FAQPage',
 			'mainEntity' => array_values( array_map( function( $row ) {
-				$q = wp_strip_all_tags( $row['q'] ?? '' );
-				$a = wp_kses_post( $row['a'] ?? '' );
+				$q = wp_specialchars_decode( wp_strip_all_tags( $row['q'] ?? '' ), ENT_QUOTES );
+				$a = wp_specialchars_decode( wp_strip_all_tags( $row['a'] ?? '' ), ENT_QUOTES );
 				if ( $q === '' || $a === '' ) return null;
 				return [
 					'@type'          => 'Question',
@@ -121,7 +121,7 @@ add_action( 'wp_head', function () {
 			'@type'    => 'Service',
 			'name'     => $svc['name'] ?? '',
 		];
-		if ( ! empty( $svc['description'] ) ) $data['description'] = wp_kses_post( $svc['description'] );
+		if ( ! empty( $svc['description'] ) ) $data['description'] = wp_specialchars_decode( wp_strip_all_tags( $svc['description'] ), ENT_QUOTES );
 		if ( ! empty( $svc['serviceType'] ) ) $data['serviceType'] = $svc['serviceType'];
 		if ( ! empty( $svc['areaServed'] ) )  $data['areaServed']  = $svc['areaServed'];
 

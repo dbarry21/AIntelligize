@@ -108,6 +108,7 @@ require_once MYLS_PATH . 'inc/metaboxes/ai-faq-generator.php';
 require_once MYLS_PATH . 'inc/metaboxes/service-tagline.php';
 require_once MYLS_PATH . 'inc/metaboxes/icon-image.php';
 require_once MYLS_PATH . 'inc/metaboxes/html-excerpt.php';
+require_once MYLS_PATH . 'inc/metaboxes/page-video-url.php';
 
 /** Admin AJAX + admin bar */
 require_once MYLS_PATH . 'inc/admin-ajax.php';
@@ -157,6 +158,9 @@ require_once MYLS_PATH . 'inc/ai-referral-tracker.php';
 
 /** Video transcript frontend accordion (single video CPT pages) */
 require_once MYLS_PATH . 'inc/video-transcript-frontend.php';
+
+/** Meta description post-processor (validates AI output before Yoast save) */
+require_once MYLS_PATH . 'inc/class-myls-meta-postprocessor.php';
 
 /** AI plumbing (keep if files exist; otherwise comment these two lines) */
 require_once MYLS_PATH . 'inc/ajax/ai.php';

@@ -54,8 +54,11 @@ function myls_ai_faq_generator_render($post) {
     $faqs = get_post_meta($post->ID, '_myls_faq_items', true);
     $faq_count = is_array($faqs) ? count($faqs) : 0;
     
-    // Get saved prompt template
-    $template = get_option('myls_ai_faqs_prompt_template_v2', '');
+    // Get saved prompt template (v3 is current, v2 and v1 are legacy fallbacks)
+    $template = get_option('myls_ai_faqs_prompt_template_v3', '');
+    if (empty($template)) {
+        $template = get_option('myls_ai_faqs_prompt_template_v2', '');
+    }
     if (empty($template)) {
         $template = get_option('myls_ai_faqs_prompt_template', '');
     }
@@ -199,6 +202,7 @@ function myls_ai_faq_generator_render($post) {
                 action: 'myls_ai_faqs_generate_v1',
                 post_id: postId,
                 variant: variant,
+                source: 'metabox',
                 nonce: aiNonce
             }, function(response) {
                 if (!response.success) {

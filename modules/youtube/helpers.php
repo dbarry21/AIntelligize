@@ -161,6 +161,56 @@ if ( ! function_exists('myls_yt_fetch_uploads_batch') ) {
 }
 
 /** ----------------------------------------------------------------
+ * Canonical thumbnail URL for a YouTube video.
+ *
+ * Priority: stored meta (_myls_video_thumb_url) → constructed from video ID.
+ * Always returns an absolute URL string or '' if nothing available.
+ * ---------------------------------------------------------------- */
+if ( ! function_exists('myls_yt_thumbnail_url') ) {
+	function myls_yt_thumbnail_url( string $video_id, int $post_id = 0 ) : string {
+		// 1. Check stored meta if post_id provided
+		if ( $post_id > 0 ) {
+			$stored = get_post_meta( $post_id, '_myls_video_thumb_url', true );
+			if ( is_string( $stored ) && $stored !== '' ) {
+				return $stored;
+			}
+		}
+		// 2. Construct from video ID (hqdefault is always present on YouTube)
+		if ( $video_id !== '' ) {
+			return 'https://i.ytimg.com/vi/' . rawurlencode( $video_id ) . '/hqdefault.jpg';
+		}
+		return '';
+	}
+}
+
+/** ----------------------------------------------------------------
+ * Find local video CPT post ID by YouTube video ID.
+ *
+ * Checks _myls_youtube_video_id, _myls_video_id, and _ssseo_video_id meta keys.
+ * Returns 0 if no matching post found.
+ * ---------------------------------------------------------------- */
+if ( ! function_exists('myls_yt_find_video_post_id') ) {
+	function myls_yt_find_video_post_id( string $video_id ) : int {
+		if ( $video_id === '' ) return 0;
+		$meta_keys = [ '_myls_youtube_video_id', '_myls_video_id', '_ssseo_video_id' ];
+		foreach ( $meta_keys as $key ) {
+			$q = get_posts([
+				'post_type'        => 'video',
+				'post_status'      => [ 'publish','draft','pending','future','private' ],
+				'meta_key'         => $key,
+				'meta_value'       => $video_id,
+				'posts_per_page'   => 1,
+				'fields'           => 'ids',
+				'no_found_rows'    => true,
+				'suppress_filters' => true,
+			]);
+			if ( ! empty( $q ) ) return (int) $q[0];
+		}
+		return 0;
+	}
+}
+
+/** ----------------------------------------------------------------
  * Map a YouTube video to local CPT URL if exists
  * ---------------------------------------------------------------- */
 if ( ! function_exists('myls_yt_find_video_post_url') ) {

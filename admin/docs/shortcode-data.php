@@ -502,19 +502,74 @@ function mlseo_compile_shortcode_documentation() {
         [
             'name' => 'page_title',
             'category' => 'schema',
-            'description' => 'Outputs the page title with configurable HTML tag. Useful when page builders strip the native title.',
+            'description' => 'Returns the current WordPress page title as plain text. Always uses the real WP title — does not check the Alternate Page Title field.',
             'basic_usage' => '[page_title]',
             'attributes' => [
-                'tag'   => ['default' => 'h1', 'description' => 'HTML wrapper tag: h1, h2, h3, p, span'],
-                'class' => ['default' => '',   'description' => 'CSS class on the tag'],
+                'id'     => ['default' => '',  'description' => 'Optional explicit post ID'],
+                'prefix' => ['default' => '',  'description' => 'Text prepended to the title'],
+                'suffix' => ['default' => '',  'description' => 'Text appended to the title'],
             ],
             'examples' => [
-                ['label' => 'Default H1', 'code' => '[page_title]'],
-                ['label' => 'As H2 with class', 'code' => '[page_title tag="h2" class="section-title"]'],
+                ['label' => 'Default',         'code' => '[page_title]'],
+                ['label' => 'With FAQs suffix','code' => '[page_title suffix=" FAQs"]'],
+                ['label' => 'Specific post',   'code' => '[page_title id="123"]'],
             ],
             'tips' => [
-                'Useful for ensuring proper H1 presence for SEO',
-                'Works with any page builder',
+                'Use inside other shortcode attributes (e.g. heading_sc=\'page_title suffix=" FAQs"\')',
+                'For alternate page titles in Theme Builder headings, use [heading_title] instead',
+                'Output is plain text (esc_html) — safe for use inside attributes',
+            ],
+        ],
+
+        [
+            'name' => 'heading_title',
+            'category' => 'schema',
+            'description' => 'Returns the Alternate Page Title if set, otherwise falls back to the WordPress page title. Designed for Elementor Theme Builder heading widgets where a custom heading is needed.',
+            'basic_usage' => '[heading_title]',
+            'attributes' => [
+                'id'     => ['default' => '',  'description' => 'Optional explicit post ID'],
+                'prefix' => ['default' => '',  'description' => 'Text prepended to the title'],
+                'suffix' => ['default' => '',  'description' => 'Text appended to the title'],
+            ],
+            'examples' => [
+                ['label' => 'Default',                'code' => '[heading_title]'],
+                ['label' => 'With prefix and suffix', 'code' => '[heading_title prefix="About " suffix=" Services"]'],
+                ['label' => 'Specific post',          'code' => '[heading_title id="123"]'],
+            ],
+            'tips' => [
+                'Set the "Alternate Page Title" field in the MYLS City, State metabox in the post editor',
+                'If the alternate title is blank, falls back to the standard WordPress page title',
+                'Output is plain text (esc_html) — safe for use inside heading widgets',
+            ],
+        ],
+
+        [
+            'name' => 'myls_youtube_embed',
+            'category' => 'schema',
+            'description' => 'Lightweight YouTube video embed with thumbnail placeholder overlay. No iframe loaded until user clicks — great for page speed. Outputs inline VideoObject JSON-LD schema.',
+            'basic_usage' => '[myls_youtube_embed video_id="dQw4w9WgXcQ"]',
+            'attributes' => [
+                'video_id'       => ['default' => '',    'description' => 'YouTube video ID (11 chars). Required if url/use_page_video not provided.'],
+                'url'            => ['default' => '',    'description' => 'Full YouTube URL (watch, embed, shorts, youtu.be). Extracts ID automatically.'],
+                'use_page_video' => ['default' => '0',   'description' => '1 = read video URL from current page meta (_myls_page_video_url or ACF video_url). Falls back to fallback_id then site default.'],
+                'fallback_id'    => ['default' => '',    'description' => 'Fallback video ID when use_page_video finds no URL on the page.'],
+                'title'          => ['default' => '',    'description' => 'Video title for schema and alt text. Defaults to current page title.'],
+                'autoplay'       => ['default' => '1',   'description' => 'Autoplay + mute on click. Set 0 to disable.'],
+                'play_color'     => ['default' => '',    'description' => 'Hex color for play button. Overrides admin setting.'],
+            ],
+            'examples' => [
+                ['label' => 'By video ID',            'code' => '[myls_youtube_embed video_id="dQw4w9WgXcQ"]'],
+                ['label' => 'By URL',                 'code' => '[myls_youtube_embed url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"]'],
+                ['label' => 'From embed code',        'code' => '[myls_youtube_embed url="https://www.youtube.com/embed/dQw4w9WgXcQ"]'],
+                ['label' => 'From page meta',         'code' => '[myls_youtube_embed use_page_video="1"]'],
+                ['label' => 'Page meta + fallback',   'code' => '[myls_youtube_embed use_page_video="1" fallback_id="dQw4w9WgXcQ"]'],
+                ['label' => 'With custom title',      'code' => '[myls_youtube_embed video_id="dQw4w9WgXcQ" title="Paver Sealing Demo"]'],
+            ],
+            'tips' => [
+                'Thumbnail placeholder — iframe only loads on click (saves ~500KB per embed)',
+                'Stays within parent container width — ideal for Theme Builder columns and footers',
+                'Outputs VideoObject schema with thumbnailUrl, embedUrl, uploadDate',
+                'Uses myls_yt_thumbnail_url() for stored/canonical thumbnail resolution',
             ],
         ],
 
