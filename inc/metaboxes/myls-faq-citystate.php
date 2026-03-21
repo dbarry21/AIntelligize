@@ -241,6 +241,11 @@ add_action('admin_enqueue_scripts', function($hook){
 	// Only on editor screens.
 	if ( $hook !== 'post.php' && $hook !== 'post-new.php' ) return;
 
+	// Ensure TinyMCE + wp.editor JS is loaded (needed for Gutenberg metabox init).
+	if ( function_exists('wp_enqueue_editor') ) {
+		wp_enqueue_editor();
+	}
+
 	$src = ( defined('MYLS_PLUGIN_URL') ? MYLS_PLUGIN_URL : trailingslashit(MYLS_URL) ) . 'assets/js/myls-faq-metabox.js';
 	wp_enqueue_script('myls-faq-metabox', $src, [], defined('MYLS_VERSION') ? MYLS_VERSION : null, true);
 });

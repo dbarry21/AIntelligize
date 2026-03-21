@@ -46,6 +46,47 @@
     if (auto) del.checked = false;
   }
 
+  /* -----------------------------------------------------------------------
+   * TinyMCE initialization for Gutenberg metabox compatibility.
+   *
+   * wp_editor() in PHP registers configs in tinyMCEPreInit.mceInit but
+   * Gutenberg does not call tinymce.init() for metabox editors. We do it
+   * manually here, guarded by tinymce.get() so Classic Editor is a no-op.
+   * ----------------------------------------------------------------------- */
+  function initFaqTinyMCE(row) {
+    if (!window.tinymce || !window.tinyMCEPreInit) return;
+
+    var ta = qs('textarea[id^="myls_faq_answer_"]', row);
+    if (!ta) return;
+
+    var id = ta.id;
+
+    // Already initialised (Classic Editor) — nothing to do.
+    if (tinymce.get(id)) return;
+
+    // Use the config wp_editor() registered in PHP.
+    var mceConf = tinyMCEPreInit.mceInit[id];
+    if (mceConf) {
+      try { tinymce.init(mceConf); } catch (e) { /* silent */ }
+    }
+
+    // Initialise quicktags if config exists and not yet done.
+    var qtConf = tinyMCEPreInit.qtInit[id];
+    if (qtConf && window.quicktags) {
+      try {
+        quicktags(qtConf);
+        if (window.QTags && QTags._buttonsInit) QTags._buttonsInit();
+      } catch (e) { /* silent */ }
+    }
+
+    // Ensure the editor wrap reflects Visual-active state.
+    var wrap = ta.closest('.wp-editor-wrap');
+    if (wrap && !wrap.classList.contains('tmce-active')) {
+      wrap.classList.remove('html-active');
+      wrap.classList.add('tmce-active');
+    }
+  }
+
   function wireRow(row) {
     if (!row || row.__mylsWired) return;
     row.__mylsWired = true;
@@ -96,6 +137,7 @@
     const row = blanks[0];
     row.style.display = '';
     wireRow(row);
+    initFaqTinyMCE(row);
 
     const q = qs('.myls-faq-q', row);
     if (q) {
@@ -110,6 +152,22 @@
 
     // Wire existing visible rows.
     qsa('.myls-faq-row', root).forEach(wireRow);
+
+    // Initialise TinyMCE for visible FAQ editors (delayed for Gutenberg async rendering).
+    setTimeout(function () {
+      qsa('.myls-faq-row', root).forEach(function (row) {
+        if (row.style.display === 'none') return;
+        initFaqTinyMCE(row);
+      });
+    }, 500);
+
+    // Sync TinyMCE content back to textareas before form submission.
+    var form = document.getElementById('post');
+    if (form) {
+      form.addEventListener('submit', function () {
+        if (window.tinymce) tinymce.triggerSave();
+      });
+    }
 
     const addBtn = qs('#myls-faq-add-row');
     if (addBtn) {
