@@ -130,6 +130,12 @@
       return;
     }
 
+    if (t.id === 'myls-btn-migrate-page-video' || t.id === 'myls_run_page_video_migration') {
+      e.preventDefault();
+      runBatches('myls_util_migrate_page_video_url_batch');
+      return;
+    }
+
     if (t.id === 'myls-btn-stop') {
       e.preventDefault();
       shouldStop = true;

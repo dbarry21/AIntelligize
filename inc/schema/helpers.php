@@ -203,11 +203,11 @@ if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
 
 		$node = [
 			'@type'       => 'AggregateRating',
-			'ratingValue' => number_format( $r, 1 ),
+			'ratingValue' => round( $r, 1 ),
 			'ratingCount' => $rc,
-			'reviewCount' => $review_count !== null ? $review_count : $rc,
-			'bestRating'  => '5',
-			'worstRating' => '1',
+			'reviewCount' => $review_count !== null ? (int) $review_count : $rc,
+			'bestRating'  => 5,
+			'worstRating' => 1,
 		];
 
 		return $node;

@@ -115,6 +115,56 @@ add_filter('myls_ytvb_prepare_title', function( $title, $args = array() ){
 
 
 /* -----------------------------------------------------------------------------
+ * AJAX: Backfill thumbnail URLs for existing video posts
+ * ---------------------------------------------------------------------------*/
+add_action('wp_ajax_myls_youtube_backfill_thumbs', function() {
+	check_ajax_referer('myls_ytvb_ajax', 'nonce');
+	if ( ! current_user_can('manage_options') ) wp_send_json_error(['message'=>'Forbidden']);
+
+	$posts = get_posts([
+		'post_type'      => 'video',
+		'post_status'    => 'any',
+		'posts_per_page' => -1,
+		'fields'         => 'ids',
+		'no_found_rows'  => true,
+	]);
+
+	$updated = 0;
+	$skipped = 0;
+	$no_id   = 0;
+
+	foreach ( $posts as $pid ) {
+		// Already has a thumbnail URL
+		$existing = get_post_meta( $pid, '_myls_video_thumb_url', true );
+		if ( is_string( $existing ) && $existing !== '' ) {
+			$skipped++;
+			continue;
+		}
+
+		// Find video ID
+		$vid = '';
+		foreach ( ['_myls_youtube_video_id', '_myls_video_id', '_ssseo_video_id'] as $key ) {
+			$val = get_post_meta( $pid, $key, true );
+			if ( is_string( $val ) && trim( $val ) !== '' ) {
+				$vid = trim( $val );
+				break;
+			}
+		}
+
+		if ( $vid === '' ) {
+			$no_id++;
+			continue;
+		}
+
+		$thumb = function_exists('myls_yt_thumbnail_url') ? myls_yt_thumbnail_url( $vid ) : "https://i.ytimg.com/vi/{$vid}/hqdefault.jpg";
+		update_post_meta( $pid, '_myls_video_thumb_url', $thumb );
+		$updated++;
+	}
+
+	wp_send_json_success([ 'updated' => $updated, 'skipped' => $skipped, 'no_id' => $no_id ]);
+});
+
+/* -----------------------------------------------------------------------------
  * Admin Tab (settings + runner UI)
  * ---------------------------------------------------------------------------*/
 myls_register_admin_tab(array(
@@ -187,6 +237,15 @@ myls_register_admin_tab(array(
 			$notify_email = isset($_POST['myls_ytvb_notify_email']) ? sanitize_email( wp_unslash($_POST['myls_ytvb_notify_email']) ) : '';
 			update_option('myls_ytvb_notify_email', $notify_email);
 
+			// Play button color
+			$play_color = isset($_POST['myls_ytvb_play_button_color']) ? sanitize_hex_color( wp_unslash($_POST['myls_ytvb_play_button_color']) ) : '';
+			update_option('myls_ytvb_play_button_color', $play_color ?: '');
+
+			// Default fallback video ID
+			$default_vid = isset($_POST['myls_ytvb_default_video_id']) ? preg_replace( '/[^A-Za-z0-9_-]/', '', wp_unslash($_POST['myls_ytvb_default_video_id']) ) : '';
+			if ( $default_vid !== '' && strlen( $default_vid ) !== 11 ) $default_vid = '';
+			update_option('myls_ytvb_default_video_id', $default_vid);
+
 			echo '<div class="notice notice-success is-dismissible"><p>YT Video Blog settings saved.</p></div>';
 		}
 
@@ -205,6 +264,8 @@ myls_register_admin_tab(array(
 		$auto_refresh    = get_option('myls_ytvb_auto_refresh', '0');
 		$overwrite       = get_option('myls_ytvb_overwrite', '0');
 		$fetch_transcript= get_option('myls_ytvb_fetch_transcript', '0');
+		$play_btn_color  = get_option('myls_ytvb_play_button_color', '');
+		$default_video_id = get_option('myls_ytvb_default_video_id', '');
 		$notify_enabled  = get_option('myls_ytvb_notify_email_enabled', '0');
 		$notify_email    = get_option('myls_ytvb_notify_email', '');
 		$last_run        = get_option('myls_ytvb_last_run_time', '');
@@ -335,6 +396,33 @@ myls_register_admin_tab(array(
 					</div>
 				</div>
 
+				<!-- Card 2b: Display Settings -->
+				<div class="myls-card">
+					<div class="myls-card-header">
+						<h2 class="myls-card-title"><i class="bi bi-palette"></i> Display Settings</h2>
+					</div>
+					<div class="row g-3 align-items-end">
+						<div class="col-md-4">
+							<label class="form-label" for="myls_ytvb_play_button_color"><strong>Play Button Color</strong></label>
+							<div class="d-flex align-items-center gap-2">
+								<input type="color" class="form-control form-control-color" id="myls_ytvb_play_button_color" name="myls_ytvb_play_button_color" value="<?php echo esc_attr( $play_btn_color ?: '#FF0000' ); ?>" title="Choose play button color">
+								<code id="myls-play-color-hex"><?php echo esc_html( $play_btn_color ?: '#FF0000' ); ?></code>
+							</div>
+							<div class="form-text">Default: YouTube Red (#FF0000). Used by <code>[myls_youtube_embed]</code> shortcode globally.</div>
+						</div>
+						<div class="col-md-4">
+							<label class="form-label" for="myls_ytvb_default_video_id"><strong>Default Fallback Video ID</strong></label>
+							<input type="text" class="form-control" id="myls_ytvb_default_video_id" name="myls_ytvb_default_video_id" value="<?php echo esc_attr( $default_video_id ); ?>" placeholder="e.g. dQw4w9WgXcQ" maxlength="11" style="font-family:monospace;">
+							<div class="form-text">11-char YouTube video ID. Used as fallback when <code>use_page_video="1"</code> but page has no video URL.</div>
+						</div>
+					</div>
+				</div>
+				<script>
+				document.getElementById('myls_ytvb_play_button_color').addEventListener('input',function(){
+					document.getElementById('myls-play-color-hex').textContent=this.value;
+				});
+				</script>
+
 				<!-- Card 3: Scheduling & Behavior -->
 				<div class="myls-card">
 					<div class="myls-card-header">
@@ -440,6 +528,20 @@ myls_register_admin_tab(array(
 					<button type="button" class="myls-btn-export-pdf" data-log-target="myls-ytvb-log"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
 				</div>
 				<pre id="myls-ytvb-log" class="myls-results-terminal">Ready.</pre>
+			</div>
+
+			<!-- Card 5: Thumbnail Backfill -->
+			<div class="myls-card">
+				<div class="myls-card-header">
+					<h2 class="myls-card-title"><i class="bi bi-image"></i> Thumbnail Backfill</h2>
+				</div>
+				<p class="myls-text-muted">Scan existing video posts and populate <code>_myls_video_thumb_url</code> for any that are missing a stored thumbnail URL.</p>
+				<div class="myls-actions">
+					<button type="button" class="btn btn-outline-primary" id="myls-ytvb-backfill-thumbs" data-nonce="<?php echo esc_attr($ajax_nonce); ?>">
+						<i class="bi bi-arrow-repeat me-1"></i> Backfill Thumbnails
+					</button>
+				</div>
+				<div id="myls-ytvb-backfill-result" class="myls-status" style="display:none;margin-top:10px;"></div>
 			</div>
 
 			<!-- Token Preview -->
@@ -554,6 +656,20 @@ jQuery(function($){
 	$('#myls-ytvb-log-clear').on('click', function(){
 		$.post(ajaxurl, { action:'myls_youtube_clear_log', nonce: nonce })
 		 .done(function(){ $('#myls-ytvb-log').text('(cleared)'); });
+	});
+
+	// Thumbnail Backfill
+	$('#myls-ytvb-backfill-thumbs').on('click', function(){
+		const $out = $('#myls-ytvb-backfill-result');
+		const bfNonce = $(this).data('nonce');
+		paint($out, true, '<em>Scanning video posts&hellip;</em>');
+		$.post(ajaxurl, { action:'myls_youtube_backfill_thumbs', nonce: bfNonce })
+		 .done(function(r){
+			if (!r || !r.success) return paint($out, false, (r && r.data && r.data.message) ? r.data.message : 'Failed');
+			const d = r.data || {};
+			paint($out, true, 'Updated: ' + (d.updated || 0) + ' &bull; Already set: ' + (d.skipped || 0) + ' &bull; No video ID: ' + (d.no_id || 0));
+		 })
+		 .fail(function(){ paint($out, false, 'Network error'); });
 	});
 });
 </script>

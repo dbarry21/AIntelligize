@@ -3,7 +3,7 @@
  * Plugin Name:       AIntelligize
  * Plugin URI:        https://aintelligize.com/
  * Description:       Modular local SEO toolkit with schema, AI tools, bulk operations, and shortcode utilities.
- * Version: 7.9.18.3
+ * Version: 7.9.18.20
  * Author:            Dave Barry
  * Author URI:        https://davebarry.io/
  * Text Domain:       aintelligize
@@ -16,7 +16,7 @@ if ( ! defined('ABSPATH') ) exit;
  * Canonical constants & helpers (single source of truth)
  * ───────────────────────────────────────────────────────────────────────── */
 // Keep in sync with plugin header above.
-if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.9.18.3');
+if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.9.18.20');
 if ( ! defined('MYLS_MAIN_FILE') )   define('MYLS_MAIN_FILE', __FILE__);
 if ( ! defined('MYLS_PATH') )        define('MYLS_PATH', plugin_dir_path(MYLS_MAIN_FILE));
 if ( ! defined('MYLS_URL') )         define('MYLS_URL',  plugins_url('', MYLS_MAIN_FILE));
@@ -108,6 +108,7 @@ require_once MYLS_PATH . 'inc/metaboxes/ai-faq-generator.php';
 require_once MYLS_PATH . 'inc/metaboxes/service-tagline.php';
 require_once MYLS_PATH . 'inc/metaboxes/icon-image.php';
 require_once MYLS_PATH . 'inc/metaboxes/html-excerpt.php';
+require_once MYLS_PATH . 'inc/metaboxes/page-video-url.php';
 
 /** Admin AJAX + admin bar */
 require_once MYLS_PATH . 'inc/admin-ajax.php';
@@ -157,6 +158,9 @@ require_once MYLS_PATH . 'inc/ai-referral-tracker.php';
 
 /** Video transcript frontend accordion (single video CPT pages) */
 require_once MYLS_PATH . 'inc/video-transcript-frontend.php';
+
+/** Meta description post-processor (validates AI output before Yoast save) */
+require_once MYLS_PATH . 'inc/class-myls-meta-postprocessor.php';
 
 /** AI plumbing (keep if files exist; otherwise comment these two lines) */
 require_once MYLS_PATH . 'inc/ajax/ai.php';

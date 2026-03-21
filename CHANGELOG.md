@@ -1,4 +1,4 @@
-## 7.9.18.3 — 2026-03-21
+## 7.9.18.20 — 2026-03-21
 
 ### Fixed
 - **FAQ answer Visual editor broken in Gutenberg** — TinyMCE was never initialized
@@ -6,6 +6,229 @@
   Added explicit TinyMCE initialization on page load (for visible rows) and on row
   reveal (for "Add FAQ Row" blank rows). Code tab was unaffected. Classic Editor
   remains compatible.
+
+## 7.9.18.19 — 2026-03-20
+
+### Fixed — Person schema interaction type dropdown
+- `mylsPersonAddComposite` JS function now supports `<select>` dropdowns via
+  optional `selects` parameter — dynamically added interaction stat rows render
+  a proper dropdown (ReviewAction/FollowAction/LikeAction) instead of a plain
+  text input.
+
+**Files changed:** `subtab-person.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.18 — 2026-03-20
+
+### Added — Page video URL migration + use_page_video shortcode attribute
+- **Shortcode:** `[myls_youtube_embed]` now supports `use_page_video="1"` to read
+  video URL from current page meta, with fallback chain: `_myls_page_video_url` →
+  ACF `video_url` → `fallback_id` attribute → site-wide default video ID.
+- **Admin:** Default Fallback Video ID setting in YT Video Blog > Display Settings.
+- **Metabox:** New "YouTube Video URL" metabox on pages — saves to
+  `_myls_page_video_url` with thumbnail preview and lazy ACF migration.
+- **Migration:** Batch migration utility (ACF `video_url` → `_myls_page_video_url`)
+  in Utilities > Migration tab.
+- **Docs:** Updated shortcode documentation with new attributes and examples.
+
+**Files changed:** `youtube-embed.php`, `yt-video-blog.php`, `page-video-url.php` (new),
+`acf-migrations.php`, `subtab-migration.php`, `myls-utilities.js`, `shortcode-data.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.17 — 2026-03-20
+
+### Added — Enhanced Person schema + cross-entity references
+- **Person schema:** 5 new properties — `gender`, `nationality` (typed Country),
+  `identifier` (PropertyValue for license numbers), `hasOccupation` (structured
+  Occupation with skills), `interactionStatistic` (InteractionCounter for social proof).
+- **Organization:** `founder` property — @id references to all enabled Person profiles.
+- **LocalBusiness:** `employee` now outputs on all pages (was front-page-only).
+  Added `founder` property using same Person @id references.
+- **Service:** `provider` is now an array of [LocalBusiness, Person] when a Person
+  profile exists, for maximum entity coverage in AI engines.
+- **VideoObject:** `director` property on both video-object-detector and video-schema
+  CPT — @id reference to first enabled Person for creator/director credit.
+- **Admin UI:** 4 new fieldgroups in Person schema tab — Gender/Nationality,
+  Occupation with repeatable skills, License Numbers (composite repeater),
+  and Social Proof interaction stats (ReviewAction/FollowAction/LikeAction).
+
+**Files changed:** `person.php`, `organization.php`, `localbusiness.php`,
+`build-service-schema.php`, `video-object-detector.php`, `video-schema.php`,
+`subtab-person.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.16 — 2026-03-19
+
+### Fixed — Schema JSON-LD encoding and type correctness
+- **FAQ answers:** replaced `wp_kses_post()` with `wp_strip_all_tags()` +
+  `wp_specialchars_decode()` in all schema collectors (`render.php`, `faq.php`,
+  `service-faq-page.php`). Eliminates HTML entities (`&amp;`, `&quot;`) in
+  JSON-LD output that caused Google Rich Results validation failures.
+- **AggregateRating numbers:** `ratingValue` now outputs as a JSON number
+  (`4.5`) instead of string (`"4.5"`). `bestRating`/`worstRating` changed from
+  `"5"`/`"1"` strings to `5`/`1` integers. `reviewCount` cast to `(int)`.
+- **Service description:** replaced `wp_kses_post()` with plain-text decode
+  to prevent HTML entities in schema output.
+
+## 7.9.18.15 — 2026-03-19
+
+### Fixed — `[myls_youtube_embed]` title overlay shows video title, not page title
+- Title now resolves from the local video post (`myls_yt_find_video_post_id`)
+  instead of the current page. Falls back to page title only if no video post exists.
+- Priority: `title` shortcode attr → video post title → current page title.
+
+## 7.9.18.14 — 2026-03-19
+
+### Improved — `[myls_youtube_embed]` admin color picker, title overlay, SVG fix
+- **Play Button Color picker** in YT Video Blog → Display Settings. YouTube Red
+  (#FF0000) default. Saved as `myls_ytvb_play_button_color` option.
+- **Title overlay** — video title displayed at the top of the thumbnail with a
+  gradient fade background. Hidden when iframe replaces facade on click.
+- **SVG fill fix** — removed inline `fill="#212121" fill-opacity=".8"` that
+  overrode CSS. Play button color now rendered server-side via `fill` attribute
+  using the resolved color (shortcode attr → admin option → #FF0000).
+- Color priority: `play_color` shortcode attr > admin option > YouTube Red.
+
+## 7.9.18.13 — 2026-03-19
+
+### Improved — `[myls_youtube_embed]` play button, URL support, thumbnail fix
+- **Play button color** defaults to blue (`#1a73e8`) with darker hover. Override
+  via `play_color` attribute (e.g. `play_color="#ff6600"`). Uses CSS custom
+  property `--myls-yt-play-color` so it can also be set in theme CSS.
+- **URL attribute** — accepts full YouTube URLs (watch, embed, shorts, youtu.be)
+  in addition to bare `video_id`. Extracts the 11-char ID automatically.
+- **Thumbnail fix** — uses `maxresdefault.jpg` instead of `hqdefault.jpg` so
+  vertical/Shorts thumbnails are cropped properly by `object-fit: cover`.
+- **Play button positioning fix** — replaced `::before` pseudo-element with
+  direct `padding-top: 56.25%` on the facade for reliable centering.
+- **Validates 11-char ID** — rejects invalid IDs with a clear error message.
+
+## 7.9.18.12 — 2026-03-19
+
+### Changed — `[myls_youtube_embed]` fully responsive
+- Removed `max_width` attribute — embed is now purely responsive 16:9 within
+  its parent container. No fixed width constraint.
+
+## 7.9.18.11 — 2026-03-19
+
+### Added — `[myls_youtube_embed]` shortcode
+- **Lightweight YouTube embed with thumbnail placeholder overlay** — no iframe
+  loaded until user clicks. Saves ~500KB per embed for page speed / Core Web Vitals.
+- Accepts `video_id` attribute (YouTube 11-char ID), plus optional `title`,
+  `max_width` (default `100%` — fills parent container), and `autoplay`.
+- **YouTube-style play button SVG** over the thumbnail. Keyboard accessible
+  (Enter/Space to play). Responsive 16:9 aspect ratio.
+- **Inline VideoObject JSON-LD schema** with `thumbnailUrl`, `embedUrl`,
+  `uploadDate`, and `duration` (when local video post exists).
+- Uses `myls_yt_thumbnail_url()` helper for canonical thumbnail resolution.
+- Auto-loaded via `modules/shortcodes/youtube-embed.php`.
+
+**Files changed:** `modules/shortcodes/youtube-embed.php` (new),
+`admin/docs/shortcode-data.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.10 — 2026-03-19
+
+### Added — YouTube Thumbnail URL Storage & Schema Consistency
+- **New helper `myls_yt_thumbnail_url()`** in `modules/youtube/helpers.php` — canonical
+  thumbnail resolution: checks stored `_myls_video_thumb_url` meta first, then constructs
+  from video ID (`hqdefault.jpg`). Used everywhere instead of inline URL construction.
+- **New helper `myls_yt_find_video_post_id()`** — finds local video CPT post by YouTube
+  video ID across all three meta keys (`_myls_youtube_video_id`, `_myls_video_id`, `_ssseo_video_id`).
+- **Video post creation** now stores `_myls_video_thumb_url` meta with the YouTube
+  thumbnail URL (both `MYLS_Youtube` class and `MYLS_YT_Generator`). Prefers API-returned
+  thumbnail from `snippet.thumbnails`, falls back to constructed `hqdefault.jpg`.
+- **Video metabox** replaced placeholder with functional sidebar showing: YouTube Video ID
+  (read-only + link), editable Thumbnail URL field, and live image preview.
+- **Schema providers** updated for consistency:
+  - `video-archive.php` — uses stored meta via helper (upgraded from `mqdefault` to `hqdefault`)
+  - `video-object-detector.php` — checks stored meta for local video posts before constructing
+  - `video-collection-head.php` — uses stored meta via helper for local video posts
+  - `channel-list.php` — prefers stored meta when local video post exists
+- **Backfill Thumbnails** button in YT Video Blog tab — scans all existing video posts
+  and populates `_myls_video_thumb_url` for any missing thumbnails.
+
+**Files changed:** `modules/youtube/helpers.php`, `modules/youtube/class-myls-youtube.php`,
+`modules/youtube/generator.php`, `modules/cpt/video-metaboxes.php`,
+`inc/schema/providers/video-archive.php`, `inc/schema/providers/video-object-detector.php`,
+`inc/schema/providers/video-collection-head.php`, `modules/shortcodes/channel-list.php`,
+`admin/tabs/yt-video-blog.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.9 — 2026-03-19
+
+### Added — `[heading_title]` shortcode
+- **New `[heading_title]` shortcode** checks the "Alternate Page Title" field
+  (`_myls_alt_page_title`) first — if set, uses it; otherwise falls back to
+  the WordPress page title. Designed for Elementor Theme Builder heading widgets.
+- Supports `prefix`, `suffix`, and `id` attributes (same as `[page_title]`).
+- **`[page_title]` reverted** to always return the WordPress page title — no
+  longer checks `_myls_alt_page_title`. This prevents unintended side effects
+  when `[page_title]` is used inside other shortcodes (e.g. FAQ accordion heading).
+- Auto-loaded via `modules/shortcodes/heading-title.php`.
+
+**Files changed:** `modules/shortcodes/heading-title.php` (new),
+`modules/shortcodes/page-title.php`, `inc/metaboxes/myls-faq-citystate.php`,
+`admin/docs/shortcode-data.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.8 — 2026-03-18
+
+### Added — Alternate Page Title custom field
+- **New field "Alternate Page Title"** in the MYLS City, State sidebar metabox
+  on all public post types. Stored as `_myls_alt_page_title`.
+- **`[page_title]` shortcode** now checks the alternate title first — if set,
+  uses it instead of the WordPress page title. Works in Elementor Theme Builder
+  heading widgets.
+
+## 7.9.18.7 — 2026-03-18
+
+### Added — Meta Description Post-Processor
+- **New class `MYLS_Meta_Postprocessor`** (`inc/class-myls-meta-postprocessor.php`)
+  validates AI-generated meta descriptions before Yoast save.
+- **Sanitise:** strips tags, wrapping quotes, collapses whitespace.
+- **Hard-fail checks:** rejects first-person pronouns (we/our/us/your), brand name
+  ("Premier Pro"), single blocked city names, and question marks.
+- **CTA enforcement:** description must end with an approved CTA phrase. Attempts
+  salvage by truncating at last sentence boundary and appending shortest fitting CTA.
+- **Length trim:** descriptions over 160 chars are trimmed at word boundary while
+  preserving the CTA intact.
+- Integrated into `myls_ai_generate_meta` AJAX handler — runs only for `kind=desc`,
+  rejected descriptions are logged with error details and not saved.
+
+## 7.9.18.6 — 2026-03-17
+
+### Changed — FAQ Builder defaults to append mode
+- **"Skip posts with existing MYLS FAQs" now unchecked by default** — FAQ
+  generation appends new FAQs to existing ones (with hash dedup) instead of
+  skipping posts that already have FAQs.
+- One-time localStorage reset ensures existing users pick up the new default.
+
+## 7.9.18.5 — 2026-03-17
+
+### Fixed — FAQ Generator 504 Timeout (all sources)
+- **Removed permalink HTTP fetch entirely** — All FAQ generation now uses
+  `myls_get_post_plain_text()` which reads stored content directly (handles
+  Elementor, Beaver Builder, DIVI, WPBakery, and classic). Eliminates 20s
+  HTTP overhead and PHP-FPM worker deadlock risk.
+- **Single attempt per AJAX call** — JS already loops per-post and UI has
+  retry button. Removes 2 extra AI API calls that tripled response time.
+- **Disabled duplicate guard** — The rewrite callback fired another full AI
+  call (30-60s) doubling response time. Angle injection still provides
+  diversity across batch runs.
+- **Extended PHP time limit** — `set_time_limit(300)` at handler start
+  prevents PHP timeout during AI API call.
+- **Consistent for all sources** — Both FAQ tab and post metabox now use
+  the same optimized path (previously only metabox was optimized).
+
+## 7.9.18.4 — 2026-03-17
+
+### Fixed — FAQ Generator 504 Timeout
+- **Prompt version mismatch** — Metabox and AJAX handler now read v3 prompt template
+  first (matching what the admin tab saves), with v2/v1 fallbacks.
+- **Skip permalink fetch for metabox** — Single-post FAQ generation uses stored post
+  text directly instead of `wp_remote_get`, avoiding ~20s HTTP overhead and PHP-FPM
+  worker deadlock on low-worker hosts.
+- **Reduce retries** — Metabox generation uses 1 attempt instead of 3; user can click
+  "Generate" again manually if needed.
+- **Cap tokens at 4000 for metabox** — Reduces AI response time from ~60s to ~15-20s.
+- **Skip duplicate guard for metabox** — Single-post generation doesn't need batch
+  dedup; skipping avoids a potential second AI call that doubles response time.
 
 ## 7.9.18 — 2026-03-17
 

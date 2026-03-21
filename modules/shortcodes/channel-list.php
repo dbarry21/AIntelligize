@@ -616,8 +616,13 @@ myls_register_shortcode('youtube_channel_list', function($atts){
 					// Clean title
 					$it['title'] = myls_ycl_clean_title( isset($it['title']) ? $it['title'] : 'Video' );
 
-					// Robust thumbnail fallback
+					// Robust thumbnail: stored meta → API response → constructed fallback
 					$rawThumb = isset($it['thumb']) ? (string)$it['thumb'] : '';
+					if ( $vid !== '' && function_exists('myls_yt_find_video_post_id') && function_exists('myls_yt_thumbnail_url') ) {
+						$local_pid = myls_yt_find_video_post_id( $vid );
+						$storedThumb = $local_pid > 0 ? myls_yt_thumbnail_url( $vid, $local_pid ) : '';
+						if ( $storedThumb !== '' ) $rawThumb = $storedThumb;
+					}
 					if ($rawThumb === '' && $vid !== '') {
 						$rawThumb = 'https://i.ytimg.com/vi/' . rawurlencode($vid) . '/hqdefault.jpg';
 					}

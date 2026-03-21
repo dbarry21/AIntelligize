@@ -352,6 +352,13 @@ final class MYLS_Youtube {
 				}
 				update_post_meta($new_id, '_myls_youtube_video_id', $vid);
 
+				// Store YouTube thumbnail URL
+				$api_thumb = $sn['thumbnails']['medium']['url'] ?? ($sn['thumbnails']['default']['url'] ?? '');
+				$thumb_url = $api_thumb !== '' ? $api_thumb : ( function_exists('myls_yt_thumbnail_url') ? myls_yt_thumbnail_url( $vid ) : "https://i.ytimg.com/vi/{$vid}/hqdefault.jpg" );
+				if ( $thumb_url !== '' ) {
+					update_post_meta($new_id, '_myls_video_thumb_url', $thumb_url);
+				}
+
 				if ( $cat_id && taxonomy_exists('category') && is_object_in_taxonomy($post_type,'category') ) {
 					wp_set_post_terms($new_id, [$cat_id], 'category', true);
 				}

@@ -196,6 +196,57 @@ function myls_person_build_jsonld( array $p ) : array {
         $schema['knowsLanguage'] = count($lang_output) === 1 ? $lang_output[0] : $lang_output;
     }
 
+    // Gender
+    $gender = trim( $p['gender'] ?? '' );
+    if ( $gender ) $schema['gender'] = $gender;
+
+    // Nationality — typed as Country for KG disambiguation
+    $nationality = trim( $p['nationality'] ?? '' );
+    if ( $nationality ) {
+        $schema['nationality'] = [ '@type' => 'Country', 'name' => $nationality ];
+    }
+
+    // Identifier — machine-readable license/contractor numbers as PropertyValue
+    $identifiers = (array) ($p['identifiers'] ?? []);
+    $id_out = [];
+    foreach ( $identifiers as $id ) {
+        $id_name  = trim( $id['name']  ?? '' );
+        $id_value = trim( $id['value'] ?? '' );
+        if ( ! $id_name || ! $id_value ) continue;
+        $id_out[] = [ '@type' => 'PropertyValue', 'name' => $id_name, 'value' => $id_value ];
+    }
+    if ( ! empty($id_out) ) {
+        $schema['identifier'] = count($id_out) === 1 ? $id_out[0] : $id_out;
+    }
+
+    // hasOccupation — Occupation type with structured skills
+    $occ_name   = trim( $p['occupation_name'] ?? '' );
+    $occ_skills = array_values( array_filter( array_map( 'trim', (array)($p['occupation_skills'] ?? []) ) ) );
+    if ( $occ_name ) {
+        $occ = [ '@type' => 'Occupation', 'name' => $occ_name ];
+        if ( ! empty($occ_skills) ) {
+            $occ['skills'] = implode( ', ', $occ_skills );
+        }
+        $schema['hasOccupation'] = $occ;
+    }
+
+    // interactionStatistic — verifiable social proof counters
+    $interactions = (array) ($p['interaction_stats'] ?? []);
+    $int_out = [];
+    foreach ( $interactions as $int ) {
+        $int_type  = trim( $int['type']  ?? '' );
+        $int_count = (int)  ($int['count'] ?? 0);
+        if ( ! $int_type || $int_count <= 0 ) continue;
+        $int_out[] = [
+            '@type'                => 'InteractionCounter',
+            'interactionType'      => 'https://schema.org/' . $int_type,
+            'userInteractionCount' => $int_count,
+        ];
+    }
+    if ( ! empty($int_out) ) {
+        $schema['interactionStatistic'] = count($int_out) === 1 ? $int_out[0] : $int_out;
+    }
+
     return $schema;
 }
 
