@@ -99,6 +99,14 @@ JS;
 			'faq_schema_accordion'
 		);
 
+		// Fall back to site-wide saved colors if shortcode attributes are not set.
+		if ( empty( $atts['btn_bg'] ) ) {
+			$atts['btn_bg'] = get_option( 'myls_faq_btn_bg', '' );
+		}
+		if ( empty( $atts['btn_color'] ) ) {
+			$atts['btn_color'] = get_option( 'myls_faq_btn_color', '' );
+		}
+
 		// ------------------------------------------------------------
 		// Heading rules:
 		// - heading omitted  => defaults to "Frequently Asked Questions"
@@ -203,10 +211,10 @@ JS;
 		$css_vars = [];
 
 		if ( $btn_bg !== '' ) {
-			$css_vars[] = '--myls-faq-btn-bg:' . esc_attr( $btn_bg ) . ';';
+			$css_vars[] = '--item-background:' . esc_attr( $btn_bg ) . ';';
 		}
 		if ( $btn_color !== '' ) {
-			$css_vars[] = '--myls-faq-btn-color:' . esc_attr( $btn_color ) . ';';
+			$css_vars[] = '--item-text-color:' . esc_attr( $btn_color ) . ';';
 		}
 		if ( $heading_color !== '' ) {
 			$css_vars[] = '--myls-faq-heading-color:' . esc_attr( $heading_color ) . ';';

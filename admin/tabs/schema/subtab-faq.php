@@ -13,6 +13,9 @@ $spec = [
     $page_slug_val   = $page_exists ? get_post_field( 'post_name', $existing_page ) : 'service-faqs';
     $page_status_val = $page_exists ? get_post_status( $existing_page ) : 'publish';
 
+    $faq_btn_bg    = get_option( 'myls_faq_btn_bg', '#136B92' );
+    $faq_btn_color = get_option( 'myls_faq_btn_color', '#ffffff' );
+
     // Count services + FAQ stats (with dedup).
     $service_count     = 0;
     $faq_service_count = 0;
@@ -51,7 +54,7 @@ $spec = [
 
         <!-- LEFT: Form card -->
         <div class="col-12 col-lg-8">
-          <div class="card mb-0 shadow-sm myls-card h-100">
+          <div class="card mb-0 shadow-sm myls-card">
             <div class="card-header bg-primary text-white">
               <strong>FAQ Schema</strong>
             </div>
@@ -78,6 +81,53 @@ $spec = [
                 <button class="btn btn-primary" type="submit">Save</button>
               </div>
 
+            </div>
+          </div>
+
+          <!-- Accordion Colors card -->
+          <div class="card mt-3 shadow-sm myls-card">
+            <div class="card-header bg-primary text-white">
+              <strong><i class="bi bi-palette"></i> Accordion Button Colors</strong>
+            </div>
+            <div class="card-body">
+              <p class="text-muted mb-3" style="font-size:.9rem;">
+                Sets the site-wide default colors for the <code>[faq_schema_accordion]</code> shortcode.
+                These can be overridden per-shortcode using <code>btn_bg=""</code> and <code>btn_color=""</code> attributes.
+              </p>
+              <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-bold" for="myls_faq_btn_bg">Button Background</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="color" class="form-control form-control-color" id="myls_faq_btn_bg_picker"
+                           value="<?php echo esc_attr( $faq_btn_bg ); ?>"
+                           style="width:48px;height:38px;padding:2px;cursor:pointer;">
+                    <input type="text" class="form-control form-control-sm font-monospace" id="myls_faq_btn_bg"
+                           name="myls_faq_btn_bg" value="<?php echo esc_attr( $faq_btn_bg ); ?>"
+                           placeholder="#136B92" maxlength="30" style="max-width:110px;">
+                  </div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-bold" for="myls_faq_btn_color">Button Text Color</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="color" class="form-control form-control-color" id="myls_faq_btn_color_picker"
+                           value="<?php echo esc_attr( $faq_btn_color ); ?>"
+                           style="width:48px;height:38px;padding:2px;cursor:pointer;">
+                    <input type="text" class="form-control form-control-sm font-monospace" id="myls_faq_btn_color"
+                           name="myls_faq_btn_color" value="<?php echo esc_attr( $faq_btn_color ); ?>"
+                           placeholder="#ffffff" maxlength="30" style="max-width:110px;">
+                  </div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-bold">Preview</label>
+                  <div id="myls_faq_color_preview"
+                       style="background:<?php echo esc_attr($faq_btn_bg); ?>;color:<?php echo esc_attr($faq_btn_color); ?>;padding:10px 16px;border-radius:6px;font-weight:bold;font-size:.9rem;cursor:default;user-select:none;">
+                    FAQ Question Preview ›
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3">
+                <button class="btn btn-primary" type="submit">Save Colors</button>
+              </div>
             </div>
           </div>
         </div>
@@ -335,6 +385,35 @@ $spec = [
           });
       });
     })();
+
+    // Color picker ↔ text input sync + live preview
+    (function(){
+        function syncColor(pickerId, textId) {
+            var picker  = document.getElementById(pickerId);
+            var text    = document.getElementById(textId);
+            if (!picker || !text) return;
+            picker.addEventListener('input', function() {
+                text.value = this.value;
+                updatePreview();
+            });
+            text.addEventListener('input', function() {
+                var v = this.value.trim();
+                if (/^#[0-9a-fA-F]{3,6}$/.test(v)) picker.value = v;
+                updatePreview();
+            });
+        }
+        function updatePreview() {
+            var preview = document.getElementById('myls_faq_color_preview');
+            var bg  = document.getElementById('myls_faq_btn_bg')?.value  || '#136B92';
+            var col = document.getElementById('myls_faq_btn_color')?.value || '#ffffff';
+            if (preview) {
+                preview.style.background = bg;
+                preview.style.color      = col;
+            }
+        }
+        syncColor('myls_faq_btn_bg_picker',    'myls_faq_btn_bg');
+        syncColor('myls_faq_btn_color_picker', 'myls_faq_btn_color');
+    })();
     </script>
     <?php
   },
@@ -350,6 +429,12 @@ $spec = [
 
     $val = (isset($_POST['myls_faq_enabled']) && $_POST['myls_faq_enabled'] === '1') ? '1' : '0';
     update_option('myls_faq_enabled', $val);
+
+    // Save accordion colors.
+    $btn_bg    = sanitize_hex_color( $_POST['myls_faq_btn_bg']    ?? '' );
+    $btn_color = sanitize_hex_color( $_POST['myls_faq_btn_color'] ?? '' );
+    if ( $btn_bg    !== null ) update_option( 'myls_faq_btn_bg',    $btn_bg    ?: '' );
+    if ( $btn_color !== null ) update_option( 'myls_faq_btn_color', $btn_color ?: '' );
   }
 ];
 
