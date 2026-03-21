@@ -1,3 +1,12 @@
+## 7.9.18.3 — 2026-03-21
+
+### Fixed
+- **FAQ answer Visual editor broken in Gutenberg** — TinyMCE was never initialized
+  for `wp_editor()` instances inside the MYLS FAQs metabox when using the block editor.
+  Added explicit TinyMCE initialization on page load (for visible rows) and on row
+  reveal (for "Add FAQ Row" blank rows). Code tab was unaffected. Classic Editor
+  remains compatible.
+
 ## 7.9.18 — 2026-03-17
 
 ### Changed — Deferred Image Generation
