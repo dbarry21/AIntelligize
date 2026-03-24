@@ -1,3 +1,18 @@
+## 7.9.18.22 — 2026-03-21
+
+### Fixed — `[service_faq_page]` accordion colors not applying
+- **CSS variable mismatch:** Shortcode injected `--myls-faq-btn-bg` and
+  `--myls-faq-btn-color`, but `myls-accordion.css` reads `--item-background`
+  and `--item-text-color`. Renamed to match so `btn_bg` / `btn_color`
+  shortcode attributes now work correctly.
+- **Site-wide color fallback:** The shortcode now falls back to the admin-saved
+  FAQ accordion colors (`myls_faq_btn_bg` / `myls_faq_btn_color`) when no
+  inline attribute is provided — matching the behaviour of `[faq_schema_accordion]`.
+  Both shortcodes now share the same color theme set in Admin → Schema → FAQ.
+
+**Files changed:** `service-faq-page.php`, `shortcode-data.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.20 — 2026-03-21
 
 ### Fixed

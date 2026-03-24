@@ -22,7 +22,9 @@
  *   empty_message  - Message when a service has no FAQs. Default: "No FAQs available for this service."
  *
  * @since 4.15.3
- * @updated 4.15.5 — Schema moved to dedicated provider; shortcode is HTML-only.
+ * @updated 4.15.5  — Schema moved to dedicated provider; shortcode is HTML-only.
+ * @updated 7.9.18.22 — Fixed CSS variable names to match myls-accordion.css;
+ *                        added site-wide color fallback from admin FAQ settings.
  */
 
 if ( ! defined('ABSPATH') ) exit;
@@ -160,6 +162,14 @@ JS;
 			'service_faq_page'
 		);
 
+		// Fall back to site-wide saved colors if shortcode attributes are not set.
+		if ( empty( $atts['btn_bg'] ) ) {
+			$atts['btn_bg'] = get_option( 'myls_faq_btn_bg', '' );
+		}
+		if ( empty( $atts['btn_color'] ) ) {
+			$atts['btn_color'] = get_option( 'myls_faq_btn_color', '' );
+		}
+
 		// ── Query all published services ──
 		$services = get_posts([
 			'post_type'      => 'service',
@@ -201,8 +211,8 @@ JS;
 		$heading_color = trim( (string) $atts['heading_color'] );
 
 		$css_vars = [];
-		if ( $btn_bg !== '' )        $css_vars[] = '--myls-faq-btn-bg:'        . esc_attr( $btn_bg )        . ';';
-		if ( $btn_color !== '' )     $css_vars[] = '--myls-faq-btn-color:'     . esc_attr( $btn_color )     . ';';
+		if ( $btn_bg !== '' )        $css_vars[] = '--item-background:'        . esc_attr( $btn_bg )        . ';';
+		if ( $btn_color !== '' )     $css_vars[] = '--item-text-color:'       . esc_attr( $btn_color )     . ';';
 		if ( $heading_color !== '' ) $css_vars[] = '--myls-faq-heading-color:' . esc_attr( $heading_color ) . ';';
 
 		$vars_attr   = $css_vars ? ' style="' . implode( ' ', $css_vars ) . '"' : '';
