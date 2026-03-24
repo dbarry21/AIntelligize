@@ -320,9 +320,9 @@ function mlseo_compile_shortcode_documentation() {
             'basic_usage' => '[service_faq_page]',
             'attributes' => [
                 'title'         => ['default' => '(page title)', 'description' => 'Page heading (H1). Empty string to hide.'],
-                'btn_bg'        => ['default' => '',             'description' => 'Accordion button background color override'],
-                'btn_color'     => ['default' => '',             'description' => 'Accordion button text color override'],
-                'heading_color' => ['default' => '',             'description' => 'Service heading (H3) color override'],
+                'btn_bg'        => ['default' => '(admin setting)', 'description' => 'Accordion button background color. Falls back to Schema → FAQ admin setting.'],
+                'btn_color'     => ['default' => '(admin setting)', 'description' => 'Accordion button text color. Falls back to Schema → FAQ admin setting.'],
+                'heading_color' => ['default' => '',              'description' => 'Service heading (H3) color override'],
                 'orderby'       => ['default' => 'menu_order',   'description' => 'Service sort field'],
                 'order'         => ['default' => 'ASC',          'description' => 'Sort direction'],
                 'show_empty'    => ['default' => '1',            'description' => '1 = show services with no FAQs'],
@@ -338,6 +338,7 @@ function mlseo_compile_shortcode_documentation() {
                 'Generate this page from Schema → FAQ → Generate Service FAQ Page',
                 'FAQs are pulled from the myls_faqs custom field on each service post',
                 'Includes FAQ schema markup automatically',
+                'Colors default to the site-wide settings in Schema → FAQ — no attributes needed',
             ],
         ],
 
