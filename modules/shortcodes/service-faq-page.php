@@ -244,7 +244,7 @@ JS;
 			// ── Bootstrap Accordion ──
 			$accordion_id = 'svcFaqAcc_' . sanitize_title( $svc['title'] ) . '_' . wp_unique_id();
 			?>
-			<div class="accordion ssseo-accordion myls-faq-accordion" id="<?php echo esc_attr( $accordion_id ); ?>">
+			<div class="accordion ssseo-accordion myls-faq-accordion" id="<?php echo esc_attr( $accordion_id ); ?>"<?php echo $vars_attr; ?>>
 				<?php
 				$index = 0;
 				foreach ( $svc['faqs'] as $row ) :
