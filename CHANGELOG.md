@@ -1,3 +1,17 @@
+## 7.9.18.30 — 2026-03-26
+
+### Fixed — Social profile URLs stored with `&amp;` in database
+- **Root cause:** `subtab-organization.php` save callback ran `esc_url_raw()`
+  directly on `$_POST` values. When the stored URL already contained `&amp;`
+  from a prior save, re-saving preserved the encoding instead of cleaning it.
+- **Fix:** Added `html_entity_decode()` before `esc_url_raw()` on save, so
+  stored URLs always have clean `&`. The output-time decode in `organization.php`
+  remains as a safety net for existing dirty data.
+- Re-saving social profiles in admin now cleans any existing `&amp;` in the DB.
+
+**Files changed:** `admin/tabs/schema/subtab-organization.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.29 — 2026-03-26
 
 ### Fixed — Schema v2 audit fixes
