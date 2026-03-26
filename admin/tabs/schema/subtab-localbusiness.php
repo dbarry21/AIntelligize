@@ -22,6 +22,22 @@ $spec = [
       wp_enqueue_media();
     }
 
+    // ---------- AggregateRating option ----------
+    $agg_rating_opt = get_option( 'myls_aggregate_rating', [
+        'enabled'      => '0',
+        'source'       => 'google',
+        'rating_value' => '',
+        'review_count' => '',
+        'best_rating'  => '5',
+        'worst_rating' => '1',
+    ] );
+
+    // Detect live Google Places data for display in the admin UI
+    $gp_rating = trim( (string) get_option( 'myls_google_places_rating', '' ) );
+    $gp_count  = trim( (string) get_option( 'myls_google_places_rating_count',
+        get_option( 'myls_google_places_review_count', '' ) ) );
+    $gp_data_available = ( $gp_rating !== '' && $gp_count !== '' );
+
     // ---------- US states & Countries ----------
     $us_states = [
       'AL'=>'Alabama','AK'=>'Alaska','AZ'=>'Arizona','AR'=>'Arkansas','CA'=>'California','CO'=>'Colorado','CT'=>'Connecticut',
@@ -538,6 +554,158 @@ $spec = [
           </p>
         <?php endif; ?>
       </div>
+
+      <!-- AggregateRating Schema -->
+      <div class="myls-block" style="margin-top:8px;">
+        <div class="myls-block-title">AggregateRating Schema</div>
+        <p style="margin:0 0 10px;">
+            Embeds <code>aggregateRating</code> inside your <strong>LocalBusiness</strong> schema.
+            Required for star snippets in Google search results and for AI engines to cite your review score.
+            The rating data must be <strong>visible on the page</strong> — only enable this if your site
+            displays a Google Reviews widget or badge.
+        </p>
+
+        <!-- Enable toggle -->
+        <div class="myls-row">
+            <div class="myls-col col-12">
+                <label style="font-weight:600;display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox"
+                           name="myls_aggregate_rating[enabled]"
+                           value="1"
+                           <?php checked( ($agg_rating_opt['enabled'] ?? '0'), '1' ); ?>>
+                    Enable AggregateRating schema output
+                </label>
+            </div>
+        </div>
+
+        <hr class="myls-hr">
+
+        <!-- Source toggle -->
+        <div class="myls-row">
+            <div class="myls-col col-12">
+                <label class="form-label">Data Source</label>
+
+                <label style="display:flex;align-items:center;gap:6px;margin-bottom:6px;cursor:pointer;">
+                    <input type="radio"
+                           name="myls_aggregate_rating[source]"
+                           value="google"
+                           <?php checked( ($agg_rating_opt['source'] ?? 'google'), 'google' ); ?>>
+                    <strong>Google Places (automatic)</strong>
+                    — uses data refreshed every 4 hours from the Google Places API
+                </label>
+
+                <?php if ( $gp_data_available ) : ?>
+                    <p style="margin:0 0 8px 22px;font-size:13px;color:#166534;background:#dcfce7;padding:6px 10px;border-radius:6px;display:inline-block;">
+                        &#10003; Google Places data found: <strong><?php echo esc_html($gp_rating); ?> stars</strong>
+                        / <strong><?php echo esc_html($gp_count); ?> reviews</strong>
+                    </p>
+                <?php else : ?>
+                    <p style="margin:0 0 8px 22px;font-size:13px;color:#92400e;background:#fef3c7;padding:6px 10px;border-radius:6px;display:inline-block;">
+                        &#9888; No Google Places data found yet. Connect your Google Places API key and Place ID,
+                        or use Manual Override below.
+                    </p>
+                <?php endif; ?>
+
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                    <input type="radio"
+                           name="myls_aggregate_rating[source]"
+                           value="manual"
+                           <?php checked( ($agg_rating_opt['source'] ?? 'google'), 'manual' ); ?>>
+                    <strong>Manual Override</strong>
+                    — enter rating and count values directly below
+                </label>
+            </div>
+        </div>
+
+        <!-- Manual override fields -->
+        <div class="myls-row" id="myls-agg-manual-fields"
+             style="<?php echo ($agg_rating_opt['source'] ?? 'google') === 'manual' ? '' : 'display:none;'; ?>margin-top:8px;">
+
+            <div class="myls-col col-3">
+                <label class="form-label" for="myls_agg_rating_value">
+                    Rating Value
+                    <span style="font-weight:400;color:#6b7280;">— e.g. 4.6</span>
+                </label>
+                <input type="text"
+                       id="myls_agg_rating_value"
+                       name="myls_aggregate_rating[rating_value]"
+                       value="<?php echo esc_attr( $agg_rating_opt['rating_value'] ?? '' ); ?>"
+                       placeholder="4.6"
+                       pattern="[0-5](\.[0-9]{1,2})?">
+                <p class="form-text" style="margin-top:4px;opacity:.75;">Number between 0 and 5.</p>
+            </div>
+
+            <div class="myls-col col-3">
+                <label class="form-label" for="myls_agg_review_count">
+                    Review Count
+                    <span style="font-weight:400;color:#6b7280;">— e.g. 358</span>
+                </label>
+                <input type="text"
+                       id="myls_agg_review_count"
+                       name="myls_aggregate_rating[review_count]"
+                       value="<?php echo esc_attr( $agg_rating_opt['review_count'] ?? '' ); ?>"
+                       placeholder="358"
+                       inputmode="numeric">
+                <p class="form-text" style="margin-top:4px;opacity:.75;">Total number of written reviews.</p>
+            </div>
+
+            <div class="myls-col col-3">
+                <label class="form-label" for="myls_agg_best_rating">
+                    Best Rating
+                    <span style="font-weight:400;color:#6b7280;">— max possible</span>
+                </label>
+                <input type="text"
+                       id="myls_agg_best_rating"
+                       name="myls_aggregate_rating[best_rating]"
+                       value="<?php echo esc_attr( $agg_rating_opt['best_rating'] ?? '5' ); ?>"
+                       placeholder="5">
+            </div>
+
+            <div class="myls-col col-3">
+                <label class="form-label" for="myls_agg_worst_rating">
+                    Worst Rating
+                    <span style="font-weight:400;color:#6b7280;">— min possible</span>
+                </label>
+                <input type="text"
+                       id="myls_agg_worst_rating"
+                       name="myls_aggregate_rating[worst_rating]"
+                       value="<?php echo esc_attr( $agg_rating_opt['worst_rating'] ?? '1' ); ?>"
+                       placeholder="1">
+            </div>
+        </div>
+
+        <!-- Live preview -->
+        <hr class="myls-hr">
+        <div>
+            <strong style="font-size:13px;">Schema Preview (what will be emitted):</strong>
+            <pre id="myls-agg-preview" style="margin-top:6px;padding:10px;background:#f0f6ff;border:1px solid #c0d4f5;border-radius:8px;font-size:12px;max-height:160px;overflow:auto;"><?php
+                // Show current saved output for reference
+                if ( function_exists('myls_schema_build_aggregate_rating') ) {
+                    $preview = myls_schema_build_aggregate_rating();
+                    echo $preview
+                        ? esc_html( wp_json_encode( $preview, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) )
+                        : '// Not currently enabled or data missing.';
+                } else {
+                    echo '// Function not yet loaded — save settings and reload.';
+                }
+            ?></pre>
+        </div>
+
+        <script>
+        (function(){
+            const sourceRadios  = document.querySelectorAll('input[name="myls_aggregate_rating[source]"]');
+            const manualFields  = document.getElementById('myls-agg-manual-fields');
+
+            function toggleManual(){
+                const isManual = document.querySelector('input[name="myls_aggregate_rating[source]"]:checked')?.value === 'manual';
+                manualFields.style.display = isManual ? '' : 'none';
+            }
+            sourceRadios.forEach(r => r.addEventListener('change', toggleManual));
+            toggleManual();
+        })();
+        </script>
+      </div>
+
     </div>
 
     <script>
@@ -838,6 +1006,39 @@ $spec = [
       }
     }
     update_option('myls_lb_knows_about_include', $clean_include);
+
+    // Save AggregateRating settings
+    $raw_agg = isset($_POST['myls_aggregate_rating']) && is_array($_POST['myls_aggregate_rating'])
+      ? $_POST['myls_aggregate_rating']
+      : [];
+
+    $agg_clean = [
+      'enabled'      => isset($raw_agg['enabled']) && $raw_agg['enabled'] === '1' ? '1' : '0',
+      'source'       => in_array($raw_agg['source'] ?? '', ['google', 'manual'], true) ? $raw_agg['source'] : 'google',
+      'rating_value' => '',
+      'review_count' => '',
+      'best_rating'  => '5',
+      'worst_rating' => '1',
+    ];
+
+    // Validate and sanitize manual values
+    $rv = trim( sanitize_text_field( $raw_agg['rating_value'] ?? '' ) );
+    if ( $rv !== '' && is_numeric($rv) && (float)$rv >= 0 && (float)$rv <= 5 ) {
+      $agg_clean['rating_value'] = $rv;
+    }
+
+    $rc = trim( sanitize_text_field( $raw_agg['review_count'] ?? '' ) );
+    if ( $rc !== '' && ctype_digit($rc) && (int)$rc > 0 ) {
+      $agg_clean['review_count'] = $rc;
+    }
+
+    $br = trim( sanitize_text_field( $raw_agg['best_rating']  ?? '5' ) );
+    if ( $br !== '' && is_numeric($br) ) $agg_clean['best_rating']  = $br;
+
+    $wr = trim( sanitize_text_field( $raw_agg['worst_rating'] ?? '1' ) );
+    if ( $wr !== '' && is_numeric($wr) ) $agg_clean['worst_rating'] = $wr;
+
+    update_option( 'myls_aggregate_rating', $agg_clean );
 
     // Persist assignments to post meta for quick lookup + durability
     if ( function_exists('myls_lb_sync_postmeta_from_locations') ) {
