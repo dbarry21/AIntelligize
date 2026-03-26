@@ -781,9 +781,12 @@ $spec = [
 		// Areas
 		update_option('myls_org_areas', sanitize_textarea_field($_POST['myls_org_areas'] ?? ''));
 
-		// Socials
+		// Socials — decode HTML entities before sanitizing so stored URLs have clean &
+		// (form values may contain &amp; from prior saves or WordPress escaping)
 		$raw_socials = (isset($_POST['myls_org_social_profiles']) && is_array($_POST['myls_org_social_profiles']))
-			? array_map('esc_url_raw', $_POST['myls_org_social_profiles']) : [];
+			? array_map( function( $url ) {
+				return esc_url_raw( html_entity_decode( $url, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+			}, $_POST['myls_org_social_profiles'] ) : [];
 		$raw_socials = array_values(array_filter($raw_socials));
 		update_option('myls_org_social_profiles', $raw_socials);
 
