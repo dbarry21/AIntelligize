@@ -92,11 +92,19 @@ add_filter('myls_schema_graph', function(array $graph) {
 
 	if ( $desc !== '' )  $node['description'] = wp_specialchars_decode( $desc, ENT_QUOTES );
 	if ( $email !== '' ) $node['email']       = $email;
-	if ( $tel !== '' )   $node['telephone']   = $tel;
+	if ( $tel !== '' ) {
+		$node['telephone'] = function_exists('myls_normalize_phone_e164')
+			? myls_normalize_phone_e164( $tel )
+			: $tel;
+	}
 	if ( $address )      $node['address']     = $address;
 	if ( $logo )         $node['logo']        = $logo;
 	if ( $image_url )    $node['image']       = esc_url_raw($image_url);
-	if ( $socials )      $node['sameAs']      = array_map('esc_url_raw', $socials);
+	if ( $socials ) {
+		$node['sameAs'] = array_map( function( $url ) {
+			return esc_url_raw( html_entity_decode( $url, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		}, $socials );
+	}
 	if ( $awards )       $node['award']       = $awards;
 	if ( $certs )        $node['hasCertification'] = array_map(function($c){ return ['@type'=>'Certification','name'=>$c]; }, $certs);
 
@@ -139,9 +147,12 @@ add_filter('myls_schema_graph', function(array $graph) {
 
 	// Recommended ContactPoint if telephone exists
 	if ( $tel !== '' ) {
+		$normalized_tel = function_exists('myls_normalize_phone_e164')
+			? myls_normalize_phone_e164( $tel )
+			: $tel;
 		$node['contactPoint'] = [[
 			'@type'       => 'ContactPoint',
-			'telephone'   => $tel,
+			'telephone'   => $normalized_tel,
 			'contactType' => 'customer service',
 		]];
 	}

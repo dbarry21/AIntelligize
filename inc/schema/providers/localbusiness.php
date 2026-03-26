@@ -76,10 +76,30 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 		$logo_url = $logo_id ? wp_get_attachment_image_url( $logo_id, 'full' ) : '';
 		$org_image_url = trim( (string) get_option( 'myls_org_image_url', '' ) );
 
+		// image: prefer per-location Business Image URL, then org image URL.
+		// This should be a photo of the business/work — NOT the logo.
 		$image_prop = null;
-		if ( $loc_img !== '' )        $image_prop = esc_url( $loc_img );
-		elseif ( $logo_url !== '' )   $image_prop = esc_url( $logo_url );
+		if ( $loc_img !== '' )           $image_prop = esc_url( $loc_img );
 		elseif ( $org_image_url !== '' ) $image_prop = esc_url( $org_image_url );
+		// Final fallback: if only the logo is available, use it for image too
+		// (better than having no image at all, but flag this in admin).
+		elseif ( $logo_url !== '' )      $image_prop = esc_url( $logo_url );
+
+		// logo: always use the org logo attachment (ImageObject with dimensions).
+		// This is separate from `image` — logo is the brand mark, image is a photo.
+		$logo_prop = null;
+		if ( $logo_id ) {
+			$logo_obj = [ '@type' => 'ImageObject', 'url' => esc_url( $logo_url ) ];
+			$logo_meta = wp_get_attachment_metadata( $logo_id );
+			if ( is_array( $logo_meta ) ) {
+				if ( ! empty( $logo_meta['width'] ) )  $logo_obj['width']  = (int) $logo_meta['width'];
+				if ( ! empty( $logo_meta['height'] ) ) $logo_obj['height'] = (int) $logo_meta['height'];
+			}
+			$logo_prop = $logo_obj;
+		} elseif ( $org_image_url !== '' ) {
+			// Fallback: use org image URL string if no attachment ID
+			$logo_prop = esc_url( $org_image_url );
+		}
 
 		// priceRange fallback chain:
 		//   1. Per-location price field
@@ -140,7 +160,11 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 		if ( ! empty( $sa_roots ) ) {
 			$area_served = [];
 			foreach ( $sa_roots as $sa ) {
-				$city_name = wp_specialchars_decode( get_the_title( $sa->ID ), ENT_QUOTES );
+				$city_name = html_entity_decode(
+				get_the_title( $sa->ID ),
+				ENT_QUOTES | ENT_HTML5,
+				'UTF-8'
+			);
 				// Strip trailing state abbreviation for cleaner city name
 				// Handles "Bradenton FL", "Bradenton, FL", "Apollo Beach, FL"
 				$city_clean = preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $city_name );
@@ -195,9 +219,13 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 
 			// Only Business Image URL, else Org Logo
 			'image'    => $image_prop,
+			'logo'     => $logo_prop,
 
 			'name'       => $lb_name,
-			'telephone'  => trim( $loc['phone'] ?? '' ),
+			'url'        => esc_url( $org_url ),
+			'telephone'  => function_exists('myls_normalize_phone_e164')
+				? myls_normalize_phone_e164( trim( $loc['phone'] ?? '' ) )
+				: trim( $loc['phone'] ?? '' ),
 			'priceRange' => $price_prop,
 			'award'      => ( $awards ? $awards : null ),
 			'hasCertification' => ( $certs ? array_map(function($c){ return ['@type'=>'Certification','name'=>$c]; }, $certs) : null ),
@@ -231,7 +259,9 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			// ContactPoint for customer service (mirrors Organization pattern)
 			'contactPoint' => ( trim( $loc['phone'] ?? '' ) !== '' ) ? [[
 				'@type'       => 'ContactPoint',
-				'telephone'   => trim( $loc['phone'] ?? '' ),
+				'telephone'   => function_exists('myls_normalize_phone_e164')
+					? myls_normalize_phone_e164( trim( $loc['phone'] ?? '' ) )
+					: trim( $loc['phone'] ?? '' ),
 				'contactType' => 'customer service',
 			]] : null,
 		] );

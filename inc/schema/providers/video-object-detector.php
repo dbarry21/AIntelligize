@@ -859,8 +859,16 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 				: $post_title;
 		}
 
-		// Stable @id: watch URL + fragment, indexed for multiple videos per page.
-		$at_id = $item['url'] . ( $index > 0 ? '#video-' . $index : '#video' );
+		// For YouTube/Vimeo use the watch URL as @id (canonical platform URL).
+		// For self-hosted MP4s, scope @id to the current site to avoid referencing
+		// external/CDN domains — the URL property still holds the actual file location.
+		if ( $item['source'] === 'hosted' ) {
+			$page_url  = get_permalink( $post_id ) ?: home_url( '/' );
+			$id_suffix = $index > 0 ? '#video-' . $index : '#video';
+			$at_id     = trailingslashit( $page_url ) . $id_suffix;
+		} else {
+			$at_id = $item['url'] . ( $index > 0 ? '#video-' . $index : '#video' );
+		}
 
 		$node = [
 			'@type'       => 'VideoObject',
