@@ -1,3 +1,12 @@
+## 7.9.18.25 — 2026-03-26
+
+### Fixed — `myls_render_stars()` redeclaration fatal error
+- Renamed helper to `myls_rating_badge_render_stars()` in `google-rating-values.php`
+  to avoid `Cannot redeclare` conflict with `google-reviews-slider.php` (alphabetical
+  file load order caused the duplicate).
+
+**Files changed:** `google-rating-values.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.24 — 2026-03-26
 
 ### Added — Google review data shortcodes
