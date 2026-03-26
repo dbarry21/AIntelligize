@@ -149,68 +149,71 @@ if ( ! function_exists('myls_build_tagline_credentials') ) {
 }
 
 /**
- * Build an aggregateRating node from Google Places data.
+ * Build an AggregateRating node for LocalBusiness schema.
  *
- * Returns null if rating or review count is missing/invalid.
- * Used by: LocalBusiness, Organization, Service schema providers.
+ * Controlled by the myls_aggregate_rating option (admin UI in LocalBusiness tab).
+ * Returns null when feature is disabled, data is missing, or values fail validation.
  *
- * @param string $rating_override  Optional override (e.g. pass from a specific location).
- * @param string $count_override   Optional override.
- * @return array|null
+ * Sources:
+ *   - 'google' (default) — reads from Google Places cron data in wp_options
+ *   - 'manual' — uses admin-entered override values
+ *
+ * @return array|null  AggregateRating node, or null.
+ * @since 7.9.18.27
  */
 if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
-	/**
-	 * Build an AggregateRating node for LocalBusiness and Service schema.
-	 *
-	 * ratingCount  — total number of star ratings (with or without written text).
-	 *                Auto-populated from Google Places user_ratings_total via
-	 *                myls_google_places_rating_count. Accepts override.
-	 *
-	 * reviewCount  — number of written text reviews only.
-	 *                Stored separately as myls_google_places_review_count_manual
-	 *                (admin-entered) because the Places API caps returned reviews
-	 *                at 5 and doesn't expose the full text-review count.
-	 *                Falls back to ratingCount when no manual value is set
-	 *                (safe — Google treats them interchangeably for ranking).
-	 *
-	 * @param string $rating_override  Override ratingValue (optional).
-	 * @param string $count_override   Override ratingCount (optional).
-	 * @return array|null  AggregateRating node, or null if data is missing/invalid.
-	 */
-	function myls_schema_build_aggregate_rating( string $rating_override = '', string $count_override = '' ) : ?array {
-		$rating = $rating_override !== '' ? $rating_override : trim( (string) get_option( 'myls_google_places_rating', '' ) );
+	function myls_schema_build_aggregate_rating() : ?array {
+		$opt = get_option( 'myls_aggregate_rating', [] );
 
-		// ratingCount: auto-fetched user_ratings_total. Falls back to legacy option key.
-		$rating_count = $count_override !== ''
-			? $count_override
-			: trim( (string) get_option( 'myls_google_places_rating_count',
-				get_option( 'myls_google_places_review_count', '' )
+		// Feature must be explicitly enabled
+		if ( empty($opt['enabled']) || (string) $opt['enabled'] !== '1' ) {
+			return null;
+		}
+
+		$source = $opt['source'] ?? 'google';
+
+		if ( $source === 'google' ) {
+			// Read from Google Places cron data
+			$rating = trim( (string) get_option( 'myls_google_places_rating', '' ) );
+			$count  = trim( (string) get_option(
+				'myls_google_places_rating_count',
+				get_option( 'myls_google_places_review_count', '' ) // legacy key fallback
 			) );
+		} else {
+			// Manual override values
+			$rating = trim( (string) ( $opt['rating_value'] ?? '' ) );
+			$count  = trim( (string) ( $opt['review_count']  ?? '' ) );
+		}
 
-		// reviewCount: manual field (text reviews only). Falls back to ratingCount.
-		$review_count_manual = trim( (string) get_option( 'myls_google_places_review_count_manual', '' ) );
-		$review_count = ( $review_count_manual !== '' && is_numeric( $review_count_manual ) )
-			? (int) $review_count_manual
-			: null; // null = fall back to ratingCount in output
+		// Both rating and count are required
+		if ( $rating === '' || $count === '' ) {
+			return null;
+		}
 
-		if ( $rating === '' || $rating_count === '' ) return null;
-		if ( ! is_numeric( $rating ) || ! is_numeric( $rating_count ) ) return null;
+		// Validate rating is numeric and within 0–5 range
+		if ( ! is_numeric( $rating ) || (float) $rating < 0 || (float) $rating > 5 ) {
+			return null;
+		}
 
-		$r  = (float) $rating;
-		$rc = (int)   $rating_count;
+		// Validate count is a positive integer
+		if ( ! ctype_digit( $count ) || (int) $count < 1 ) {
+			return null;
+		}
 
-		if ( $r < 1.0 || $r > 5.0 || $rc < 1 ) return null;
+		$best_rating  = trim( (string) ( $opt['best_rating']  ?? '5' ) );
+		$worst_rating = trim( (string) ( $opt['worst_rating'] ?? '1' ) );
 
-		$node = [
+		// Defaults if blank
+		if ( $best_rating  === '' ) $best_rating  = '5';
+		if ( $worst_rating === '' ) $worst_rating = '1';
+
+		return [
 			'@type'       => 'AggregateRating',
-			'ratingValue' => round( $r, 1 ),
-			'ratingCount' => $rc,
-			'reviewCount' => $review_count !== null ? (int) $review_count : $rc,
-			'bestRating'  => 5,
-			'worstRating' => 1,
+			'ratingValue' => $rating,
+			'reviewCount' => $count,
+			'bestRating'  => $best_rating,
+			'worstRating' => $worst_rating,
 		];
-
-		return $node;
 	}
 }
 

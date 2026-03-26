@@ -1,3 +1,19 @@
+## 7.9.18.27 — 2026-03-26
+
+### Added — AggregateRating schema with admin controls
+- **New admin UI** in Schema → Local Business tab: AggregateRating panel with
+  enable/disable toggle, Google Places (automatic) vs Manual Override source
+  selector, live schema preview, and full validation.
+- **Rewrote `myls_schema_build_aggregate_rating()`** in `inc/schema/helpers.php`
+  to read from the new `myls_aggregate_rating` option. Feature is off by default
+  and must be explicitly enabled. Supports Google Places cron data or manual
+  override values. Returns null when disabled or data is invalid.
+- **Save logic** in `subtab-localbusiness.php` on_save callback with full
+  sanitization and validation of all fields.
+
+**Files changed:** `inc/schema/helpers.php`, `admin/tabs/schema/subtab-localbusiness.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.26 — 2026-03-26
 
 ### Improved — `[google_rating_badge]` green top border

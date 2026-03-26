@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.9.18.26
+Stable tag: 7.9.18.27
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -36,6 +36,9 @@ This plugin provides a modular admin toolkit for local SEO workflows including s
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 
 == Upgrade Notice ==
+
+= 7.9.18.27 =
+AggregateRating schema support: new admin panel in Schema → Local Business with enable toggle, Google Places (auto) vs Manual Override source, live preview. Schema output controlled by myls_aggregate_rating option — off by default.
 
 = 7.9.18.24 =
 New shortcodes: [google_review_count] (inline review count), [google_aggregate_rating] (inline star rating), [google_rating_badge] (visual badge widget with Google G logo, stars, and review count — auto-links to Google reviews page). All read from existing cron-synced data.
