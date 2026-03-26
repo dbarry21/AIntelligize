@@ -888,6 +888,70 @@ function mlseo_compile_shortcode_documentation() {
             ],
         ],
 
+        [
+            'name' => 'google_review_count',
+            'category' => 'social',
+            'description' => 'Outputs the total Google review/rating count as an inline value. Data comes from the 4-hour cron sync — no additional API calls.',
+            'basic_usage' => '[google_review_count]',
+            'attributes' => [
+                'class' => ['default' => '', 'description' => 'Extra CSS class on the <span> wrapper'],
+            ],
+            'examples' => [
+                ['label' => 'Inline count', 'code' => '[google_review_count]'],
+                ['label' => 'In a sentence', 'code' => 'We have [google_review_count] five-star reviews!'],
+            ],
+            'tips' => [
+                'Reads from myls_google_places_rating_count (synced every 4 hours)',
+                'Returns empty string if no data — safe to use anywhere',
+                'Wraps value in <span class="google-review-count"> for styling',
+            ],
+        ],
+
+        [
+            'name' => 'google_aggregate_rating',
+            'category' => 'social',
+            'description' => 'Outputs the aggregate Google star rating (e.g. 4.8) as an inline value. Data comes from the 4-hour cron sync — no additional API calls.',
+            'basic_usage' => '[google_aggregate_rating]',
+            'attributes' => [
+                'class' => ['default' => '', 'description' => 'Extra CSS class on the <span> wrapper'],
+            ],
+            'examples' => [
+                ['label' => 'Inline rating', 'code' => '[google_aggregate_rating]'],
+                ['label' => 'In a sentence', 'code' => 'Rated [google_aggregate_rating] out of 5 on Google'],
+            ],
+            'tips' => [
+                'Reads from myls_google_places_rating (synced every 4 hours)',
+                'Returns empty string if no data — safe to use anywhere',
+                'Wraps value in <span class="google-aggregate-rating"> for styling',
+            ],
+        ],
+
+        [
+            'name' => 'google_rating_badge',
+            'category' => 'social',
+            'description' => 'Visual Google Rating badge widget with the Google "G" logo, aggregate rating number, gold stars, and "Based on X reviews" text. Matches the standard Google Rating popup badge style.',
+            'basic_usage' => '[google_rating_badge]',
+            'attributes' => [
+                'class'      => ['default' => '',        'description' => 'Extra CSS class on the badge wrapper'],
+                'star_color' => ['default' => '#FFD700', 'description' => 'Star icon color (hex)'],
+                'link'       => ['default' => 'auto',    'description' => 'auto = Google reviews page via Place ID, custom URL, or 0 to disable'],
+                'dark'       => ['default' => '0',       'description' => '1 = dark background variant'],
+            ],
+            'examples' => [
+                ['label' => 'Default badge', 'code' => '[google_rating_badge]'],
+                ['label' => 'Dark variant', 'code' => '[google_rating_badge dark="1"]'],
+                ['label' => 'No link', 'code' => '[google_rating_badge link="0"]'],
+                ['label' => 'Custom link', 'code' => '[google_rating_badge link="https://g.page/your-business/review"]'],
+            ],
+            'tips' => [
+                'Auto-links to Google reviews page using the stored Place ID',
+                'Reads from existing cron-synced options — no additional API calls',
+                'Self-contained CSS with no external dependencies',
+                'Use dark="1" on dark page backgrounds for proper contrast',
+                'Inline SVG Google "G" logo — no external image requests',
+            ],
+        ],
+
         // ============================================================
         // YOUTUBE
         // ============================================================

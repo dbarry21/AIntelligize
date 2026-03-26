@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.9.18.23
+Stable tag: 7.9.18.24
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,7 +26,7 @@ This plugin provides a modular admin toolkit for local SEO workflows including s
 * AIntelligize Stats — AI usage analytics, cost tracking, handler breakdown with Chart.js
 * Search Stats — Focus keyword & FAQ tracking, Google Autocomplete suggestions, GSC metrics, AI Overview detection, per-post SERP rank with history tracking
 * Google Search Console OAuth integration
-* 35+ shortcodes for location data, service grids, schema, social links, Google reviews, YouTube, and utilities
+* 38+ shortcodes for location data, service grids, schema, social links, Google reviews, YouTube, and utilities
 * YouTube Video Blog — auto-generate blog posts from channel videos with 12-hour auto-refresh, overwrite support, transcript accordion, and email notifications
 * Enterprise logging with quality control and batch processing
 
@@ -36,6 +36,9 @@ This plugin provides a modular admin toolkit for local SEO workflows including s
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 
 == Upgrade Notice ==
+
+= 7.9.18.24 =
+New shortcodes: [google_review_count] (inline review count), [google_aggregate_rating] (inline star rating), [google_rating_badge] (visual badge widget with Google G logo, stars, and review count — auto-links to Google reviews page). All read from existing cron-synced data.
 
 = 7.9.8 =
 Added 14-page YT Video Blog documentation PDF with help link from the tab heading.

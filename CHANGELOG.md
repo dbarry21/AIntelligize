@@ -1,3 +1,21 @@
+## 7.9.18.24 — 2026-03-26
+
+### Added — Google review data shortcodes
+- **`[google_review_count]`** — inline shortcode that outputs the synced Google
+  review/rating count (from `myls_google_places_rating_count` option).
+- **`[google_aggregate_rating]`** — inline shortcode that outputs the aggregate
+  star rating value (e.g. 4.8).
+- **`[google_rating_badge]`** — visual badge widget matching the standard Google
+  Rating popup style: Google "G" logo, rating number, gold stars, and
+  "Based on X reviews" text. Supports `link="auto"` (links to Google reviews
+  page via Place ID), `dark="1"` for dark backgrounds, and custom `star_color`.
+
+All three shortcodes read from the existing 4-hour cron-synced options — no
+additional API calls required.
+
+**Files changed:** `google-rating-values.php` (new), `shortcode-data.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.23 — 2026-03-21
 
 ### Fixed — `[service_faq_page]` accordion colors not applying
