@@ -1,3 +1,26 @@
+## 7.9.18.29 — 2026-03-26
+
+### Fixed — Schema v2 audit fixes
+
+1. **ItemList city entity encoding** — `html_entity_decode()` replaces
+   `wp_specialchars_decode()` in the service-areas ItemList (missed in prior fix).
+2. **GeoCoordinates float types** — new `myls_build_geo_coordinates()` helper
+   ensures lat/lng are emitted as JSON numbers (not quoted strings). Used by both
+   LocalBusiness and Organization providers. Lat/lng sanitized as numeric on save.
+3. **Geocode button** — "Get Coordinates" button on LocalBusiness admin UI
+   geocodes address via Google Maps API (or opens Maps for manual lookup).
+4. **Person node global emit** — when no pages are assigned to a Person profile,
+   the node now emits on ALL singular pages (resolves broken @id references for
+   employee, founder, director, author). Scoped emit preserved when pages are set.
+5. **image/logo separation** — removed logo fallback from `image` property (using
+   logo as image sends conflicting signals). New "Business Photo URL" admin field
+   in Site-wide Defaults with media picker. Image omitted when no photo is set.
+
+**Files changed:** `inc/schema/helpers.php`, `inc/schema/providers/itemlist.php`,
+`inc/schema/providers/localbusiness.php`, `inc/schema/providers/organization.php`,
+`inc/schema/providers/person.php`, `admin/tabs/schema/subtab-localbusiness.php`,
+`admin/tabs/schema/subtab-person.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.28 — 2026-03-26
 
 ### Fixed — 8 schema bugs from audit

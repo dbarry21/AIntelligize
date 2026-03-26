@@ -321,3 +321,40 @@ if ( ! function_exists('myls_get_knows_about') ) {
 		return $cache;
 	}
 }
+
+if ( ! function_exists('myls_build_geo_coordinates') ) {
+	/**
+	 * Build a valid GeoCoordinates schema node with numeric floats.
+	 *
+	 * Accepts lat/lng as string or numeric. Returns null when either value
+	 * is empty or non-numeric — prevents invalid nodes from entering the graph.
+	 *
+	 * Multi-location usage: call once per location with that location's lat/lng.
+	 * The LocalBusiness builder already loops locations separately, so each
+	 * location's geo node is independent.
+	 *
+	 * @param  mixed $lat  Latitude  — string or float from wp_options.
+	 * @param  mixed $lng  Longitude — string or float from wp_options.
+	 * @return array|null  GeoCoordinates node, or null if data is invalid.
+	 */
+	function myls_build_geo_coordinates( $lat, $lng ) : ?array {
+		$lat = trim( (string) $lat );
+		$lng = trim( (string) $lng );
+
+		if ( $lat === '' || $lng === '' ) return null;
+		if ( ! is_numeric( $lat ) || ! is_numeric( $lng ) ) return null;
+
+		$lat_f = (float) $lat;
+		$lng_f = (float) $lng;
+
+		// Basic sanity ranges
+		if ( $lat_f < -90.0  || $lat_f > 90.0  ) return null;
+		if ( $lng_f < -180.0 || $lng_f > 180.0 ) return null;
+
+		return [
+			'@type'     => 'GeoCoordinates',
+			'latitude'  => $lat_f,   // float — json_encode outputs bare number
+			'longitude' => $lng_f,   // float — json_encode outputs bare number
+		];
+	}
+}

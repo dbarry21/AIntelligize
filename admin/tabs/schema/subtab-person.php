@@ -980,7 +980,8 @@ $spec = [
                     <li><strong>knowsAbout</strong> — Use Wikidata IDs (Q-numbers) to connect topics to Google's Knowledge Graph</li>
                     <li><strong>hasCredential</strong> — State licenses and industry certifications build trust signals</li>
                     <li><strong>worksFor</strong> — Automatically linked to your Organization schema</li>
-                    <li><strong>Best pages</strong> — Assign to About, Homepage, and key service pages</li>
+                    <li><strong>No pages selected</strong> — Person schema outputs on <em>every</em> page (recommended for founders/owners referenced site-wide)</li>
+                    <li><strong>Pages selected</strong> — Person schema outputs only on those specific pages</li>
                     <li>AI assistants use this data to verify expertise when citing your content</li>
                   </ul>
                 </div>

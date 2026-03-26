@@ -134,15 +134,13 @@ add_filter('myls_schema_graph', function(array $graph) {
 	}
 
 	// Optional geo (allowed via Place link)
-	if ( $lat !== '' && $lng !== '' && is_numeric($lat) && is_numeric($lng) ) {
-		$node['location'] = [
-			'@type' => 'Place',
-			'geo'   => [
-				'@type'     => 'GeoCoordinates',
-				'latitude'  => (float) $lat,
-				'longitude' => (float) $lng,
-			],
-		];
+	if ( $lat !== '' && $lng !== '' ) {
+		$geo = function_exists('myls_build_geo_coordinates')
+			? myls_build_geo_coordinates( $lat, $lng )
+			: null;
+		if ( $geo ) {
+			$node['location'] = [ '@type' => 'Place', 'geo' => $geo ];
+		}
 	}
 
 	// Recommended ContactPoint if telephone exists

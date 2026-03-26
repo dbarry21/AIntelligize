@@ -272,9 +272,17 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 		if ( empty( $p['name'] ) ) continue;
 		if ( ( $p['enabled'] ?? '1' ) !== '1' ) continue;
 
-		// Check page assignment
 		$pages = array_map( 'absint', (array) ( $p['pages'] ?? [] ) );
-		if ( empty( $pages ) || ! in_array( $post_id, $pages, true ) ) continue;
+
+		// Emit behaviour:
+		//   - No pages assigned → global: emit on ALL singular pages.
+		//     This ensures the Person @id reference resolves everywhere it's used
+		//     (LocalBusiness.employee, Organization.founder, VideoObject.director, WebPage.author).
+		//   - Pages assigned   → scoped: emit only on those specific pages.
+		$is_global = empty( $pages );
+		$is_scoped = ! $is_global && in_array( $post_id, $pages, true );
+
+		if ( ! $is_global && ! $is_scoped ) continue;
 
 		$node = myls_person_build_jsonld( $p );
 		if ( ! empty( $node ) ) {

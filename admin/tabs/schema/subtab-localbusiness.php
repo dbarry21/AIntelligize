@@ -363,11 +363,28 @@ $spec = [
 
                   <div class="myls-col col-3">
                     <label class="form-label">Latitude</label>
-                    <input type="text" name="myls_locations[<?php echo $i;?>][lat]" value="<?php echo esc_attr($loc['lat']); ?>">
+                    <input type="text"
+                           class="myls-lat-field"
+                           name="myls_locations[<?php echo $i;?>][lat]"
+                           value="<?php echo esc_attr($loc['lat']); ?>"
+                           placeholder="e.g. 28.186431">
                   </div>
                   <div class="myls-col col-3">
                     <label class="form-label">Longitude</label>
-                    <input type="text" name="myls_locations[<?php echo $i;?>][lng]" value="<?php echo esc_attr($loc['lng']); ?>">
+                    <input type="text"
+                           class="myls-lng-field"
+                           name="myls_locations[<?php echo $i;?>][lng]"
+                           value="<?php echo esc_attr($loc['lng']); ?>"
+                           placeholder="e.g. -82.407297">
+                  </div>
+                  <div class="myls-col col-6" style="display:flex;align-items:flex-end;gap:.5rem;padding-bottom:.75rem;">
+                    <button type="button"
+                            class="myls-btn myls-btn-outline myls-geocode-btn"
+                            data-index="<?php echo $i; ?>"
+                            title="Look up coordinates from address">
+                        📍 Get Coordinates
+                    </button>
+                    <span class="myls-geo-status" style="font-size:12px;color:#6b7280;"></span>
                   </div>
 
                 </div>
@@ -461,6 +478,32 @@ $spec = [
           These values apply to <strong>all locations</strong> as a fallback when the per-location field is blank.
           Filling them eliminates the optional warnings in Google's Rich Results Test.
         </p>
+
+        <!-- Business Photo URL — site-wide default for LocalBusiness image property -->
+        <div class="myls-row" style="margin-bottom:0;">
+            <div class="myls-col col-12">
+                <label class="form-label" for="myls_lb_business_photo_url">
+                    Business Photo URL
+                    <span style="font-weight:400;color:#6b7280;">
+                        — used as the <code>image</code> property on LocalBusiness schema (should be a photo of your business, crew, or work — NOT your logo)
+                    </span>
+                </label>
+                <div style="display:flex;gap:.4rem;align-items:center;">
+                    <input type="url"
+                           id="myls_lb_business_photo_url"
+                           name="myls_lb_business_photo_url"
+                           value="<?php echo esc_attr( get_option('myls_lb_business_photo_url', '') ); ?>"
+                           placeholder="https://yoursite.com/wp-content/uploads/hero-photo.jpg"
+                           style="flex:1;">
+                    <button type="button" class="myls-btn myls-btn-outline" id="myls-pick-biz-photo">Select</button>
+                    <button type="button" class="myls-btn myls-btn-danger" id="myls-clear-biz-photo" style="padding:0 8px;">&#10005;</button>
+                </div>
+                <p class="form-text" style="margin-top:4px;opacity:.75;">
+                    Google recommends a real photo (min 720px wide, 16:9 ratio preferred).
+                    This applies to all locations as a fallback when the per-location "Business Image URL" is blank.
+                </p>
+            </div>
+        </div>
 
         <div class="myls-row">
           <div class="myls-col col-6">
@@ -928,7 +971,102 @@ $spec = [
     }
   });
 })();
+
+// ── Geocode button ──────────────────────────────────────────────────────────
+document.addEventListener('click', async function(e) {
+    const btn = e.target.closest('.myls-geocode-btn');
+    if (!btn) return;
+    e.preventDefault();
+
+    const idx    = btn.getAttribute('data-index');
+    const fold   = btn.closest('details.myls-fold');
+    if (!fold) return;
+
+    const latInp = fold.querySelector('.myls-lat-field');
+    const lngInp = fold.querySelector('.myls-lng-field');
+    const status = btn.nextElementSibling;
+
+    // Build address string from current form fields
+    const street  = fold.querySelector(`[name="myls_locations[${idx}][street]"]`)?.value.trim() || '';
+    const city    = fold.querySelector(`[name="myls_locations[${idx}][city]"]`)?.value.trim() || '';
+    const stateEl = fold.querySelector(`[name="myls_locations[${idx}][state]"]`);
+    const state   = stateEl ? stateEl.options[stateEl.selectedIndex]?.text || '' : '';
+    const zip     = fold.querySelector(`[name="myls_locations[${idx}][zip]"]`)?.value.trim() || '';
+    const address = [street, city, state, zip].filter(Boolean).join(', ');
+
+    if (!address || address.length < 5) {
+        status.textContent = 'Fill in address fields first.';
+        return;
+    }
+
+    // Check if Google Maps API key is available (PHP-injected constant)
+    const apiKey = (typeof mylsGeoApiKey !== 'undefined') ? mylsGeoApiKey : '';
+
+    if (apiKey) {
+        // Geocode via Google Maps Geocoding API
+        status.textContent = 'Looking up...';
+        btn.disabled = true;
+        try {
+            const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+            const resp = await fetch(url);
+            const data = await resp.json();
+            if (data.status === 'OK' && data.results[0]) {
+                const loc = data.results[0].geometry.location;
+                latInp.value = loc.lat.toFixed(8);
+                lngInp.value = loc.lng.toFixed(8);
+                status.textContent = '\u2713 Coordinates updated';
+                status.style.color = '#166534';
+            } else {
+                status.textContent = 'Address not found \u2014 check fields';
+                status.style.color = '#dc2626';
+            }
+        } catch(err) {
+            status.textContent = 'API error \u2014 try manual lookup below';
+            status.style.color = '#dc2626';
+        } finally {
+            btn.disabled = false;
+        }
+    } else {
+        // No API key — open Google Maps search so user can look up manually
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+        window.open(mapsUrl, '_blank', 'noopener');
+        status.textContent = 'Right-click the pin \u2192 "What\u2019s here?" for coordinates';
+        status.style.color = '#92400e';
+    }
+});
+
+// Business photo media picker
+(function(){
+    const pickBtn  = document.getElementById('myls-pick-biz-photo');
+    const clearBtn = document.getElementById('myls-clear-biz-photo');
+    const inp      = document.getElementById('myls_lb_business_photo_url');
+    if (!pickBtn || !inp) return;
+
+    pickBtn.addEventListener('click', function() {
+        const frame = wp.media({
+            title: 'Select Business Photo',
+            button: { text: 'Use this photo' },
+            multiple: false,
+            library: { type: 'image' }
+        });
+        frame.on('select', function() {
+            const att = frame.state().get('selection').first().toJSON();
+            inp.value = att.url;
+        });
+        frame.open();
+    });
+
+    clearBtn?.addEventListener('click', function() { inp.value = ''; });
+})();
 </script>
+
+    <?php
+    // Expose Google Maps API key to JS for geocoding (only if set)
+    $geo_api_key = trim( (string) get_option( 'myls_google_maps_api_key',
+        get_option( 'myls_maps_embed_api_key', '' ) ) );
+    if ( $geo_api_key !== '' ) : ?>
+    <script>var mylsGeoApiKey = <?php echo wp_json_encode( $geo_api_key ); ?>;</script>
+    <?php endif; ?>
 
     <?php
   },
@@ -969,8 +1107,12 @@ $spec = [
         'state'      => $state,
         'zip'        => sanitize_text_field($loc['zip'] ?? ''),
         'country'    => $country,
-        'lat'          => sanitize_text_field($loc['lat'] ?? ''),
-        'lng'          => sanitize_text_field($loc['lng'] ?? ''),
+        'lat' => ( is_numeric( trim( $loc['lat'] ?? '' ) ) )
+            ? (string) (float) trim( $loc['lat'] )
+            : '',
+        'lng' => ( is_numeric( trim( $loc['lng'] ?? '' ) ) )
+            ? (string) (float) trim( $loc['lng'] )
+            : '',
 
         'pages'        => array_map('absint', (array)($loc['pages'] ?? [])),
         'hours'      => [],
@@ -991,6 +1133,12 @@ $spec = [
 
     // Save site-wide defaults.
     update_option('myls_lb_default_price_range', sanitize_text_field($_POST['myls_lb_default_price_range'] ?? ''));
+
+    // Save business photo URL (used as LocalBusiness.image when per-location field is blank)
+    update_option(
+        'myls_lb_business_photo_url',
+        esc_url_raw( trim( $_POST['myls_lb_business_photo_url'] ?? '' ) )
+    );
 
     // Save knowsAbout include list.
     // Values are either int post IDs or the '__subtype__' sentinel string.
