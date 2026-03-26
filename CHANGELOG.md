@@ -1,3 +1,18 @@
+## 7.9.18.32 — 2026-03-26
+
+### Fixed — TikTok `&amp;` full cycle fix (form display + DB cleanup)
+- **Form display:** Replaced `esc_url($u)` with `esc_attr(html_entity_decode(...))`
+  on the social profile input value. This breaks the re-encoding cycle — the browser
+  now displays and submits a clean `&` instead of `&amp;`.
+- **DB cleanup:** Added idempotent self-healing at the top of the Organization render
+  function. Automatically decodes any `&amp;` in stored social profile URLs on page
+  load — no manual resave required.
+- Combined with the save-path fix (v7.9.18.30) and render.php safeguard (v7.9.18.31),
+  this closes all four points in the encoding cycle.
+
+**Files changed:** `admin/tabs/schema/subtab-organization.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.31 — 2026-03-26
 
 ### Fixed — TikTok `&amp;` in sameAs URL (for real this time)
