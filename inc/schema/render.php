@@ -69,7 +69,9 @@ add_action( 'wp_head', function () {
 		if ( ! empty( $org['url'] ) )   $data['url']   = esc_url( $org['url'] );
 		if ( ! empty( $org['logo'] ) )  $data['logo']  = esc_url( $org['logo'] );
 		if ( ! empty( $org['image'] ) ) $data['image'] = esc_url( $org['image'] );
-		if ( $sameAs ) $data['sameAs']  = array_map( 'esc_url_raw', $sameAs );
+		if ( $sameAs ) $data['sameAs'] = array_map( function( $url ) {
+			return esc_url_raw( html_entity_decode( $url, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		}, $sameAs );
 
 		echo "\n<script type=\"application/ld+json\">", wp_json_encode( $data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ), "</script>\n";
 	}
@@ -108,7 +110,9 @@ add_action( 'wp_head', function () {
 			];
 		}
 		if ( $hours )   $data['openingHours'] = $hours;
-		if ( $sameAs )  $data['sameAs']       = array_map( 'esc_url_raw', $sameAs );
+		if ( $sameAs ) $data['sameAs'] = array_map( function( $url ) {
+			return esc_url_raw( html_entity_decode( $url, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		}, $sameAs );
 
 		echo "\n<script type=\"application/ld+json\">", wp_json_encode( $data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ), "</script>\n";
 	}
