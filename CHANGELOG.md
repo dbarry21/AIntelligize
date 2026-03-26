@@ -1,3 +1,11 @@
+## 7.9.18.26 — 2026-03-26
+
+### Improved — `[google_rating_badge]` green top border
+- Added `border-top: 5px solid #4CAF50` to the default badge styles for a
+  polished look matching common Google Rating badge widgets.
+
+**Files changed:** `google-rating-values.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.25 — 2026-03-26
 
 ### Fixed — `myls_render_stars()` redeclaration fatal error
