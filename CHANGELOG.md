@@ -1,3 +1,30 @@
+## 7.9.18.28 — 2026-03-26
+
+### Fixed — 8 schema bugs from audit
+
+1. **HTML entity double-encoding on city names** — `Land O&#8217; Lakes` now
+   renders as `Land O' Lakes` in JSON-LD. Replaced `wp_specialchars_decode()`
+   with `html_entity_decode()` which handles numeric entities.
+2. **`&amp;` in TikTok sameAs URL** — social profile URLs are now decoded with
+   `html_entity_decode()` before `esc_url_raw()` to emit clean `&` in JSON-LD.
+3. **VideoObject `@id` pointing to foreign domain** — self-hosted MP4 videos now
+   scope `@id` to the current site URL instead of the CDN/external domain.
+4. **FAQ CTA noise in `acceptedAnswer.text`** — trailing "Helpful next step: ..."
+   phrases are now stripped from schema output (Google FAQ guidelines prohibit CTAs).
+5. **Missing `url` on LocalBusiness** — `url` property now emitted on the
+   LocalBusiness node (already present on Organization).
+6. **Telephone format inconsistency** — both LocalBusiness and Organization now
+   output E.164 format (`+18134232383`). New helper: `myls_normalize_phone_e164()`.
+7. **FAQPage `publisher` referencing wrong entity** — now references `#organization`
+   (content publisher) instead of scanning for LocalBusiness (physical location).
+8. **Missing `logo` on LocalBusiness** — `logo` property (ImageObject with
+   dimensions) now emitted separately from `image` (business photo).
+
+**Files changed:** `inc/schema/helpers.php`, `inc/schema/providers/localbusiness.php`,
+`inc/schema/providers/organization.php`, `inc/schema/providers/faq.php`,
+`inc/schema/providers/video-object-detector.php`, `aintelligize.php`, `readme.txt`,
+`CHANGELOG.md`
+
 ## 7.9.18.27 — 2026-03-26
 
 ### Added — AggregateRating schema with admin controls

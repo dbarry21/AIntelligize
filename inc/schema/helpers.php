@@ -62,10 +62,22 @@ if ( ! function_exists('myls_strip_answer_prefix') ) {
 		// Handles both "Answer: " and "Answer:" (no space) at string start.
 		$clean = preg_replace( '/^\s*Answer:\s*/i', '', $clean );
 
-		// ── Step 4: Collapse whitespace and trim ──────────────────────────────
+		// ── Step 4: Strip trailing CTA noise ("Helpful next step: ...") ──
+		// Google FAQ guidelines prohibit calls to action in acceptedAnswer.text.
+		// This pattern matches:
+		//   "Helpful next step: ..."
+		//   "Helpful next step — ..."
+		// and removes it along with any preceding whitespace/bullets/punctuation.
+		$clean = preg_replace( '/[\s\.\,\;\:\-\•\*]*Helpful next step[:\s\-–—].*$/si', '', $clean );
+
+		// Also strip any trailing bullet-list remnants left after the CTA removal
+		// e.g. "• Contact us today." or "* Call us." appearing at the very end.
+		$clean = rtrim( $clean, " \t\n\r\0\x0B.,;:•*-–—" );
+
+		// ── Step 5: Collapse whitespace and trim ──────────────────────────────
 		$clean = trim( preg_replace( '/\s+/', ' ', $clean ) );
 
-		return $clean;
+		return trim( $clean ) !== '' ? trim( $clean ) : trim( $text );
 	}
 }
 
@@ -214,6 +226,38 @@ if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
 			'bestRating'  => $best_rating,
 			'worstRating' => $worst_rating,
 		];
+	}
+}
+
+if ( ! function_exists('myls_normalize_phone_e164') ) {
+	/**
+	 * Normalize a US/CA phone number to E.164 format (+1XXXXXXXXXX).
+	 *
+	 * Only normalizes numbers that appear to be 10-digit North American numbers.
+	 * Returns the original string unchanged if it can't be confidently normalized
+	 * (e.g. international numbers, extensions, or non-numeric strings).
+	 *
+	 * @param  string $phone  Raw phone string from wp_options.
+	 * @return string         E.164 string (e.g. "+18134232383") or original input.
+	 */
+	function myls_normalize_phone_e164( string $phone ) : string {
+		if ( $phone === '' ) return '';
+
+		// Extract digits only
+		$digits = preg_replace( '/\D/', '', $phone );
+
+		// Handle +1 country code already present (11 digits starting with 1)
+		if ( strlen( $digits ) === 11 && $digits[0] === '1' ) {
+			return '+' . $digits;
+		}
+
+		// 10-digit North American number — prepend +1
+		if ( strlen( $digits ) === 10 ) {
+			return '+1' . $digits;
+		}
+
+		// Can't confidently normalize — return original unchanged
+		return $phone;
 	}
 }
 

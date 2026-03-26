@@ -146,30 +146,13 @@ add_filter('myls_schema_graph', function( array $graph ) {
 		'mainEntity'   => $main,
 	];
 
-	// publisher: link FAQPage back to the LocalBusiness (if assigned) or Organization
-	// This strengthens entity association and AI citation signals.
-	$lb_id = '';
-	foreach ( $graph as $gn ) {
-		if ( is_array($gn) && ! empty($gn['@id']) ) {
-			$t = is_array($gn['@type'] ?? '') ? ($gn['@type'][0] ?? '') : ($gn['@type'] ?? '');
-			if ( stripos( $t, 'LocalBusiness' ) !== false || stripos( $t, 'Business' ) !== false ) {
-				$lb_id = $gn['@id'];
-				break;
-			}
-		}
-	}
-	if ( ! $lb_id ) {
-		// Fallback: Organization
-		foreach ( $graph as $gn ) {
-			if ( is_array($gn) && ($gn['@type'] ?? '') === 'Organization' && ! empty($gn['@id']) ) {
-				$lb_id = $gn['@id'];
-				break;
-			}
-		}
-	}
-	if ( $lb_id ) {
-		$node['publisher'] = [ '@id' => $lb_id ];
-	}
+	// publisher: link FAQPage to the Organization (content publisher identity).
+	// Organization is the correct publisher for content nodes like FAQPage.
+	// LocalBusiness is a physical location entity, not a content publisher.
+	// Use a direct @id reference rather than scanning the graph — the Organization
+	// node is always present when schema is enabled.
+	$org_node_id = home_url( '/#organization' );
+	$node['publisher'] = [ '@id' => $org_node_id ];
 
 	$graph[] = apply_filters( 'myls_faq_schema_node', $node, $post_id );
 	return $graph;
