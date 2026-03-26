@@ -18,6 +18,21 @@ $spec = [
 
 	'render'=> function () {
 
+		// One-time self-healing: clean HTML entities out of stored social profile URLs.
+		// Runs silently on every render — is_array check and array_filter make it safe
+		// to run repeatedly (idempotent). Removes the need for user to manually resave.
+		$stored_socials = get_option( 'myls_org_social_profiles', [] );
+		if ( is_array( $stored_socials ) && ! empty( $stored_socials ) ) {
+			$cleaned = array_values( array_filter( array_map( function( $u ) {
+				$decoded = html_entity_decode( trim( (string) $u ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+				return esc_url_raw( $decoded );
+			}, $stored_socials ) ) );
+			// Only write if something actually changed
+			if ( $cleaned !== $stored_socials ) {
+				update_option( 'myls_org_social_profiles', $cleaned );
+			}
+		}
+
 		// Media modal for logo
 		if ( function_exists('wp_enqueue_media') ) {
 			wp_enqueue_media();
@@ -281,7 +296,7 @@ $spec = [
 							<div id="myls-org-socials">
 								<?php foreach ( $socials as $i => $u ) : ?>
 								<div class="d-flex" style="gap:.5rem; margin-bottom:.5rem;">
-									<input type="url" name="myls_org_social_profiles[]" value="<?php echo esc_url($u); ?>" placeholder="https://example.com/your-profile">
+									<input type="url" name="myls_org_social_profiles[]" value="<?php echo esc_attr( html_entity_decode( trim( (string) $u ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ); ?>" placeholder="https://example.com/your-profile">
 									<button class="myls-btn myls-btn-outline myls-remove-social" type="button">Remove</button>
 								</div>
 								<?php endforeach; ?>
