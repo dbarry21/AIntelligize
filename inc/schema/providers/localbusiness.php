@@ -74,16 +74,21 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 		$loc_img  = trim( (string) ( $loc['image_url'] ?? '' ) );
 		$logo_id  = (int) get_option( 'myls_org_logo_id', 0 );
 		$logo_url = $logo_id ? wp_get_attachment_image_url( $logo_id, 'full' ) : '';
-		$org_image_url = trim( (string) get_option( 'myls_org_image_url', '' ) );
+		// Business photo: check dedicated business photo field first, then legacy org_image_url
+		$biz_photo_url = trim( (string) get_option( 'myls_lb_business_photo_url', '' ) );
+		$org_image_url = $biz_photo_url !== '' ? $biz_photo_url
+			: trim( (string) get_option( 'myls_org_image_url', '' ) );
 
-		// image: prefer per-location Business Image URL, then org image URL.
-		// This should be a photo of the business/work — NOT the logo.
+		// image: business photo — NOT the logo. Logo goes in the logo property separately.
+		// Priority: per-location Business Image URL → site-wide Business Photo URL → omit.
+		// Never fall back to the logo — using the logo as image sends a conflicting signal.
 		$image_prop = null;
-		if ( $loc_img !== '' )           $image_prop = esc_url( $loc_img );
-		elseif ( $org_image_url !== '' ) $image_prop = esc_url( $org_image_url );
-		// Final fallback: if only the logo is available, use it for image too
-		// (better than having no image at all, but flag this in admin).
-		elseif ( $logo_url !== '' )      $image_prop = esc_url( $logo_url );
+		if ( $loc_img !== '' ) {
+			$image_prop = esc_url( $loc_img );
+		} elseif ( $org_image_url !== '' ) {
+			$image_prop = esc_url( $org_image_url );
+		}
+		// If neither is set, image_prop remains null and is excluded by array_filter().
 
 		// logo: always use the org logo attachment (ImageObject with dimensions).
 		// This is separate from `image` — logo is the brand mark, image is a photo.
@@ -241,11 +246,9 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 				'postalCode'      => trim( $loc['zip'] ?? '' ),
 				'addressCountry'  => trim( $loc['country'] ?? 'US' ),
 			] ),
-			'geo' => ( ! empty( $loc['lat'] ) || ! empty( $loc['lng'] ) ) ? array_filter( [
-				'@type'    => 'GeoCoordinates',
-				'latitude' => trim( $loc['lat'] ?? '' ),
-				'longitude'=> trim( $loc['lng'] ?? '' ),
-			] ) : null,
+			'geo' => function_exists('myls_build_geo_coordinates')
+				? myls_build_geo_coordinates( $loc['lat'] ?? '', $loc['lng'] ?? '' )
+				: null,
 			'openingHoursSpecification' => $hours ?: null,
 			'aggregateRating' => function_exists('myls_schema_build_aggregate_rating') ? myls_schema_build_aggregate_rating() : null,
 
