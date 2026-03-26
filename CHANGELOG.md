@@ -1,3 +1,16 @@
+## 7.9.18.31 — 2026-03-26
+
+### Fixed — TikTok `&amp;` in sameAs URL (for real this time)
+- **Root cause:** `inc/schema/render.php` has a **legacy schema emitter** (separate
+  from the provider in `organization.php`) that also outputs Organization and
+  LocalBusiness sameAs URLs. This legacy emitter at lines 72 and 111 used bare
+  `array_map('esc_url_raw', ...)` without `html_entity_decode()`.
+- All prior fixes targeted `organization.php` (the provider), but the actual
+  output was coming from `render.php` (the legacy emitter).
+- Applied the same `html_entity_decode()` wrapper to both sameAs calls in render.php.
+
+**Files changed:** `inc/schema/render.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.30 — 2026-03-26
 
 ### Fixed — Social profile URLs stored with `&amp;` in database
