@@ -108,7 +108,7 @@ add_shortcode( 'google_rating_badge', function ( $atts ) {
 	if ( ! $badge_css_loaded ) {
 		$badge_css_loaded = true;
 		$css = '<style>
-.myls-google-rating-badge{display:inline-flex;align-items:flex-start;gap:10px;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px 16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.08);line-height:1.3;text-decoration:none;color:inherit;transition:box-shadow .2s}
+.myls-google-rating-badge{display:inline-flex;align-items:flex-start;gap:10px;background:#fff;border:1px solid #e0e0e0;border-top:5px solid #4CAF50;border-radius:8px;padding:12px 16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.08);line-height:1.3;text-decoration:none;color:inherit;transition:box-shadow .2s}
 .myls-google-rating-badge:hover{box-shadow:0 4px 16px rgba(0,0,0,.14)}
 .myls-google-rating-badge--dark{background:#303134;border-color:#5f6368;color:#e8eaed}
 .myls-google-rating-badge__logo{flex-shrink:0;width:36px;height:36px;margin-top:2px}
