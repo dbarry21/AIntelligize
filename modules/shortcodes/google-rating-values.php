@@ -47,20 +47,20 @@ add_shortcode( 'google_aggregate_rating', function ( $atts ) {
 } );
 
 /** -----------------------------------------------------------------------
- * Helper: render star icons (reuses slider version if available)
+ * Helper: render star icons (private to this file to avoid redeclaration
+ * conflict with google-reviews-slider.php which defines myls_render_stars
+ * inside a non-guarded block).
  * --------------------------------------------------------------------- */
-if ( ! function_exists( 'myls_render_stars' ) ) {
-	function myls_render_stars( $rating, $color = '#FFD700' ) {
-		$full  = floor( $rating );
-		$half  = ( $rating - $full ) >= 0.25 ? 1 : 0;
-		$empty = 5 - $full - $half;
-		$html  = '<span class="myls-gr-stars" style="color:' . esc_attr( $color ) . ';" aria-label="' . esc_attr( $rating . ' out of 5 stars' ) . '">';
-		$html .= str_repeat( '&#9733;', $full );
-		if ( $half ) $html .= '<span style="opacity:.55;">&#9733;</span>';
-		$html .= str_repeat( '<span style="opacity:.25;">&#9733;</span>', $empty );
-		$html .= '</span>';
-		return $html;
-	}
+function myls_rating_badge_render_stars( $rating, $color = '#FFD700' ) {
+	$full  = floor( $rating );
+	$half  = ( $rating - $full ) >= 0.25 ? 1 : 0;
+	$empty = 5 - $full - $half;
+	$html  = '<span class="myls-gr-stars" style="color:' . esc_attr( $color ) . ';" aria-label="' . esc_attr( $rating . ' out of 5 stars' ) . '">';
+	$html .= str_repeat( '&#9733;', $full );
+	if ( $half ) $html .= '<span style="opacity:.55;">&#9733;</span>';
+	$html .= str_repeat( '<span style="opacity:.25;">&#9733;</span>', $empty );
+	$html .= '</span>';
+	return $html;
 }
 
 /** -----------------------------------------------------------------------
@@ -143,7 +143,7 @@ a.myls-google-rating-badge:hover{color:inherit;text-decoration:none}
 	$html .= '<span class="myls-google-rating-badge__title">Google Rating</span>';
 	$html .= '<div class="myls-google-rating-badge__row">';
 	$html .= '<span class="myls-google-rating-badge__value">' . esc_html( $rating ) . '</span>';
-	$html .= '<span class="myls-google-rating-badge__stars">' . myls_render_stars( (float) $rating, $star_color ) . '</span>';
+	$html .= '<span class="myls-google-rating-badge__stars">' . myls_rating_badge_render_stars( (float) $rating, $star_color ) . '</span>';
 	$html .= '</div>';
 	$html .= '<span class="myls-google-rating-badge__count">Based on ' . esc_html( $count ) . ' reviews</span>';
 	$html .= '</div>';
