@@ -58,7 +58,7 @@ class MYLS_Meta_Postprocessor {
 	 * @param string $raw Raw AI output.
 	 * @return string|\WP_Error Clean meta description or error.
 	 */
-	public static function enforce( string $raw ): string|\WP_Error {
+	public static function enforce( string $raw ) {
 
 		// ── A) SANITISE ──
 		$text = trim( strip_tags( $raw ) );
