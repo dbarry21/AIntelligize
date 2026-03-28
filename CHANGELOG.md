@@ -141,6 +141,17 @@ additional API calls required.
 **Files changed:** `google-rating-values.php` (new), `shortcode-data.php`,
 `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
 
+## 7.9.18.33 — 2026-03-28
+
+### Fixed — PHP 7.x compatibility in meta postprocessor
+- **Union return type removed:** `enforce()` in `Myls_Meta_Postprocessor` used
+  `string|\WP_Error` return type (PHP 8.0+), causing a fatal error on PHP 7.x
+  hosts. Removed the typed return declaration; the `@return` docblock already
+  documents the contract.
+
+**Files changed:** `class-myls-meta-postprocessor.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.23 — 2026-03-21
 
 ### Fixed — `[service_faq_page]` accordion colors not applying
