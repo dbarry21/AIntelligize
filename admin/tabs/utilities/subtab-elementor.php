@@ -194,9 +194,8 @@ return [
                 <select id="myls_elb_price_range" class="form-select form-select-sm">
                     <option value="">— No price range —</option>
                     <?php foreach ( $elb_price_ranges as $idx => $r ):
-                        $symbol = match ( strtoupper( $r['currency'] ?? 'USD' ) ) {
-                            'EUR' => '€', 'GBP' => '£', 'CAD' => 'CA$', default => '$'
-                        };
+                        $cur    = strtoupper( $r['currency'] ?? 'USD' );
+                        $symbol = isset( [ 'EUR' => '€', 'GBP' => '£', 'CAD' => 'CA$' ][ $cur ] ) ? [ 'EUR' => '€', 'GBP' => '£', 'CAD' => 'CA$' ][ $cur ] : '$';
                         $low_fmt  = ! empty( $r['low'] )  ? $symbol . number_format( (float) $r['low'],  0 ) : '';
                         $high_fmt = ! empty( $r['high'] ) ? $symbol . number_format( (float) $r['high'], 0 ) : '';
                         $range_display = esc_html( $r['label'] );

@@ -59,7 +59,7 @@ function myls_pricing_table_shortcode( array $atts ): string {
 
         // Include: global ranges (no post_ids set) OR ranges assigned to this post.
         if ( empty( $post_ids ) || ( $post_id > 0 && in_array( $post_id, $post_ids, true ) ) ) {
-            $symbol   = match ( $currency ) { 'EUR' => '€', 'GBP' => '£', 'CAD' => 'CA$', default => '$' };
+            $symbol   = isset( [ 'EUR' => '€', 'GBP' => '£', 'CAD' => 'CA$' ][ $currency ] ) ? [ 'EUR' => '€', 'GBP' => '£', 'CAD' => 'CA$' ][ $currency ] : '$';
             $low_fmt  = $low  !== '' ? $symbol . number_format( (float) $low,  0 ) : '';
             $high_fmt = $high !== '' ? $symbol . number_format( (float) $high, 0 ) : '';
             $rows[]   = [ 'label' => $label, 'low' => $low_fmt, 'high' => $high_fmt ];

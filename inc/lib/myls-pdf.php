@@ -182,11 +182,8 @@ class MYLS_PDF {
 		$w  = $this->mm2pt( $w );
 		$h  = $this->mm2pt( $h );
 
-		$op = match( strtoupper( $style ) ) {
-			'F'     => 'f',
-			'FD'    => 'B',
-			default => 'S',
-		};
+		$s  = strtoupper( $style );
+		$op = ( $s === 'F' ) ? 'f' : ( ( $s === 'FD' ) ? 'B' : 'S' );
 
 		$fc = $this->color_cmd( $this->fill_color, 'fill' );
 		$dc = $this->color_cmd( $this->draw_color, 'stroke' );
@@ -246,11 +243,9 @@ class MYLS_PDF {
 		// Text
 		if ( $txt !== '' ) {
 			$txt_w   = $this->string_width( $txt );
-			$txt_x   = match( strtoupper( $align ) ) {
-				'C'     => $x + ( $w_pt - $txt_w ) / 2,
-				'R'     => $x + $w_pt - $txt_w - 1,
-				default => $x + 1,
-			};
+			$a       = strtoupper( $align );
+			$txt_x   = ( $a === 'C' ) ? $x + ( $w_pt - $txt_w ) / 2
+			           : ( ( $a === 'R' ) ? $x + $w_pt - $txt_w - 1 : $x + 1 );
 			$txt_y = $y + ( $h_pt - $this->font_size * 0.3 ) / 2 + $this->font_size * 0.3;
 
 			$tc  = $this->color_cmd( $this->text_color, 'text' );

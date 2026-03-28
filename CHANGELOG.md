@@ -1,12 +1,14 @@
-## 7.9.18.33 — 2026-03-28
+## 7.9.18.34 — 2026-03-28
 
-### Fixed — PHP 7.x compatibility in meta postprocessor
-- **Union return type removed:** `enforce()` in `Myls_Meta_Postprocessor` used
-  `string|\WP_Error` return type (PHP 8.0+), causing a fatal error on PHP 7.x
-  hosts. Removed the typed return declaration; the `@return` docblock already
-  documents the contract.
+### Fixed — PHP 7.x compatibility (all PHP 8.0+ syntax removed)
+- **Union return type:** `enforce()` in `Myls_Meta_Postprocessor` used
+  `string|\WP_Error` return type — removed; `@return` docblock documents contract.
+- **`match()` expressions:** Replaced 4 PHP 8.0 `match()` calls with ternary
+  equivalents in `myls-pdf.php` (2), `pricing-table.php` (1), and
+  `subtab-elementor.php` (1). All were currency symbol lookups or style mappings.
 
-**Files changed:** `class-myls-meta-postprocessor.php`,
+**Files changed:** `class-myls-meta-postprocessor.php`, `inc/lib/myls-pdf.php`,
+`modules/shortcodes/pricing-table.php`, `admin/tabs/utilities/subtab-elementor.php`,
 `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
 
 ## 7.9.18.32 — 2026-03-26

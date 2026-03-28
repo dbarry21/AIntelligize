@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.9.18.33
+Stable tag: 7.9.18.34
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -183,8 +183,8 @@ Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
 
-= 7.9.18.33 =
-* FIX: Removed PHP 8.0+ union return type (`string|\WP_Error`) from `Myls_Meta_Postprocessor::enforce()` for PHP 7.x compatibility.
+= 7.9.18.34 =
+* FIX: Replace all PHP 8.0+ syntax (`match()` expressions, union return types) with PHP 7.x equivalents across 4 files.
 
 = 7.8.79 =
 * NEW: Style Editor now has a "Frontend Source" tab showing the full contents of assets/frontend.css (read-only) alongside the Custom Overrides editor. Switch tabs to see existing styles before writing overrides.
