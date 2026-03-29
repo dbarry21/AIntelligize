@@ -1,3 +1,15 @@
+## 7.9.18.40 — 2026-03-28
+
+### Fixed
+- **VideoObject from Elementor Shortcode widget:** The previous fix scanned
+  raw `post_content` which is empty on Elementor pages. The actual shortcode
+  lives in `_elementor_data` JSON inside a `widgetType: "shortcode"` element
+  (`settings.shortcode`). The Elementor extractor now scans shortcode widgets
+  for `[myls_youtube_embed video_id="..."]` and emits a VideoObject node.
+
+**Files changed:** `inc/schema/providers/video-object-detector.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.39 — 2026-03-28
 
 ### Fixed
