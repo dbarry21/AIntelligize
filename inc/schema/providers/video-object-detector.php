@@ -711,6 +711,13 @@ if ( ! function_exists('myls_extract_videos_content') ) {
 			}
 		}
 
+		// ── 5. [myls_youtube_embed video_id="..."] shortcode ──────────────
+		if ( preg_match_all('/\[myls_youtube_embed\s[^\]]*\bvideo_id=["\']([a-zA-Z0-9_\-]{11})["\']/', $content, $m) ) {
+			foreach ( $m[1] as $vid_id ) {
+				$add( 'https://www.youtube.com/watch?v=' . rawurlencode( $vid_id ) );
+			}
+		}
+
 		return $found;
 	}
 }
