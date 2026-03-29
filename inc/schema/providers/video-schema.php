@@ -208,7 +208,7 @@ if ( ! function_exists('myls_video_schema_single') ) {
 			'url'              => esc_url_raw($watch_url),              // canonical to watch (or post if no id)
 			'name'             => $name,
 			'description'      => $desc,
-			'isFamilyFriendly' => 'true',
+			'isFamilyFriendly' => true,
 			'datePublished'    => $datePublished ?: null,
 			'dateModified'     => $dateModified  ?: null,
 			// REQUIRED/RECOMMENDED by Google; our fix ensures this is set:

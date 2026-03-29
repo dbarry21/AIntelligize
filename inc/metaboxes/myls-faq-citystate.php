@@ -169,6 +169,155 @@ function myls_render_faq_metabox( $post ) {
 		}
 
 	echo '</div>';
+
+	/* ------------------------------------------------------------------
+	 * HowTo Schema repeater — appears below the FAQ rows in the same metabox
+	 * ------------------------------------------------------------------ */
+	$howto_name  = (string) get_post_meta( $post_id, '_myls_howto_name', true );
+	if ( $howto_name === '' ) $howto_name = 'How ' . get_the_title( $post_id ) . ' Works';
+	$howto_steps = json_decode( (string) get_post_meta( $post_id, '_myls_howto_steps', true ), true );
+	if ( ! is_array( $howto_steps ) ) $howto_steps = [];
+
+	echo '<div style="margin-top:20px;padding:16px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;" id="myls-howto-section">';
+
+		echo '<h3 style="margin:0 0 4px;">HowTo Schema</h3>';
+		echo '<p style="margin:0 0 12px;color:#666;font-size:12px;">Outputs a HowTo @graph node — step-by-step rich results in Google. Saved to <code>_myls_howto_steps</code>.</p>';
+
+		echo '<p style="margin:0 0 6px;"><strong>HowTo Title</strong></p>';
+		echo '<input type="text" name="_myls_howto_name" value="' . esc_attr( $howto_name ) . '" class="widefat" style="margin-bottom:12px;" placeholder="How Professional Paver Sealing Works" />';
+
+		echo '<div style="margin-bottom:12px;">';
+			echo '<button type="button" id="myls-howto-ai-btn" class="button button-secondary" style="background:#6c37c9;color:#fff;border-color:#5a2db0;font-weight:600;">✨ Generate Steps from Page Content</button>';
+			echo '<span id="myls-howto-ai-status" style="margin-left:10px;font-style:italic;color:#666;display:none;"></span>';
+		echo '</div>';
+
+		echo '<div id="myls-howto-steps">';
+		foreach ( $howto_steps as $i => $step ) {
+			$sname = esc_attr( $step['name'] ?? '' );
+			$stext = esc_textarea( $step['text'] ?? '' );
+			echo '<div class="myls-howto-step" style="background:#fff;border:1px solid #ddd;border-radius:3px;padding:12px;margin-bottom:8px;">';
+				echo '<div style="display:flex;align-items:center;margin-bottom:6px;">';
+					echo '<span class="myls-howto-step-num" style="background:#6c37c9;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;margin-right:8px;flex-shrink:0;">' . ( $i + 1 ) . '</span>';
+					echo '<input type="text" name="_myls_howto_steps[' . $i . '][name]" value="' . $sname . '" class="widefat" placeholder="Step name (e.g. Free Surface Inspection)" />';
+				echo '</div>';
+				echo '<textarea name="_myls_howto_steps[' . $i . '][text]" rows="3" class="widefat" placeholder="Describe what happens in this step..." style="margin-bottom:6px;">' . $stext . '</textarea>';
+				echo '<button type="button" class="button myls-howto-remove" style="color:#a00;border-color:#a00;">✕ Remove Step</button>';
+			echo '</div>';
+		}
+		echo '</div>';
+
+		echo '<button type="button" id="myls-howto-add" class="button" style="margin-top:4px;">+ Add Step Manually</button>';
+
+	echo '</div>';
+	?>
+	<script>
+	(function(){
+		'use strict';
+		var myls_howto_data = {
+			ajax_url: <?php echo wp_json_encode( admin_url('admin-ajax.php') ); ?>,
+			post_id:  <?php echo (int) $post_id; ?>,
+			nonce:    <?php echo wp_json_encode( wp_create_nonce('myls_howto_nonce') ); ?>
+		};
+
+		var container = document.getElementById('myls-howto-steps');
+		var addBtn    = document.getElementById('myls-howto-add');
+		var aiBtn     = document.getElementById('myls-howto-ai-btn');
+		var aiStatus  = document.getElementById('myls-howto-ai-status');
+
+		function getCount() {
+			return container.querySelectorAll('.myls-howto-step').length;
+		}
+
+		function buildRow(idx, name, text) {
+			name = (name || '').replace(/"/g, '&quot;');
+			text = (text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+			return '<div class="myls-howto-step" style="background:#fff;border:1px solid #ddd;border-radius:3px;padding:12px;margin-bottom:8px;">' +
+				'<div style="display:flex;align-items:center;margin-bottom:6px;">' +
+					'<span class="myls-howto-step-num" style="background:#6c37c9;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;margin-right:8px;flex-shrink:0;">' + (idx+1) + '</span>' +
+					'<input type="text" name="_myls_howto_steps[' + idx + '][name]" value="' + name + '" class="widefat" placeholder="Step name (e.g. Free Surface Inspection)" />' +
+				'</div>' +
+				'<textarea name="_myls_howto_steps[' + idx + '][text]" rows="3" class="widefat" placeholder="Describe what happens in this step..." style="margin-bottom:6px;">' + text + '</textarea>' +
+				'<button type="button" class="button myls-howto-remove" style="color:#a00;border-color:#a00;">✕ Remove Step</button>' +
+			'</div>';
+		}
+
+		function reindex() {
+			container.querySelectorAll('.myls-howto-step').forEach(function(row, i) {
+				row.querySelector('.myls-howto-step-num').textContent = i + 1;
+				row.querySelector('input[type="text"]').name = '_myls_howto_steps[' + i + '][name]';
+				row.querySelector('textarea').name = '_myls_howto_steps[' + i + '][text]';
+			});
+		}
+
+		function bindRemove(btn) {
+			btn.addEventListener('click', function() {
+				btn.closest('.myls-howto-step').remove();
+				reindex();
+			});
+		}
+
+		container.querySelectorAll('.myls-howto-remove').forEach(bindRemove);
+
+		addBtn.addEventListener('click', function() {
+			var idx = getCount();
+			var tmp = document.createElement('div');
+			tmp.innerHTML = buildRow(idx, '', '');
+			var row = tmp.firstChild;
+			container.appendChild(row);
+			bindRemove(row.querySelector('.myls-howto-remove'));
+			row.querySelector('input').focus();
+		});
+
+		aiBtn.addEventListener('click', function() {
+			aiBtn.disabled = true;
+			aiStatus.style.display  = 'inline';
+			aiStatus.style.color    = '#666';
+			aiStatus.textContent    = 'Analyzing page content…';
+
+			fetch(myls_howto_data.ajax_url, {
+				method: 'POST',
+				headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+				body: new URLSearchParams({
+					action:  'myls_generate_howto_steps',
+					post_id: myls_howto_data.post_id,
+					nonce:   myls_howto_data.nonce
+				})
+			})
+			.then(function(r){ return r.json(); })
+			.then(function(data) {
+				if (!data.success) {
+					aiStatus.style.color = '#a00';
+					aiStatus.textContent = '⚠ ' + (data.data || 'Could not generate steps.');
+					aiBtn.disabled = false;
+					return;
+				}
+				var steps = data.data.steps;
+				var title = data.data.title;
+				if (title) {
+					document.querySelector('#myls-howto-section input[name="_myls_howto_name"]').value = title;
+				}
+				container.innerHTML = '';
+				steps.forEach(function(step, i) {
+					var tmp = document.createElement('div');
+					tmp.innerHTML = buildRow(i, step.name, step.text);
+					var row = tmp.firstChild;
+					container.appendChild(row);
+					bindRemove(row.querySelector('.myls-howto-remove'));
+				});
+				aiStatus.style.color = '#006505';
+				aiStatus.textContent = '✓ ' + steps.length + ' steps generated — review and save.';
+				aiBtn.disabled = false;
+			})
+			.catch(function(err) {
+				aiStatus.style.color = '#a00';
+				aiStatus.textContent = '⚠ Request failed. Check browser console.';
+				aiBtn.disabled = false;
+				console.error('[MYLS HowTo AI]', err);
+			});
+		});
+	})();
+	</script>
+	<?php
 }
 
 /* -------------------------------------------------------------------------
@@ -205,6 +354,35 @@ add_action('save_post', function( $post_id ) {
 	// FAQs
 	if ( ! ( isset($_POST['myls_faq_nonce']) && wp_verify_nonce($_POST['myls_faq_nonce'], 'myls_faq_save') ) ) {
 		return;
+	}
+
+	// HowTo name
+	if ( isset( $_POST['_myls_howto_name'] ) ) {
+		$howto_name_val = sanitize_text_field( (string) $_POST['_myls_howto_name'] );
+		if ( $howto_name_val === '' ) {
+			delete_post_meta( $post_id, '_myls_howto_name' );
+		} else {
+			update_post_meta( $post_id, '_myls_howto_name', $howto_name_val );
+		}
+	}
+
+	// HowTo steps
+	if ( isset( $_POST['_myls_howto_steps'] ) && is_array( $_POST['_myls_howto_steps'] ) ) {
+		$steps = [];
+		foreach ( $_POST['_myls_howto_steps'] as $step ) {
+			$n = sanitize_text_field( $step['name'] ?? '' );
+			$t = sanitize_textarea_field( $step['text'] ?? '' );
+			if ( $n !== '' && $t !== '' ) {
+				$steps[] = [ 'name' => $n, 'text' => $t ];
+			}
+		}
+		if ( empty( $steps ) ) {
+			delete_post_meta( $post_id, '_myls_howto_steps' );
+		} else {
+			update_post_meta( $post_id, '_myls_howto_steps', wp_json_encode( $steps ) );
+		}
+	} else {
+		delete_post_meta( $post_id, '_myls_howto_steps' );
 	}
 
 	if ( ! isset($_POST['myls_faq']) || ! is_array($_POST['myls_faq']) ) {
