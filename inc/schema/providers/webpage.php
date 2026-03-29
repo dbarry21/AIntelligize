@@ -33,14 +33,32 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 	$permalink = get_permalink( $post_id );
 	$site_url  = home_url( '/' );
 
+	// Description: post excerpt → page meta description (Yoast/RankMath) → omit
+	$page_desc = '';
+	if ( has_excerpt( $post_id ) ) {
+		$page_desc = wp_strip_all_tags( get_the_excerpt( $post_id ) );
+	}
+	if ( $page_desc === '' ) {
+		// Try Yoast meta description
+		$page_desc = trim( (string) get_post_meta( $post_id, '_yoast_wpseo_metadesc', true ) );
+	}
+	if ( $page_desc === '' ) {
+		// Try RankMath meta description
+		$page_desc = trim( (string) get_post_meta( $post_id, 'rank_math_description', true ) );
+	}
+
 	$node = [
-		'@type'        => 'WebPage',
-		'@id'          => trailingslashit( $permalink ) . '#webpage',
-		'name'         => get_the_title( $post_id ),
-		'url'          => $permalink,
+		'@type'         => 'WebPage',
+		'@id'           => trailingslashit( $permalink ) . '#webpage',
+		'name'          => get_the_title( $post_id ),
+		'url'           => $permalink,
 		'datePublished' => get_the_date( 'c', $post_id ),
 		'dateModified'  => get_the_modified_date( 'c', $post_id ),
 	];
+
+	if ( $page_desc !== '' ) {
+		$node['description'] = $page_desc;
+	}
 
 	// isPartOf — link to WebSite (correct range for CreativeWork property)
 	$node['isPartOf'] = [ '@id' => home_url( '/#website' ) ];

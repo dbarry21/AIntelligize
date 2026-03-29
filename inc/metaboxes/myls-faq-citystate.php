@@ -206,7 +206,11 @@ function myls_render_faq_metabox( $post ) {
 		}
 		echo '</div>';
 
-		echo '<button type="button" id="myls-howto-add" class="button" style="margin-top:4px;">+ Add Step Manually</button>';
+		echo '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+			echo '<button type="button" id="myls-howto-add" class="button">+ Add Step Manually</button>';
+			echo '<button type="button" id="myls-howto-save" class="button button-primary">💾 Save Steps</button>';
+			echo '<span id="myls-howto-save-status" style="font-style:italic;color:#666;display:none;"></span>';
+		echo '</div>';
 
 	echo '</div>';
 	?>
@@ -219,13 +223,48 @@ function myls_render_faq_metabox( $post ) {
 			nonce:    <?php echo wp_json_encode( wp_create_nonce('myls_howto_nonce') ); ?>
 		};
 
-		var container = document.getElementById('myls-howto-steps');
-		var addBtn    = document.getElementById('myls-howto-add');
-		var aiBtn     = document.getElementById('myls-howto-ai-btn');
-		var aiStatus  = document.getElementById('myls-howto-ai-status');
+		var container  = document.getElementById('myls-howto-steps');
+		var addBtn     = document.getElementById('myls-howto-add');
+		var saveBtn    = document.getElementById('myls-howto-save');
+		var saveStatus = document.getElementById('myls-howto-save-status');
+		var aiBtn      = document.getElementById('myls-howto-ai-btn');
+		var aiStatus   = document.getElementById('myls-howto-ai-status');
 
 		function getCount() {
 			return container.querySelectorAll('.myls-howto-step').length;
+		}
+
+		function collectSteps() {
+			var steps = [];
+			container.querySelectorAll('.myls-howto-step').forEach(function(row) {
+				var n = row.querySelector('input[type="text"]').value.trim();
+				var t = row.querySelector('textarea').value.trim();
+				if (n && t) steps.push({ name: n, text: t });
+			});
+			return steps;
+		}
+
+		function saveHowTo(onDone) {
+			var howtoName = document.querySelector('#myls-howto-section input[name="_myls_howto_name"]').value;
+			var steps = collectSteps();
+			var params = new URLSearchParams({
+				action:     'myls_save_howto_steps',
+				post_id:    myls_howto_data.post_id,
+				nonce:      myls_howto_data.nonce,
+				howto_name: howtoName
+			});
+			steps.forEach(function(s, i) {
+				params.append('steps[' + i + '][name]', s.name);
+				params.append('steps[' + i + '][text]', s.text);
+			});
+			fetch(myls_howto_data.ajax_url, {
+				method: 'POST',
+				headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+				body: params
+			})
+			.then(function(r){ return r.json(); })
+			.then(function(d){ if (onDone) onDone(d); })
+			.catch(function(){ if (onDone) onDone(null); });
 		}
 
 		function buildRow(idx, name, text) {
@@ -257,6 +296,24 @@ function myls_render_faq_metabox( $post ) {
 		}
 
 		container.querySelectorAll('.myls-howto-remove').forEach(bindRemove);
+
+		saveBtn.addEventListener('click', function() {
+			saveBtn.disabled = true;
+			saveStatus.style.display = 'inline';
+			saveStatus.style.color   = '#666';
+			saveStatus.textContent   = 'Saving…';
+			saveHowTo(function(d) {
+				saveBtn.disabled = false;
+				if (d && d.success) {
+					saveStatus.style.color = '#006505';
+					saveStatus.textContent = '✓ Saved (' + d.data.count + ' steps)';
+				} else {
+					saveStatus.style.color = '#a00';
+					saveStatus.textContent = '⚠ ' + ((d && d.data) ? d.data : 'Save failed.');
+				}
+				setTimeout(function(){ saveStatus.style.display = 'none'; }, 3000);
+			});
+		});
 
 		addBtn.addEventListener('click', function() {
 			var idx = getCount();
@@ -305,7 +362,7 @@ function myls_render_faq_metabox( $post ) {
 					bindRemove(row.querySelector('.myls-howto-remove'));
 				});
 				aiStatus.style.color = '#006505';
-				aiStatus.textContent = '✓ ' + steps.length + ' steps generated — review and save.';
+				aiStatus.textContent = '✓ ' + steps.length + ' steps generated and saved. Edit above then click 💾 Save Steps if needed.';
 				aiBtn.disabled = false;
 			})
 			.catch(function(err) {

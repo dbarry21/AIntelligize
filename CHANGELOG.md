@@ -1,3 +1,24 @@
+## 7.9.18.43 — 2026-03-29
+
+### Fixed
+- **HowTo steps not saving on Elementor pages:** Elementor saves pages via AJAX and
+  does not submit metabox form fields, so `save_post` never received HowTo step data.
+  `myls_ajax_generate_howto_steps()` now saves directly to post meta immediately after
+  generation — no page save required. New AJAX action `myls_save_howto_steps` added for
+  manual edits, with a **💾 Save Steps** button in the metabox UI.
+- **WebPage `description` missing:** WebPage schema node now includes `description`
+  populated from post excerpt → Yoast meta description → RankMath description.
+- **VideoObject thumbnail resolution:** YouTube API `snippet.thumbnails.maxres` (1280×720)
+  is now cached alongside duration/title/publishedAt. Google requires ≥ 1200px wide;
+  `hqdefault` (480×360) no longer used when API data is available.
+- **VideoObject unique descriptions:** Added `snippet.description` from YouTube API to
+  the metadata cache. Description priority: widget description → YouTube API description
+  → page excerpt → video name. Eliminates duplicate descriptions on multi-video pages.
+
+**Files changed:** `inc/ajax/ai-howto.php`, `inc/metaboxes/myls-faq-citystate.php`,
+`inc/schema/providers/webpage.php`, `inc/schema/providers/video-object-detector.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.42 — 2026-03-28
 
 ### Fixed

@@ -104,8 +104,63 @@ Page content:
 		wp_send_json_error( 'No valid steps found in AI response.' );
 	}
 
+	$safe_title = sanitize_text_field( $parsed['title'] ?? 'How ' . $title . ' Works' );
+
+	// Save immediately to post meta — Elementor pages don't submit metabox
+	// form fields on save, so we cannot rely on save_post to persist these.
+	update_post_meta( $post_id, '_myls_howto_name',  $safe_title );
+	update_post_meta( $post_id, '_myls_howto_steps', wp_json_encode( $safe_steps ) );
+
 	wp_send_json_success( [
-		'title' => sanitize_text_field( $parsed['title'] ?? 'How ' . $title . ' Works' ),
+		'title' => $safe_title,
 		'steps' => $safe_steps,
 	] );
+}
+
+
+/* -------------------------------------------------------------------------
+ * AJAX: Save HowTo steps (manual edit save — works with Elementor)
+ * ------------------------------------------------------------------------- */
+add_action( 'wp_ajax_myls_save_howto_steps', 'myls_ajax_save_howto_steps' );
+
+function myls_ajax_save_howto_steps() {
+
+	check_ajax_referer( 'myls_howto_nonce', 'nonce' );
+	if ( ! current_user_can( 'edit_posts' ) ) {
+		wp_send_json_error( 'Insufficient permissions.' );
+	}
+
+	$post_id = absint( $_POST['post_id'] ?? 0 );
+	if ( ! $post_id ) {
+		wp_send_json_error( 'Invalid post ID.' );
+	}
+
+	// Save title
+	$howto_name = sanitize_text_field( (string) ( $_POST['howto_name'] ?? '' ) );
+	if ( $howto_name !== '' ) {
+		update_post_meta( $post_id, '_myls_howto_name', $howto_name );
+	} else {
+		delete_post_meta( $post_id, '_myls_howto_name' );
+	}
+
+	// Save steps
+	$raw_steps = $_POST['steps'] ?? [];
+	$steps     = [];
+	if ( is_array( $raw_steps ) ) {
+		foreach ( $raw_steps as $step ) {
+			$n = sanitize_text_field( $step['name'] ?? '' );
+			$t = sanitize_textarea_field( $step['text'] ?? '' );
+			if ( $n !== '' && $t !== '' ) {
+				$steps[] = [ 'name' => $n, 'text' => $t ];
+			}
+		}
+	}
+
+	if ( empty( $steps ) ) {
+		delete_post_meta( $post_id, '_myls_howto_steps' );
+	} else {
+		update_post_meta( $post_id, '_myls_howto_steps', wp_json_encode( $steps ) );
+	}
+
+	wp_send_json_success( [ 'count' => count( $steps ) ] );
 }
