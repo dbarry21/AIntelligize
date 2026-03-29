@@ -1,3 +1,13 @@
+## 7.9.18.49 — 2026-03-29
+
+### Changed
+- **Restore URLs in `award` field:** Removed the URL-stripping regex from the
+  `award` array on both `LocalBusiness` and `Organization` nodes. The URLs were
+  being passed through as-is from the awards setting and are intentionally kept.
+
+**Files changed:** `inc/schema/providers/localbusiness.php`,
+`inc/schema/providers/organization.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.48 — 2026-03-29
 
 ### Fixed
