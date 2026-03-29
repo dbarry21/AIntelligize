@@ -221,10 +221,10 @@ if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
 
 		return [
 			'@type'       => 'AggregateRating',
-			'ratingValue' => $rating,
-			'reviewCount' => $count,
-			'bestRating'  => $best_rating,
-			'worstRating' => $worst_rating,
+			'ratingValue' => (float) $rating,
+			'reviewCount' => (int)   $count,
+			'bestRating'  => (int)   $best_rating,
+			'worstRating' => (int)   $worst_rating,
 		];
 	}
 }

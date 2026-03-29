@@ -1,3 +1,19 @@
+## 7.9.18.39 — 2026-03-28
+
+### Fixed
+- **AggregateRating numeric types:** `ratingValue`, `reviewCount`, `bestRating`,
+  and `worstRating` were output as JSON strings — now cast to `(float)` /
+  `(int)` so `wp_json_encode` emits proper JSON numbers (e.g. `5` not `"5"`).
+- **VideoObject from `[myls_youtube_embed]` shortcode:** The video object
+  detector now parses `[myls_youtube_embed video_id="..."]` from raw
+  `post_content` and emits a `VideoObject` @graph node for any page using
+  this shortcode — matching the same auto-duration, thumbnail, and de-dup
+  logic as all other video sources.
+
+**Files changed:** `inc/schema/helpers.php`,
+`inc/schema/providers/video-object-detector.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.38 — 2026-03-28
 
 ### Fixed

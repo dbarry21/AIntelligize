@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.9.18.38
+Stable tag: 7.9.18.39
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -182,6 +182,10 @@ FAQ Quick Editor now supports multi-post batch save and WYSIWYG answers.
 Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
+
+= 7.9.18.39 =
+* FIX: AggregateRating ratingValue/reviewCount now output as JSON numbers, not strings.
+* FIX: Video object detector now recognises [myls_youtube_embed video_id="..."] shortcode and emits VideoObject schema for pages using it.
 
 = 7.9.18.38 =
 * FIX: VideoObject `isFamilyFriendly` now outputs as JSON boolean true (was string "true").
