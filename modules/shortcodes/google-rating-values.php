@@ -40,6 +40,8 @@ add_shortcode( 'google_aggregate_rating', function ( $atts ) {
 
 	if ( $rating === '' ) return '';
 
+	$rating = number_format( (float) $rating, 1 );
+
 	$cls = 'google-aggregate-rating';
 	if ( $atts['class'] !== '' ) $cls .= ' ' . esc_attr( $atts['class'] );
 

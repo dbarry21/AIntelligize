@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.9.18.36
+Stable tag: 7.9.18.37
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -182,6 +182,9 @@ FAQ Quick Editor now supports multi-post batch save and WYSIWYG answers.
 Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
+
+= 7.9.18.37 =
+* FIX: `[google_aggregate_rating]` now always displays one decimal place (e.g. 4.8, 5.0).
 
 = 7.9.18.36 =
 * NEW: TL;DR block text is now saved as the WordPress post excerpt during page build, eliminating a redundant AI call.
