@@ -337,6 +337,25 @@ if ( ! function_exists('myls_extract_videos_elementor_data') ) {
 					}
 				}
 			}
+			// ── Shortcode widget — scan for [myls_youtube_embed] ─────────
+			// widgetType 'shortcode' stores the raw shortcode in settings['shortcode'].
+			if ( $widget_type === 'shortcode' ) {
+				$sc_content = (string) ($settings['shortcode'] ?? '');
+				if ( $sc_content !== '' && preg_match_all(
+					'/\[myls_youtube_embed\s[^\]]*\bvideo_id=["\']([a-zA-Z0-9_\-]{11})["\']/',
+					$sc_content,
+					$sc_m
+				) ) {
+					foreach ( $sc_m[1] as $vid_id ) {
+						$item = myls_make_video_item(
+							'https://www.youtube.com/watch?v=' . rawurlencode( $vid_id ),
+							'', '', '', $post_id
+						);
+						if ( $item ) $found[] = $item;
+					}
+				}
+			}
+
 			$bg_link = (string) ($settings['background_video_link'] ?? '');
 			if ( $bg_link !== '' ) {
 				$item = myls_make_video_item($bg_link, '', '', '', $post_id);
