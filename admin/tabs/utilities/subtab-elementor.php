@@ -573,8 +573,8 @@ return [
                 tldr:      { label: 'TL;DR Block',    icon: '🟢'  },
                 trust_bar: { label: 'Trust Bar',      icon: '🟡'  },
                 intro:     { label: 'Service Intro',  icon: '📝'  },
-                features:  { label: 'Feature Cards',  icon: '🃏',  hasCols: true },
-                process:   { label: 'How It Works',   icon: '⚙️',  hasCols: true },
+                features:  { label: 'Feature Cards',  icon: '🃏',  hasCols: true, hasWidgetType: true },
+                process:   { label: 'How It Works',   icon: '⚙️',  hasCols: true, hasWidgetType: true },
                 pricing:   { label: 'Pricing',        icon: '💜'  },
                 // faq removed — FAQs are generated post-creation via the FAQ Builder tab
                 cta:       { label: 'CTA Block',      icon: '📣'  },
@@ -586,9 +586,9 @@ return [
                 { id:'tldr',         type:'section',  enabled:true },
                 { id:'intro',        type:'section',  enabled:true },
                 { id:'trust_bar',    type:'section',  enabled:true },
-                { id:'features',     type:'section',  enabled:true, cols:3, rows:1 },
+                { id:'features',     type:'section',  enabled:true, cols:3, rows:1, widget_type:'icon' },
                 { id:'rich_content', type:'section',  enabled:true },
-                { id:'process',      type:'section',  enabled:true, cols:2, rows:2 },
+                { id:'process',      type:'section',  enabled:true, cols:2, rows:2, widget_type:'icon' },
                 { id:'pricing',   type:'section',  enabled:true },
                 // faq omitted — FAQs are generated post-creation via the FAQ Builder tab
                 { id:'cta',       type:'section',  enabled:true },
@@ -621,6 +621,12 @@ return [
                         const rowEl = row.querySelector('.myls-rows-input');
                         if (colEl) item.cols = Math.max(1, Math.min(6, parseInt(colEl.value)||3));
                         if (rowEl) item.rows = Math.max(1, Math.min(6, parseInt(rowEl.value)||1));
+                    }
+
+                    // Widget type (icon-box vs image-box)
+                    if (item.type === 'section' && SECTION_DEFS[item.id]?.hasWidgetType) {
+                        const wtEl = row.querySelector('.myls-widget-type-select');
+                        if (wtEl) item.widget_type = wtEl.value || 'icon';
                     }
 
                     // Template selector
@@ -693,6 +699,20 @@ return [
                                 el.addEventListener('input',  serializeSections);
                             });
                             row.appendChild(opts);
+                        }
+
+                        if (def.hasWidgetType) {
+                            /* Widget type: Icon Box vs Image Box */
+                            const wt = item.widget_type || 'icon';
+                            const wtSel = document.createElement('select');
+                            wtSel.className = 'form-select form-select-sm myls-widget-type-select';
+                            wtSel.style.cssText = 'width:auto;max-width:120px;font-size:11px;padding:2px 22px 2px 6px;';
+                            wtSel.title = 'Widget type: Icon Box uses Font Awesome icons; Image Box uses images (AI-generated or placeholder)';
+                            wtSel.innerHTML =
+                                '<option value="icon"' +(wt==='icon'  ? ' selected':'')+ '>Icon Box</option>' +
+                                '<option value="image"'+(wt==='image' ? ' selected':'')+ '>Image Box</option>';
+                            wtSel.addEventListener('change', serializeSections);
+                            row.appendChild(wtSel);
                         }
 
                     } else {
@@ -1025,6 +1045,13 @@ return [
                     image_style:       $('myls_elb_img_style')?.value       || 'photo',
                     set_featured:      $('myls_elb_set_featured')?.checked   ?? true,
                     sections_order:    JSON.parse($('myls_sections_order')?.value || '[]'),
+                    // Business variables
+                    biz_name:          $('myls_elb_biz_name')?.value        || '',
+                    biz_city:          $('myls_elb_biz_city')?.value        || '',
+                    biz_phone:         $('myls_elb_biz_phone')?.value       || '',
+                    biz_email:         $('myls_elb_biz_email')?.value       || '',
+                    // AI Prompt Template
+                    prompt_template:   $('myls_elb_prompt')?.value          || '',
                 };
             }
 
@@ -1045,6 +1072,13 @@ return [
                 if ($('myls_elb_gen_feature_cards') && snap.gen_feature_cards != null) $('myls_elb_gen_feature_cards').checked = !!snap.gen_feature_cards;
                 if ($('myls_elb_img_style')    && snap.image_style)          $('myls_elb_img_style').value    = snap.image_style;
                 if ($('myls_elb_set_featured') && snap.set_featured != null)  $('myls_elb_set_featured').checked = !!snap.set_featured;
+                // Business variables
+                if ($('myls_elb_biz_name')     && snap.biz_name != null)      $('myls_elb_biz_name').value     = snap.biz_name;
+                if ($('myls_elb_biz_city')     && snap.biz_city != null)      $('myls_elb_biz_city').value     = snap.biz_city;
+                if ($('myls_elb_biz_phone')    && snap.biz_phone != null)     $('myls_elb_biz_phone').value    = snap.biz_phone;
+                if ($('myls_elb_biz_email')    && snap.biz_email != null)     $('myls_elb_biz_email').value    = snap.biz_email;
+                // AI Prompt Template
+                if ($('myls_elb_prompt')       && snap.prompt_template != null) $('myls_elb_prompt').value      = snap.prompt_template;
 
                 // Restore sections_order; fall back gracefully from old snapshots with include_* flags
                 if (Array.isArray(snap.sections_order) && snap.sections_order.length) {
