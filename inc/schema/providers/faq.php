@@ -21,6 +21,31 @@ if ( ! defined('ABSPATH') ) exit;
  * Helpers
  * ------------------------------------------------------------------------- */
 
+if ( ! function_exists('myls_html_answer_to_plain') ) {
+	/**
+	 * Convert an HTML FAQ answer to plain text, preserving list structure.
+	 *
+	 * wp_strip_all_tags() alone concatenates <li> items without any separator,
+	 * turning bullet lists into unreadable run-on text in rich results.
+	 * This helper inserts a newline before stripping so each item is on its own line.
+	 *
+	 * @param  string $html  Raw HTML answer from WYSIWYG editor.
+	 * @return string        Plain text with newline-separated list items.
+	 */
+	function myls_html_answer_to_plain( string $html ) : string {
+		// Insert a newline after every block-closing tag so items stay separated.
+		$html = preg_replace( '~</(?:li|p|div|h[1-6])>\s*~i', "\n", $html );
+		// Self-closing <br> tags also become newlines.
+		$html = preg_replace( '~<br\s*/?>\s*~i', "\n", $html );
+		// Strip remaining tags and decode entities.
+		$text = wp_specialchars_decode( wp_strip_all_tags( $html ), ENT_QUOTES );
+		// Collapse 3+ consecutive newlines to 2, trim leading/trailing whitespace per line.
+		$lines = array_map( 'trim', explode( "\n", $text ) );
+		$lines = array_filter( $lines, fn( $l ) => $l !== '' );
+		return trim( implode( "\n", $lines ) );
+	}
+}
+
 if ( ! function_exists('myls_faq_collect_items_native') ) {
 	/**
 	 * Pull MYLS FAQs from post meta.
@@ -42,7 +67,7 @@ if ( ! function_exists('myls_faq_collect_items_native') ) {
 		foreach ( $items as $row ) {
 			if ( ! is_array($row) ) continue;
 			$q = trim( wp_specialchars_decode( wp_strip_all_tags( (string) ( $row['q'] ?? '' ) ), ENT_QUOTES ) );
-			$a = trim( wp_specialchars_decode( wp_strip_all_tags( (string) ( $row['a'] ?? '' ) ), ENT_QUOTES ) );
+			$a = myls_html_answer_to_plain( (string) ( $row['a'] ?? '' ) );
 			if ( $q === '' || $a === '' ) continue;
 			$out[] = [ 'q' => $q, 'a' => $a ];
 		}
@@ -63,7 +88,7 @@ if ( ! function_exists('myls_faq_collect_items_acf') ) {
 		while ( have_rows('faq_items', $post_id) ) {
 			the_row();
 			$q = trim( wp_specialchars_decode( wp_strip_all_tags( (string) get_sub_field('question') ), ENT_QUOTES ) );
-			$a = trim( wp_specialchars_decode( wp_strip_all_tags( (string) get_sub_field('answer') ), ENT_QUOTES ) );
+			$a = myls_html_answer_to_plain( (string) get_sub_field('answer') );
 			if ( $q === '' || $a === '' ) continue;
 			$out[] = [ 'q' => $q, 'a' => $a ];
 		}
