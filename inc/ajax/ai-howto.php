@@ -30,11 +30,16 @@ function myls_ajax_generate_howto_steps() {
 		wp_send_json_error( 'Post not found.' );
 	}
 
-	// Build clean plain-text from post content
-	$content = wp_strip_all_tags(
-		do_shortcode( apply_filters( 'the_content', $post->post_content ) )
-	);
-	$content = trim( preg_replace( '/\s+/', ' ', $content ) );
+	// Build clean plain-text — use page-builder-aware extractor so Elementor,
+	// Beaver Builder, and DIVI pages work (their content lives in meta, not post_content).
+	if ( function_exists( 'myls_get_post_plain_text' ) ) {
+		$content = myls_get_post_plain_text( $post_id );
+	} else {
+		$content = wp_strip_all_tags(
+			do_shortcode( apply_filters( 'the_content', $post->post_content ) )
+		);
+		$content = trim( preg_replace( '/\s+/', ' ', $content ) );
+	}
 
 	if ( mb_strlen( $content ) < 50 ) {
 		wp_send_json_error( 'Not enough page content to analyze. Add content to this page first.' );
