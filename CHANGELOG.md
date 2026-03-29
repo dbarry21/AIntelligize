@@ -1,3 +1,30 @@
+## 7.9.18.38 — 2026-03-28
+
+### Fixed
+- **VideoObject `isFamilyFriendly`:** Was output as JSON string `"true"` — now
+  correctly output as boolean `true` via PHP bare `true`.
+- **Service schema `name` priority:** Added per-page `_myls_service_name` post
+  meta as highest-priority override. Fallback chain: per-page meta → global
+  `myls_service_subtype` option → page title.
+
+### Added
+- **HowTo schema provider** (`inc/schema/providers/howto.php`): Appends a
+  `HowTo` @graph node to singular pages when `_myls_howto_steps` meta is set.
+  Hooks at priority 55 (after FAQPage).
+- **HowTo metabox repeater** (`inc/metaboxes/myls-faq-citystate.php`):
+  Section below FAQ rows — title field, step repeater (name + description),
+  remove/reindex, saved to `_myls_howto_name` and `_myls_howto_steps` (JSON).
+- **AI HowTo generator** (`inc/ajax/ai-howto.php`): "✨ Generate Steps from
+  Page Content" button calls Claude Haiku to extract 3-6 HowToStep objects
+  from post content and pre-fills the repeater fields.
+
+**Files changed:** `inc/schema/providers/video-schema.php`,
+`inc/schema/providers/build-service-schema.php`,
+`inc/schema/providers/howto.php` *(new)*,
+`inc/ajax/ai-howto.php` *(new)*,
+`inc/metaboxes/myls-faq-citystate.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.37 — 2026-03-28
 
 ### Fixed — Aggregate rating decimal formatting

@@ -3,7 +3,7 @@
  * Plugin Name:       AIntelligize
  * Plugin URI:        https://aintelligize.com/
  * Description:       Modular local SEO toolkit with schema, AI tools, bulk operations, and shortcode utilities.
- * Version: 7.9.18.37
+ * Version: 7.9.18.38
  * Author:            Dave Barry
  * Author URI:        https://davebarry.io/
  * Text Domain:       aintelligize
@@ -16,7 +16,7 @@ if ( ! defined('ABSPATH') ) exit;
  * Canonical constants & helpers (single source of truth)
  * ───────────────────────────────────────────────────────────────────────── */
 // Keep in sync with plugin header above.
-if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.9.18.37');
+if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.9.18.38');
 if ( ! defined('MYLS_MAIN_FILE') )   define('MYLS_MAIN_FILE', __FILE__);
 if ( ! defined('MYLS_PATH') )        define('MYLS_PATH', plugin_dir_path(MYLS_MAIN_FILE));
 if ( ! defined('MYLS_URL') )         define('MYLS_URL',  plugins_url('', MYLS_MAIN_FILE));
@@ -150,6 +150,7 @@ require_once MYLS_PATH . 'inc/schema/providers/blog-posting.php';
 require_once MYLS_PATH . 'inc/schema/providers/breadcrumb.php';
 require_once MYLS_PATH . 'inc/schema/providers/itemlist.php';
 require_once MYLS_PATH . 'inc/schema/providers/service-area-service.php';
+require_once MYLS_PATH . 'inc/schema/providers/howto.php';
 require_once MYLS_PATH . 'inc/schema/localbusiness-sync.php';
 
 /** GEO/AI infrastructure */
@@ -208,6 +209,7 @@ require_once MYLS_PATH . 'inc/ajax/prompt-history.php';
 require_once MYLS_PATH . 'inc/ajax/ai-image-gen.php';
 require_once MYLS_PATH . 'inc/lib/myls-pdf.php';
 require_once MYLS_PATH . 'inc/ajax/ai-content-analyzer.php';
+require_once MYLS_PATH . 'inc/ajax/ai-howto.php';
 require_once MYLS_PATH . 'inc/ajax/ai-llms-txt.php';
 require_once MYLS_PATH . 'inc/pb-wpautop-fix.php';
 
