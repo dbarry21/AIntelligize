@@ -1,3 +1,22 @@
+## 7.9.18.42 — 2026-03-28
+
+### Fixed
+- **VideoObject `name` from YouTube API:** `myls_build_video_object_node()` now uses
+  the actual YouTube video title (`snippet.title`) as the name, with priority:
+  admin entry → YouTube API title → widget caption → page title. Eliminates generic
+  names like "Paver Sealing Services — Video 2".
+- **VideoObject `uploadDate` from YouTube API:** `uploadDate` now uses YouTube's
+  `snippet.publishedAt` timestamp instead of the WordPress page publish date.
+- **VideoObject `isFamilyFriendly`:** Added `true` (boolean) to every detector-built
+  VideoObject node in the `@graph`.
+- **YouTube API efficiency:** New `myls_fetch_youtube_meta()` fetches
+  `snippet,contentDetails` in a single API call (previously only `contentDetails`),
+  caching title, publishedAt, and duration together in `myls_yt_meta_{id}` transient.
+  `myls_fetch_youtube_duration()` now delegates to it — no extra quota consumed.
+
+**Files changed:** `inc/schema/providers/video-object-detector.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.41 — 2026-03-28
 
 ### Fixed
