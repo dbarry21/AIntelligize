@@ -247,15 +247,14 @@ function myls_render_faq_metabox( $post ) {
 		function saveHowTo(onDone) {
 			var howtoName = document.querySelector('#myls-howto-section input[name="_myls_howto_name"]').value;
 			var steps = collectSteps();
+			// Send steps as a JSON string — URLSearchParams encodes [ and ] as %5B/%5D
+			// which PHP may not parse as array notation, so we bypass that entirely.
 			var params = new URLSearchParams({
 				action:     'myls_save_howto_steps',
 				post_id:    myls_howto_data.post_id,
 				nonce:      myls_howto_data.nonce,
-				howto_name: howtoName
-			});
-			steps.forEach(function(s, i) {
-				params.append('steps[' + i + '][name]', s.name);
-				params.append('steps[' + i + '][text]', s.text);
+				howto_name: howtoName,
+				steps_json: JSON.stringify(steps)
 			});
 			fetch(myls_howto_data.ajax_url, {
 				method: 'POST',
@@ -423,7 +422,10 @@ add_action('save_post', function( $post_id ) {
 		}
 	}
 
-	// HowTo steps
+	// HowTo steps — only write if the fields were actually submitted.
+	// The AJAX handler (myls_save_howto_steps) is the authoritative save path;
+	// do NOT delete here when the fields are absent (e.g. Gutenberg metabox iframe
+	// submitted without the dynamically-added step inputs).
 	if ( isset( $_POST['_myls_howto_steps'] ) && is_array( $_POST['_myls_howto_steps'] ) ) {
 		$steps = [];
 		foreach ( $_POST['_myls_howto_steps'] as $step ) {
@@ -438,8 +440,6 @@ add_action('save_post', function( $post_id ) {
 		} else {
 			update_post_meta( $post_id, '_myls_howto_steps', wp_json_encode( $steps ) );
 		}
-	} else {
-		delete_post_meta( $post_id, '_myls_howto_steps' );
 	}
 
 	if ( ! isset($_POST['myls_faq']) || ! is_array($_POST['myls_faq']) ) {

@@ -1,3 +1,23 @@
+## 7.9.18.46 — 2026-03-29
+
+### Fixed
+- **HowTo steps not persisting:** Two-part fix for the metabox "💾 Save Steps" button
+  and the AI generate auto-save both failing to persist steps after page reload.
+  1. `saveHowTo()` JS now sends steps as `steps_json` (a JSON string) instead of using
+     `URLSearchParams.append('steps[N][name]', ...)`. `URLSearchParams` percent-encodes
+     `[` and `]` as `%5B`/`%5D`; PHP's POST parser may not decode those as array notation,
+     causing `$_POST['steps']` to arrive empty and the handler to silently delete the meta.
+  2. The `save_post` metabox handler no longer deletes `_myls_howto_steps` when the field
+     is absent from `$_POST`. Previously an `else { delete_post_meta }` branch ran whenever
+     the FAQ nonce was valid but no step inputs were submitted — this wiped AJAX-saved steps
+     whenever the user clicked WordPress Update (e.g. Gutenberg or classic editor) before
+     the page had been reloaded with the saved steps rendered as form fields.
+  The AJAX save handler (`myls_save_howto_steps`) now reads from `$_POST['steps_json']`
+  and remains the authoritative write path for HowTo steps.
+
+**Files changed:** `inc/ajax/ai-howto.php`, `inc/metaboxes/myls-faq-citystate.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.45 — 2026-03-29
 
 ### Added

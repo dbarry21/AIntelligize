@@ -143,16 +143,18 @@ function myls_ajax_save_howto_steps() {
 		delete_post_meta( $post_id, '_myls_howto_name' );
 	}
 
-	// Save steps
-	$raw_steps = $_POST['steps'] ?? [];
-	$steps     = [];
-	if ( is_array( $raw_steps ) ) {
-		foreach ( $raw_steps as $step ) {
-			$n = sanitize_text_field( $step['name'] ?? '' );
-			$t = sanitize_textarea_field( $step['text'] ?? '' );
-			if ( $n !== '' && $t !== '' ) {
-				$steps[] = [ 'name' => $n, 'text' => $t ];
-			}
+	// Save steps — received as a JSON string to avoid URLSearchParams bracket-encoding
+	// issues where %5B/%5D may not be parsed as array notation by PHP's POST parser.
+	$raw_steps = isset( $_POST['steps_json'] )
+		? (array) json_decode( wp_unslash( $_POST['steps_json'] ), true )
+		: [];
+	$steps = [];
+	foreach ( $raw_steps as $step ) {
+		if ( ! is_array( $step ) ) continue;
+		$n = sanitize_text_field( $step['name'] ?? '' );
+		$t = sanitize_textarea_field( $step['text'] ?? '' );
+		if ( $n !== '' && $t !== '' ) {
+			$steps[] = [ 'name' => $n, 'text' => $t ];
 		}
 	}
 
