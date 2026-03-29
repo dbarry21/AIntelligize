@@ -1,3 +1,20 @@
+## 7.9.18.35 — 2026-03-28
+
+### Added — Widget type choice & Page Setup persistence
+- **Icon Box / Image Box toggle:** Feature Cards and How It Works sections now
+  show a widget-type dropdown (Icon Box vs Image Box). The choice is saved in
+  `sections_order` as `widget_type` and drives builder output — "image" uses
+  `myls_elb_image_placeholder_box_widget()` instead of icon boxes.
+- **Business variables in Page Setup:** `biz_name`, `biz_city`, `biz_phone`,
+  `biz_email` are now captured in the setup snapshot and persisted via
+  `myls_elb_save_setup`.
+- **AI Prompt Template in Page Setup:** `prompt_template` is saved/restored
+  with the snapshot so the user's custom prompt survives page reloads.
+
+**Files changed:** `admin/tabs/utilities/subtab-elementor.php`,
+`inc/ajax/ai-elementor-builder.php`, `aintelligize.php`, `readme.txt`,
+`CHANGELOG.md`
+
 ## 7.9.18.34 — 2026-03-28
 
 ### Fixed — PHP 7.x compatibility (all PHP 8.0+ syntax removed)
