@@ -1,3 +1,16 @@
+## 7.9.18.45 — 2026-03-29
+
+### Added
+- **Per-service schema catalog exclusion:** A new **"Exclude from schema service catalog"**
+  checkbox on the Service Tagline metabox (service CPT only) lets editors hide individual
+  pages from the `hasOfferCatalog` list in LocalBusiness schema. Stored in
+  `_myls_schema_exclude_from_catalog`. Ideal for CTA pages, booking pages, or duplicates
+  that should not appear as offered services. Saves via the existing tagline nonce —
+  no new form submissions needed.
+
+**Files changed:** `inc/metaboxes/service-tagline.php`,
+`inc/schema/providers/localbusiness.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.44 — 2026-03-29
 
 ### Fixed

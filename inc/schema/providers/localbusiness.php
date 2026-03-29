@@ -200,6 +200,10 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			if ( ! empty( $svc_posts ) ) {
 				$offer_items = [];
 				foreach ( $svc_posts as $svc ) {
+					// Skip pages opted out of the catalog via the per-post checkbox.
+					if ( get_post_meta( $svc->ID, '_myls_schema_exclude_from_catalog', true ) === '1' ) {
+						continue;
+					}
 					$offer_items[] = [
 						'@type'        => 'Offer',
 						'itemOffered'  => [
