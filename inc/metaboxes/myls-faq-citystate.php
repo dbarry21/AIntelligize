@@ -412,35 +412,11 @@ add_action('save_post', function( $post_id ) {
 		return;
 	}
 
-	// HowTo name
-	if ( isset( $_POST['_myls_howto_name'] ) ) {
-		$howto_name_val = sanitize_text_field( (string) $_POST['_myls_howto_name'] );
-		if ( $howto_name_val === '' ) {
-			delete_post_meta( $post_id, '_myls_howto_name' );
-		} else {
-			update_post_meta( $post_id, '_myls_howto_name', $howto_name_val );
-		}
-	}
-
-	// HowTo steps — only write if the fields were actually submitted.
-	// The AJAX handler (myls_save_howto_steps) is the authoritative save path;
-	// do NOT delete here when the fields are absent (e.g. Gutenberg metabox iframe
-	// submitted without the dynamically-added step inputs).
-	if ( isset( $_POST['_myls_howto_steps'] ) && is_array( $_POST['_myls_howto_steps'] ) ) {
-		$steps = [];
-		foreach ( $_POST['_myls_howto_steps'] as $step ) {
-			$n = sanitize_text_field( $step['name'] ?? '' );
-			$t = sanitize_textarea_field( $step['text'] ?? '' );
-			if ( $n !== '' && $t !== '' ) {
-				$steps[] = [ 'name' => $n, 'text' => $t ];
-			}
-		}
-		if ( empty( $steps ) ) {
-			delete_post_meta( $post_id, '_myls_howto_steps' );
-		} else {
-			update_post_meta( $post_id, '_myls_howto_steps', wp_json_encode( $steps ) );
-		}
-	}
+	// HowTo name + steps are saved exclusively via the AJAX handler
+	// (myls_save_howto_steps / myls_generate_howto_steps).  Never touching
+	// them here prevents WP Update, Gutenberg's metabox iframe, and any
+	// other save_post caller from accidentally overwriting or deleting data
+	// that was written by the dedicated "💾 Save Steps" button.
 
 	if ( ! isset($_POST['myls_faq']) || ! is_array($_POST['myls_faq']) ) {
 		return;

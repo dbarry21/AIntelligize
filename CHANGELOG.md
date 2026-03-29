@@ -1,3 +1,17 @@
+## 7.9.18.48 — 2026-03-29
+
+### Fixed
+- **WordPress Update deletes AJAX-saved HowTo steps:** Removed HowTo name and
+  steps processing from the `save_post` handler entirely. `save_post` is now a
+  read-only bystander for HowTo data — only `myls_save_howto_steps` (the
+  "💾 Save Steps" button) and `myls_generate_howto_steps` (the AI generate button)
+  can write to `_myls_howto_name` and `_myls_howto_steps`. This eliminates the
+  entire class of bugs where any WP Update, Gutenberg metabox iframe submission,
+  or other `save_post` caller could overwrite or delete steps saved via AJAX.
+
+**Files changed:** `inc/metaboxes/myls-faq-citystate.php`, `aintelligize.php`,
+`readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.47 — 2026-03-29
 
 ### Fixed
