@@ -1,3 +1,18 @@
+## 7.9.18.41 — 2026-03-28
+
+### Fixed
+- **Duplicate VideoObject eliminated:** `[myls_youtube_embed]` was outputting
+  a standalone `<script type="application/ld+json">` block on every page,
+  producing a bare VideoObject outside `@graph` alongside the one the
+  video-object-detector adds to `@graph`. On singular pages the inline block
+  is now suppressed entirely — the `@graph` version is the single source.
+- **Inline VideoObject fixes (non-singular fallback):** `isFamilyFriendly`
+  changed from string `"true"` to boolean `true`; `description` now uses
+  post excerpt instead of copying the video title.
+
+**Files changed:** `modules/shortcodes/youtube-embed.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.40 — 2026-03-28
 
 ### Fixed

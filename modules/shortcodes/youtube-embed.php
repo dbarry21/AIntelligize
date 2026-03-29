@@ -187,34 +187,41 @@ el.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" ")play()
 </script>';
 
 	// VideoObject JSON-LD schema
-	$schema = [
-		'@context'    => 'https://schema.org',
-		'@type'       => 'VideoObject',
-		'name'        => $title,
-		'description' => $title,
-		'thumbnailUrl'=> [ $thumb_url ],
-		'image'       => [ $thumb_url ],
-		'url'         => $watch_url,
-		'embedUrl'    => 'https://www.youtube.com/embed/' . rawurlencode( $video_id ),
-		'uploadDate'  => get_the_date( 'c' ),
-		'isFamilyFriendly' => 'true',
-	];
+	// On singular pages the video-object-detector adds this to the main @graph —
+	// suppress here to avoid a duplicate standalone block alongside @graph output.
+	if ( ! is_singular() ) {
+		$desc = has_excerpt() ? wp_strip_all_tags( get_the_excerpt() ) : '';
+		if ( $desc === '' ) $desc = $title;
 
-	// Try to get upload date from local video post meta
-	if ( function_exists( 'myls_yt_find_video_post_id' ) ) {
-		$local_pid = myls_yt_find_video_post_id( $video_id );
-		if ( $local_pid > 0 ) {
-			$iso = get_post_meta( $local_pid, '_myls_video_upload_date_iso', true );
-			if ( ! $iso ) $iso = get_post_meta( $local_pid, '_myls_youtube_published_at', true );
-			if ( $iso ) $schema['uploadDate'] = $iso;
+		$schema = [
+			'@context'         => 'https://schema.org',
+			'@type'            => 'VideoObject',
+			'name'             => $title,
+			'description'      => $desc,
+			'thumbnailUrl'     => [ $thumb_url ],
+			'image'            => [ $thumb_url ],
+			'url'              => $watch_url,
+			'embedUrl'         => 'https://www.youtube.com/embed/' . rawurlencode( $video_id ),
+			'uploadDate'       => get_the_date( 'c' ),
+			'isFamilyFriendly' => true,
+		];
 
-			$dur = get_post_meta( $local_pid, '_myls_video_duration_iso8601', true );
-			if ( $dur ) $schema['duration'] = $dur;
+		// Try to get upload date / duration from local video post meta
+		if ( function_exists( 'myls_yt_find_video_post_id' ) ) {
+			$local_pid = myls_yt_find_video_post_id( $video_id );
+			if ( $local_pid > 0 ) {
+				$iso = get_post_meta( $local_pid, '_myls_video_upload_date_iso', true );
+				if ( ! $iso ) $iso = get_post_meta( $local_pid, '_myls_youtube_published_at', true );
+				if ( $iso ) $schema['uploadDate'] = $iso;
+
+				$dur = get_post_meta( $local_pid, '_myls_video_duration_iso8601', true );
+				if ( $dur ) $schema['duration'] = $dur;
+			}
 		}
-	}
 
-	$schema = array_filter( $schema );
-	$html  .= "\n" . '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>';
+		$schema = array_filter( $schema );
+		$html  .= "\n" . '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>';
+	}
 
 	return $html;
 }
