@@ -1,3 +1,16 @@
+## 7.9.18.47 — 2026-03-29
+
+### Fixed
+- **HowTo "Generate Steps" fails on Elementor pages:** The AJAX generate handler
+  was reading content from `apply_filters('the_content', $post->post_content)` directly.
+  On Elementor-built pages `post_content` is empty (content lives in `_elementor_data`
+  meta) so the handler immediately returned "Not enough page content to analyze" without
+  ever generating or saving steps. The handler now calls `myls_get_post_plain_text()`
+  which already handles Elementor, Beaver Builder, DIVI, WPBakery, Classic, and
+  Gutenberg via dedicated extractors.
+
+**Files changed:** `inc/ajax/ai-howto.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.46 — 2026-03-29
 
 ### Fixed
