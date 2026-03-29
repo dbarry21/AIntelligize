@@ -58,9 +58,17 @@ function myls_person_build_jsonld( array $p ) : array {
     $email = trim( $p['email'] ?? '' );
     if ( $email ) $schema['email'] = $email;
 
-    // Phone
+    // Phone — normalize to E.164 for consistency with LocalBusiness / Organization nodes
     $phone = trim( $p['phone'] ?? '' );
-    if ( $phone ) $schema['telephone'] = $phone;
+    if ( $phone ) {
+        $digits = preg_replace( '/\D/', '', $phone );
+        if ( strlen( $digits ) === 10 ) {
+            $phone = '+1' . $digits;          // US/CA 10-digit → +1XXXXXXXXXX
+        } elseif ( strlen( $digits ) === 11 && $digits[0] === '1' ) {
+            $phone = '+' . $digits;           // US/CA with leading 1 → +1XXXXXXXXXX
+        }
+        $schema['telephone'] = $phone;
+    }
 
     // sameAs
     $same_as = array_values( array_filter( array_map('trim', (array) ($p['same_as'] ?? []) ) ) );

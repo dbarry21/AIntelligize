@@ -353,8 +353,8 @@ if ( ! function_exists('myls_build_geo_coordinates') ) {
 
 		return [
 			'@type'     => 'GeoCoordinates',
-			'latitude'  => $lat_f,   // float — json_encode outputs bare number
-			'longitude' => $lng_f,   // float — json_encode outputs bare number
+			'latitude'  => round( $lat_f, 6 ),   // 6 decimals ≈ 11cm precision — avoids PHP float artifact
+			'longitude' => round( $lng_f, 6 ),
 		];
 	}
 }

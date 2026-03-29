@@ -1,3 +1,24 @@
+## 7.9.18.44 — 2026-03-29
+
+### Fixed
+- **FAQPage answer list items as run-on text:** `wp_strip_all_tags()` was dropping
+  `</li>`, `</p>`, and `<br>` tags without any separator, concatenating WYSIWYG bullet
+  lists into unreadable walls of text in Google rich results. New helper
+  `myls_html_answer_to_plain()` inserts a newline at every block-closing tag before
+  stripping, preserving list structure as separate lines.
+- **Person `telephone` format:** Normalized to E.164 (`+18133352869`) to match
+  LocalBusiness and Organization nodes. Handles 10-digit and 11-digit US/CA numbers.
+- **`geo` coordinate float precision artifact:** `(float)` cast on stored coordinate
+  strings produced 42-decimal-place values. Rounded to 6 decimal places (~11 cm
+  accuracy) via `round()`.
+- **`award` field embedded URLs:** Award strings stored as "Award Name https://..."
+  were output verbatim. URLs are now stripped via regex before output on both
+  LocalBusiness and Organization nodes.
+
+**Files changed:** `inc/schema/providers/faq.php`, `inc/schema/providers/person.php`,
+`inc/schema/helpers.php`, `inc/schema/providers/localbusiness.php`,
+`inc/schema/providers/organization.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.43 — 2026-03-29
 
 ### Fixed
