@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.9.18.34
+Stable tag: 7.9.18.35
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -182,6 +182,10 @@ FAQ Quick Editor now supports multi-post batch save and WYSIWYG answers.
 Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
+
+= 7.9.18.35 =
+* NEW: Icon Box / Image Box widget type chooser for Feature Cards and How It Works sections.
+* NEW: Business variables (name, city, phone, email) and AI prompt template saved in Page Setup snapshots.
 
 = 7.9.18.34 =
 * FIX: Replace all PHP 8.0+ syntax (`match()` expressions, union return types) with PHP 7.x equivalents across 4 files.
