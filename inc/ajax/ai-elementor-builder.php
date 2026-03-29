@@ -653,19 +653,27 @@ function myls_elb_build_rich_content( array $d, int $container_width = 1140 ): a
     ] );
 }
 
-function myls_elb_build_process( array $d, int $container_width = 1140, int $cols = 2 ): array {
+function myls_elb_build_process( array $d, int $container_width = 1140, int $cols = 2, bool $prefer_image_box = false ): array {
     $steps = (array) ( $d['steps'] ?? [] );
     $cells = [];
 
     foreach ( $steps as $idx => $step ) {
         $title  = ( $idx + 1 ) . '. ' . ( $step['title'] ?? '' );
-        $widget = myls_elb_icon_box_widget(
-            $step['icon']        ?? 'fas fa-check-circle',
-            $title,
-            $step['description'] ?? '',
-            myls_elb_icon_color( $idx ),
-            100
-        );
+        if ( $prefer_image_box ) {
+            $widget = myls_elb_image_placeholder_box_widget(
+                $title,
+                $step['description'] ?? '',
+                100
+            );
+        } else {
+            $widget = myls_elb_icon_box_widget(
+                $step['icon']        ?? 'fas fa-check-circle',
+                $title,
+                $step['description'] ?? '',
+                myls_elb_icon_color( $idx ),
+                100
+            );
+        }
 
         // Level 3 — flex container per step (isInner: true), holds the icon box.
         // content_width: full so it fills its grid cell edge-to-edge.
@@ -1124,8 +1132,12 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
                     if ( ! empty( $data['features'] ) ) {
                         $fcols = max( 1, min( 6, (int) ( $item['cols'] ?? 3 ) ) );
                         $frows = max( 1, min( 6, (int) ( $item['rows'] ?? 1 ) ) );
-                        // Use image-box widgets when images exist OR when deferred image gen is pending
-                        $use_image_boxes = ! empty( $feature_images )
+                        $feat_widget_type = $item['widget_type'] ?? 'icon';
+                        // Use image-box widgets when:
+                        // 1. User explicitly chose "image" widget type, OR
+                        // 2. Images exist OR deferred image gen is pending (legacy auto-detect)
+                        $use_image_boxes = ( $feat_widget_type === 'image' )
+                            || ! empty( $feature_images )
                             || ( ! empty( $section_flags['integrate_images'] ) && ! empty( $section_flags['gen_feature_cards'] ) );
                         $elements[] = myls_elb_build_features( (array) $data['features'], $feature_images, $use_image_boxes, $container_width, $fcols, $frows );
                         $section_count++;
@@ -1142,7 +1154,9 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
                 case 'process':
                     if ( ! empty( $data['process'] ) ) {
                         $pcols = max( 1, min( 6, (int) ( $item['cols'] ?? 2 ) ) );
-                        $elements[] = myls_elb_build_process( (array) $data['process'], $container_width, $pcols );
+                        $proc_widget_type = $item['widget_type'] ?? 'icon';
+                        $proc_prefer_image = ( $proc_widget_type === 'image' );
+                        $elements[] = myls_elb_build_process( (array) $data['process'], $container_width, $pcols, $proc_prefer_image );
                         $section_count++;
                     }
                     break;
@@ -2674,6 +2688,10 @@ add_action( 'wp_ajax_myls_elb_save_setup', function () {
             $entry['cols'] = max( 1, min( 6, (int) $so_item['cols'] ) );
             $entry['rows'] = max( 1, min( 6, (int) ( $so_item['rows'] ?? 1 ) ) );
         }
+        if ( $type === 'section' && ! empty( $so_item['widget_type'] ) ) {
+            $entry['widget_type'] = in_array( $so_item['widget_type'], [ 'icon', 'image' ], true )
+                ? $so_item['widget_type'] : 'icon';
+        }
         if ( $type === 'template' ) {
             $entry['template_id'] = (int) ( $so_item['template_id'] ?? 0 );
         }
@@ -2692,6 +2710,13 @@ add_action( 'wp_ajax_myls_elb_save_setup', function () {
         'gen_feature_cards' => (bool) ( $setup['gen_feature_cards'] ?? false ),
         'image_style'       => sanitize_key( $setup['image_style']  ?? 'photo' ),
         'set_featured'      => (bool) ( $setup['set_featured']      ?? true ),
+        // Business variables
+        'biz_name'          => sanitize_text_field(  $setup['biz_name']     ?? '' ),
+        'biz_city'          => sanitize_text_field(  $setup['biz_city']     ?? '' ),
+        'biz_phone'         => sanitize_text_field(  $setup['biz_phone']    ?? '' ),
+        'biz_email'         => sanitize_email(       $setup['biz_email']    ?? '' ),
+        // AI Prompt Template
+        'prompt_template'   => wp_kses_post( wp_unslash( $setup['prompt_template'] ?? '' ) ),
     ];
 
     $history = get_option( 'myls_elb_setup_history', [] );
