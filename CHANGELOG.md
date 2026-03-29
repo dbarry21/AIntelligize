@@ -1,3 +1,12 @@
+## 7.9.18.37 — 2026-03-28
+
+### Fixed — Aggregate rating decimal formatting
+- `[google_aggregate_rating]` shortcode now formats the rating to one decimal
+  place via `number_format()` (e.g. `5` → `5.0`, `4.8` → `4.8`).
+
+**Files changed:** `modules/shortcodes/google-rating-values.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.36 — 2026-03-28
 
 ### Added — TL;DR text saved as post excerpt
