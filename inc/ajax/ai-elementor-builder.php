@@ -1013,6 +1013,7 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
             'json'          => (string) wp_json_encode( [ $fallback ] ),
             'faqs'          => [],
             'section_count' => 1,
+            'tldr_text'     => '',
             'error'         => 'AI output was not valid JSON — used HTML widget fallback. Error: ' . json_last_error_msg(),
         ];
     }
@@ -1020,6 +1021,7 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
     $elements      = [];
     $all_faqs      = [];
     $section_count = 0;
+    $tldr_text     = '';
 
     // Separate generated images by type for passing to section builders
     $hero_image     = [];
@@ -1109,6 +1111,7 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
 
                 case 'tldr':
                     if ( ! empty( $data['tldr'] ) ) {
+                        $tldr_text  = trim( $data['tldr']['text'] ?? '' );
                         $elements[] = myls_elb_build_tldr( (array) $data['tldr'], $container_width );
                         $section_count++;
                     }
@@ -1414,6 +1417,7 @@ function myls_elb_parse_and_build( string $ai_output, array $generated_images = 
         'json'          => (string) wp_json_encode( $elements ),
         'faqs'          => $all_faqs,
         'section_count' => $section_count,
+        'tldr_text'     => $tldr_text,
         'error'         => '',
     ];
 }
@@ -1884,6 +1888,7 @@ Rules:
     $elementor_json = $build_result['json'];
     $faq_items      = $build_result['faqs'];
     $section_count  = $build_result['section_count'];
+    $tldr_text      = $build_result['tldr_text'] ?? '';
     $parse_warning  = $build_result['error'];
 
     // Collect template-processing log lines emitted by parse_and_build
@@ -2196,8 +2201,18 @@ Rules:
     update_post_meta( $post_id, '_yoast_wpseo_metadesc', $yoast_metadesc );
     if ( $seo_keyword ) update_post_meta( $post_id, '_yoast_wpseo_focuskw', $seo_keyword );
 
-    // ── Post excerpt — uses plugin 'excerpt' prompt template ────────────
+    // ── Post excerpt — prefer TL;DR text, fall back to AI generation ────
     $existing_excerpt = trim( (string) get_post_field( 'post_excerpt', $post_id ) );
+    if ( $existing_excerpt === '' && $tldr_text !== '' ) {
+        $tldr_clean = trim( wp_strip_all_tags( $tldr_text ) );
+        if ( mb_strlen( $tldr_clean ) > 20 ) {
+            global $wpdb;
+            $wpdb->update( $wpdb->posts, [ 'post_excerpt' => $tldr_clean ], [ 'ID' => $post_id ] );
+            clean_post_cache( $post_id );
+            $existing_excerpt = $tldr_clean; // prevent AI fallback below
+            $log_lines[] = '📝 Excerpt set from TL;DR (' . mb_strlen( $tldr_clean ) . ' chars)';
+        }
+    }
     if ( $existing_excerpt === '' && function_exists('myls_get_default_prompt') && function_exists('myls_ai_generate_text') ) {
         $exc_tpl = myls_get_default_prompt('excerpt');
         if ( $exc_tpl ) {

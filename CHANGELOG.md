@@ -1,3 +1,19 @@
+## 7.9.18.36 — 2026-03-28
+
+### Added — TL;DR text saved as post excerpt
+- During page build, `myls_elb_parse_and_build()` now returns the TL;DR plain
+  text via a new `tldr_text` key in its result array.
+- Before the existing AI excerpt generator fires, the builder checks for TL;DR
+  text and saves it as `post_excerpt` using direct `$wpdb->update()` (same
+  pattern as the existing excerpt block — avoids `save_post` / Elementor
+  breakage).
+- If TL;DR provides the excerpt, the separate AI excerpt call is skipped
+  naturally (the `$existing_excerpt === ''` guard is already satisfied).
+- Existing pages with a manual excerpt are never overwritten.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `aintelligize.php`,
+`readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.35 — 2026-03-28
 
 ### Added — Widget type choice & Page Setup persistence
