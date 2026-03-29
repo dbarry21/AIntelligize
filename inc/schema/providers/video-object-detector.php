@@ -104,41 +104,39 @@ if ( ! function_exists('myls_classify_video_url') ) {
  * Fetch ISO 8601 duration from YouTube Data API v3 with transient caching.
  * ========================================================================= */
 
-if ( ! function_exists('myls_fetch_youtube_duration') ) {
+if ( ! function_exists('myls_fetch_youtube_meta') ) {
 	/**
-	 * Fetch a video's ISO 8601 duration string from YouTube Data API v3.
+	 * Fetch snippet (title, publishedAt) + contentDetails (duration) from YouTube Data API v3
+	 * in a single API call.
 	 *
-	 * Result is cached in a 30-day transient to minimise API quota usage.
-	 * Returns '' if the API key is not set, the request fails, or the
-	 * video is not found.
+	 * Results are cached in a 30-day transient (myls_yt_meta_{video_id}) to minimise quota usage.
+	 * Returns an array with keys 'duration', 'title', 'published_at' — all '' on failure.
 	 *
 	 * @param  string $video_id  YouTube video ID (11 chars).
-	 * @return string            ISO 8601 duration e.g. "PT3M21S", or ''.
+	 * @return array{duration:string,title:string,published_at:string}
 	 */
-	function myls_fetch_youtube_duration( string $video_id ) : string {
-		if ( $video_id === '' ) return '';
+	function myls_fetch_youtube_meta( string $video_id ) : array {
+		$empty = [ 'duration' => '', 'title' => '', 'published_at' => '' ];
+		if ( $video_id === '' ) return $empty;
 
-		// Sanitise the ID to prevent cache-key injection.
 		$safe_id = preg_replace('/[^a-zA-Z0-9_\-]/', '', $video_id);
-		if ( $safe_id === '' ) return '';
+		if ( $safe_id === '' ) return $empty;
 
-		$transient_key = 'myls_yt_dur_' . $safe_id;
+		$transient_key = 'myls_yt_meta_' . $safe_id;
 
-		// Return cached value (including cached empty string sentinel '~none~').
 		$cached = get_transient($transient_key);
-		if ( $cached !== false ) {
-			return ( $cached === '~none~' ) ? '' : (string) $cached;
+		if ( $cached !== false && is_array($cached) ) {
+			return $cached;
 		}
 
 		$api_key = trim( (string) get_option('myls_youtube_api_key', '') );
 		if ( $api_key === '' ) {
-			// No key — cache miss sentinel for 24 hours so we don't retry constantly.
-			set_transient($transient_key, '~none~', DAY_IN_SECONDS);
-			return '';
+			set_transient($transient_key, $empty, DAY_IN_SECONDS);
+			return $empty;
 		}
 
 		$endpoint = add_query_arg([
-			'part' => 'contentDetails',
+			'part' => 'snippet,contentDetails',
 			'id'   => rawurlencode($safe_id),
 			'key'  => $api_key,
 		], 'https://www.googleapis.com/youtube/v3/videos');
@@ -149,21 +147,47 @@ if ( ! function_exists('myls_fetch_youtube_duration') ) {
 		]);
 
 		if ( is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200 ) {
-			set_transient($transient_key, '~none~', HOUR_IN_SECONDS);
-			return '';
+			set_transient($transient_key, $empty, HOUR_IN_SECONDS);
+			return $empty;
 		}
 
 		$body = json_decode( wp_remote_retrieve_body($response), true );
-		$duration = (string) ( $body['items'][0]['contentDetails']['duration'] ?? '' );
-
-		if ( $duration !== '' && preg_match('/^PT/', $duration) ) {
-			// Cache for 30 days — duration rarely changes.
-			set_transient($transient_key, $duration, 30 * DAY_IN_SECONDS);
-			return $duration;
+		$api_item = $body['items'][0] ?? null;
+		if ( ! is_array($api_item) ) {
+			set_transient($transient_key, $empty, DAY_IN_SECONDS);
+			return $empty;
 		}
 
-		set_transient($transient_key, '~none~', DAY_IN_SECONDS);
-		return '';
+		$duration     = (string) ( $api_item['contentDetails']['duration'] ?? '' );
+		$title        = (string) ( $api_item['snippet']['title']           ?? '' );
+		$published_at = (string) ( $api_item['snippet']['publishedAt']     ?? '' );
+
+		if ( ! preg_match('/^PT/', $duration) ) $duration = '';
+
+		$meta = [
+			'duration'     => $duration,
+			'title'        => sanitize_text_field($title),
+			'published_at' => $published_at,
+		];
+
+		// Cache for 30 days — title and duration rarely change.
+		set_transient($transient_key, $meta, 30 * DAY_IN_SECONDS);
+		return $meta;
+	}
+}
+
+if ( ! function_exists('myls_fetch_youtube_duration') ) {
+	/**
+	 * Fetch a video's ISO 8601 duration string from YouTube Data API v3.
+	 *
+	 * Delegates to myls_fetch_youtube_meta() which fetches snippet + contentDetails
+	 * in a single API call and caches all fields together.
+	 *
+	 * @param  string $video_id  YouTube video ID (11 chars).
+	 * @return string            ISO 8601 duration e.g. "PT3M21S", or ''.
+	 */
+	function myls_fetch_youtube_duration( string $video_id ) : string {
+		return myls_fetch_youtube_meta($video_id)['duration'];
 	}
 }
 
@@ -215,15 +239,20 @@ if ( ! function_exists('myls_make_video_item') ) {
 			$embed_url = 'https://player.vimeo.com/video/' . $video_id;
 		}
 
-		// ── Duration ────────────────────────────────────────────────────────
-		$duration = '';
+		// ── Duration + YouTube API metadata (title, publishedAt) ────────────
+		$duration        = '';
+		$yt_title        = '';
+		$yt_published_at = '';
 		if ( $source === 'youtube' && $video_id !== '' ) {
-			$duration = myls_fetch_youtube_duration($video_id);
+			$yt_meta         = myls_fetch_youtube_meta($video_id);
+			$duration        = $yt_meta['duration'];
+			$yt_title        = $yt_meta['title'];
+			$yt_published_at = $yt_meta['published_at'];
 		}
 
-		// ── Upload date: post publish date as fallback ────────────────────
-		$upload_date = '';
-		if ( $post_id > 0 ) {
+		// ── Upload date: YouTube publishedAt → WP post publish date fallback ─
+		$upload_date = $yt_published_at !== '' ? $yt_published_at : '';
+		if ( $upload_date === '' && $post_id > 0 ) {
 			$upload_date = get_the_date('c', $post_id) ?: '';
 		}
 
@@ -236,6 +265,7 @@ if ( ! function_exists('myls_make_video_item') ) {
 			'caption'     => sanitize_text_field($caption),
 			'description' => wp_strip_all_tags($description),
 			'upload_date' => $upload_date,
+			'yt_title'    => $yt_title,
 			'duration'    => $duration,
 		];
 	}
@@ -867,10 +897,17 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 			}
 		}
 
-		// Name priority: admin entry → widget caption → post title (with index for uniqueness)
+		// Name priority: admin entry → YouTube API title → widget caption → post title
 		$name = $admin_name;
 		if ( $name === '' ) {
-			$name = $item['caption'] !== '' ? $item['caption'] : ( $post_title ?: 'Video' );
+			$yt_title_item = trim( (string) ($item['yt_title'] ?? '') );
+			if ( $yt_title_item !== '' ) {
+				$name = $yt_title_item;
+			} elseif ( $item['caption'] !== '' ) {
+				$name = $item['caption'];
+			} else {
+				$name = $post_title ?: 'Video';
+			}
 		}
 		// Ensure uniqueness on multi-video pages when falling back to post title
 		if ( $name === $post_title && $index > 0 ) {
@@ -897,12 +934,13 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 		}
 
 		$node = [
-			'@type'       => 'VideoObject',
-			'@id'         => $at_id,
-			'name'        => $name,
-			'description' => $desc,
-			'uploadDate'  => $item['upload_date'],
-			'url'         => $item['url'],
+			'@type'            => 'VideoObject',
+			'@id'              => $at_id,
+			'name'             => $name,
+			'description'      => $desc,
+			'uploadDate'       => $item['upload_date'],
+			'url'              => $item['url'],
+			'isFamilyFriendly' => true,
 		];
 
 		if ( $item['thumbnail'] !== '' ) {
