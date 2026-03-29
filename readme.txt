@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.9.18.40
+Stable tag: 7.9.18.41
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -182,6 +182,10 @@ FAQ Quick Editor now supports multi-post batch save and WYSIWYG answers.
 Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
+
+= 7.9.18.41 =
+* FIX: [myls_youtube_embed] no longer outputs a standalone VideoObject JSON-LD block on singular pages — the video-object-detector adds it to the main @graph instead, eliminating duplicate schema.
+* FIX: Inline VideoObject (non-singular fallback) now uses isFamilyFriendly boolean true and excerpt-based description instead of copying the video title.
 
 = 7.9.18.40 =
 * FIX: Video object detector now finds [myls_youtube_embed] inside Elementor Shortcode widgets (settings['shortcode']).
