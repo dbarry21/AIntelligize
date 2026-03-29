@@ -116,7 +116,7 @@ if ( ! function_exists('myls_fetch_youtube_meta') ) {
 	 * @return array{duration:string,title:string,published_at:string}
 	 */
 	function myls_fetch_youtube_meta( string $video_id ) : array {
-		$empty = [ 'duration' => '', 'title' => '', 'published_at' => '' ];
+		$empty = [ 'duration' => '', 'title' => '', 'published_at' => '', 'thumbnail_url' => '', 'description' => '' ];
 		if ( $video_id === '' ) return $empty;
 
 		$safe_id = preg_replace('/[^a-zA-Z0-9_\-]/', '', $video_id);
@@ -161,13 +161,26 @@ if ( ! function_exists('myls_fetch_youtube_meta') ) {
 		$duration     = (string) ( $api_item['contentDetails']['duration'] ?? '' );
 		$title        = (string) ( $api_item['snippet']['title']           ?? '' );
 		$published_at = (string) ( $api_item['snippet']['publishedAt']     ?? '' );
+		$yt_desc_raw  = (string) ( $api_item['snippet']['description']     ?? '' );
+
+		// Thumbnail: prefer maxres (1280×720) → high (480×360, always present)
+		$thumbs       = $api_item['snippet']['thumbnails'] ?? [];
+		$thumb_url    = (string) ( $thumbs['maxres']['url'] ?? $thumbs['standard']['url'] ?? $thumbs['high']['url'] ?? '' );
 
 		if ( ! preg_match('/^PT/', $duration) ) $duration = '';
 
+		// Truncate YouTube description to 500 chars for schema use
+		$yt_desc = wp_strip_all_tags( $yt_desc_raw );
+		if ( mb_strlen( $yt_desc ) > 500 ) {
+			$yt_desc = mb_substr( $yt_desc, 0, 497 ) . '…';
+		}
+
 		$meta = [
-			'duration'     => $duration,
-			'title'        => sanitize_text_field($title),
-			'published_at' => $published_at,
+			'duration'      => $duration,
+			'title'         => sanitize_text_field($title),
+			'published_at'  => $published_at,
+			'thumbnail_url' => esc_url_raw($thumb_url),
+			'description'   => $yt_desc,
 		];
 
 		// Cache for 30 days — title and duration rarely change.
@@ -229,25 +242,25 @@ if ( ! function_exists('myls_make_video_item') ) {
 		if ( $source === 'youtube' && $video_id !== '' ) {
 			$watch_url = 'https://www.youtube.com/watch?v=' . rawurlencode($video_id);
 			$embed_url = 'https://www.youtube.com/embed/'  . rawurlencode($video_id);
-			if ( $thumbnail === '' ) {
-				// Prefer stored meta via local video post, then construct from video ID
-				$local_pid = function_exists('myls_yt_find_video_post_id') ? myls_yt_find_video_post_id( $video_id ) : 0;
-				$thumbnail = function_exists('myls_yt_thumbnail_url') ? myls_yt_thumbnail_url( $video_id, $local_pid ) : 'https://i.ytimg.com/vi/' . rawurlencode($video_id) . '/hqdefault.jpg';
-			}
+			// Thumbnail priority resolved after API fetch below
 		} elseif ( $source === 'vimeo' && $video_id !== '' ) {
 			$watch_url = 'https://vimeo.com/' . $video_id;
 			$embed_url = 'https://player.vimeo.com/video/' . $video_id;
 		}
 
-		// ── Duration + YouTube API metadata (title, publishedAt) ────────────
+		// ── Duration + YouTube API metadata (title, publishedAt, thumbnail, desc) ─
 		$duration        = '';
 		$yt_title        = '';
 		$yt_published_at = '';
+		$yt_thumb        = '';
+		$yt_description  = '';
 		if ( $source === 'youtube' && $video_id !== '' ) {
 			$yt_meta         = myls_fetch_youtube_meta($video_id);
 			$duration        = $yt_meta['duration'];
 			$yt_title        = $yt_meta['title'];
 			$yt_published_at = $yt_meta['published_at'];
+			$yt_thumb        = $yt_meta['thumbnail_url'] ?? '';
+			$yt_description  = $yt_meta['description']  ?? '';
 		}
 
 		// ── Upload date: YouTube publishedAt → WP post publish date fallback ─
@@ -256,17 +269,30 @@ if ( ! function_exists('myls_make_video_item') ) {
 			$upload_date = get_the_date('c', $post_id) ?: '';
 		}
 
+		// ── Thumbnail: explicit override → YouTube API (maxres/high) → stored meta → hqdefault ─
+		if ( $thumbnail === '' && $source === 'youtube' && $video_id !== '' ) {
+			if ( $yt_thumb !== '' ) {
+				$thumbnail = $yt_thumb;
+			} else {
+				$local_pid = function_exists('myls_yt_find_video_post_id') ? myls_yt_find_video_post_id( $video_id ) : 0;
+				$thumbnail = function_exists('myls_yt_thumbnail_url')
+					? myls_yt_thumbnail_url( $video_id, $local_pid )
+					: 'https://i.ytimg.com/vi/' . rawurlencode($video_id) . '/hqdefault.jpg';
+			}
+		}
+
 		return [
-			'source'      => $source,
-			'video_id'    => $video_id,
-			'url'         => esc_url_raw($watch_url),
-			'embed_url'   => $embed_url ? esc_url_raw($embed_url) : '',
-			'thumbnail'   => $thumbnail ? esc_url_raw($thumbnail) : '',
-			'caption'     => sanitize_text_field($caption),
-			'description' => wp_strip_all_tags($description),
-			'upload_date' => $upload_date,
-			'yt_title'    => $yt_title,
-			'duration'    => $duration,
+			'source'          => $source,
+			'video_id'        => $video_id,
+			'url'             => esc_url_raw($watch_url),
+			'embed_url'       => $embed_url ? esc_url_raw($embed_url) : '',
+			'thumbnail'       => $thumbnail ? esc_url_raw($thumbnail) : '',
+			'caption'         => sanitize_text_field($caption),
+			'description'     => wp_strip_all_tags($description),
+			'upload_date'     => $upload_date,
+			'yt_title'        => $yt_title,
+			'yt_description'  => $yt_description,
+			'duration'        => $duration,
 		];
 	}
 }
@@ -914,12 +940,17 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 			$name .= ' — Video ' . ( $index + 1 );
 		}
 
-		// Description: widget description → post excerpt → name.
+		// Description priority: widget description → YouTube API description → post excerpt → name.
 		$desc = $item['description'];
 		if ( $desc === '' ) {
-			$desc = has_excerpt($post_id)
-				? (string) get_the_excerpt($post_id)
-				: $post_title;
+			$yt_desc_item = trim( (string) ($item['yt_description'] ?? '') );
+			if ( $yt_desc_item !== '' ) {
+				$desc = $yt_desc_item;
+			} elseif ( has_excerpt($post_id) ) {
+				$desc = (string) get_the_excerpt($post_id);
+			} else {
+				$desc = $post_title;
+			}
 		}
 
 		// For YouTube/Vimeo use the watch URL as @id (canonical platform URL).
