@@ -1,3 +1,16 @@
+## 7.9.18.35 — 2026-03-30
+
+### Added — Shortcode documentation + service grid fix
+- **Shortcode docs:** Added 4 missing shortcodes to the Interactive Shortcodes
+  documentation tab: `myls_pricing_table`, `service_area_flip_cards`,
+  `service_area_siblings`, and `myls_tldr`.
+- **Service grid fix:** Added `margin-top: auto` to `.myls-sg-btn` so the
+  Learn More button pushes to the bottom of each card in the service grid
+  (standard flexbox alignment pattern).
+
+**Files changed:** `admin/docs/shortcode-data.php`, `assets/frontend.css`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.34 — 2026-03-28
 
 ### Fixed — PHP 7.x compatibility (all PHP 8.0+ syntax removed)
