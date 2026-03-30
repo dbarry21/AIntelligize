@@ -50,9 +50,7 @@ add_filter('myls_schema_graph', function(array $graph) {
 
 	$awards = get_option('myls_org_awards', []);
 	if ( ! is_array($awards) ) $awards = [];
-	$awards = array_values( array_filter( array_map( function( $a ) {
-		return wp_specialchars_decode( trim( $a ), ENT_QUOTES );
-	}, $awards ) ) );
+	$awards = array_values( array_filter( array_map( 'myls_parse_award_name', $awards ) ) );
 
 	$certs = get_option('myls_org_certifications', []);
 	if ( ! is_array($certs) ) $certs = [];

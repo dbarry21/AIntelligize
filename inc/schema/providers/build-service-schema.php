@@ -255,7 +255,7 @@ if ( ! function_exists('myls_build_primary_localbusiness_node_fallback') ) {
 		// Awards and certifications
 		$awards = get_option('myls_org_awards', []);
 		if ( ! is_array($awards) ) $awards = [];
-		$awards = array_values( array_filter( array_map('sanitize_text_field', $awards) ) );
+		$awards = array_values( array_filter( array_map( 'myls_parse_award_name', $awards ) ) );
 
 		$certs = get_option('myls_org_certifications', []);
 		if ( ! is_array($certs) ) $certs = [];
@@ -486,7 +486,7 @@ add_filter('myls_schema_graph', function(array $graph) {
 	// a location and therefore get the inline org_provider instead of an @id ref.
 	$fb_awards = get_option('myls_org_awards', []);
 	if ( ! is_array($fb_awards) ) $fb_awards = [];
-	$fb_awards = array_values( array_filter( array_map('sanitize_text_field', $fb_awards) ) );
+	$fb_awards = array_values( array_filter( array_map( 'myls_parse_award_name', $fb_awards ) ) );
 	if ( $fb_awards ) $org_provider['award'] = $fb_awards;
 
 	$fb_certs = get_option('myls_org_certifications', []);
@@ -661,6 +661,12 @@ add_filter('myls_schema_graph', function(array $graph) {
 		'provider'    => $provider,       // ✅ LocalBusiness first
 		'serviceType' => $service_type,   // ✅ ALWAYS present
 	];
+
+	// dateModified: helps search engines understand content freshness
+	$date_modified = get_the_modified_date( 'c', $post_id );
+	if ( $date_modified ) {
+		$service['dateModified'] = $date_modified;
+	}
 
 	if ( $image_url ) $service['image'] = esc_url_raw($image_url);
 	if ( ! empty($area_served) ) $service['areaServed'] = $area_served;

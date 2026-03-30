@@ -1761,7 +1761,7 @@ add_action( 'wp_ajax_myls_elb_create_page', function () {
     if ( $org_url )   $schema_ctx_parts[] = "Website: {$org_url}";
 
     // Awards & certifications
-    $awards = array_values( array_filter( array_map( 'sanitize_text_field',
+    $awards = array_values( array_filter( array_map( 'myls_parse_award_name',
         (array) get_option( 'myls_org_awards', [] ) ) ) );
     $certs  = array_values( array_filter( array_map( 'sanitize_text_field',
         (array) get_option( 'myls_org_certifications', [] ) ) ) );
