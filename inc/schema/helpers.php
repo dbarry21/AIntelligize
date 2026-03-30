@@ -381,8 +381,12 @@ if ( ! function_exists('myls_build_geo_coordinates') ) {
 
 		return [
 			'@type'     => 'GeoCoordinates',
-			'latitude'  => round( $lat_f, 6 ),   // 6 decimals ≈ 11cm precision — avoids PHP float artifact
-			'longitude' => round( $lng_f, 6 ),
+			// number_format() produces a string with exactly 6 decimal places.
+			// This bypasses PHP's serialize_precision=-1 float serialization which
+			// outputs the full IEEE 754 mantissa (e.g. 27.77835999999999927...).
+			// Schema.org accepts Text for latitude/longitude.
+			'latitude'  => number_format( $lat_f, 6, '.', '' ),
+			'longitude' => number_format( $lng_f, 6, '.', '' ),
 		];
 	}
 }
