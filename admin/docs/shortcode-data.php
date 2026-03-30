@@ -6,6 +6,7 @@
  * Comprehensive documentation for all plugin shortcodes.
  * @since 5.0.0 — full rewrite covering all 30+ shortcodes
  * @updated 7.0.2 — added google_reviews_slider, social_links; updated service_grid with aspect_ratio
+ * @updated 7.9.18.50 — added myls_pricing_table, service_area_flip_cards, service_area_siblings, myls_tldr
  */
 
 if (!defined('ABSPATH')) exit;
@@ -251,6 +252,81 @@ function mlseo_compile_shortcode_documentation() {
         ],
 
         [
+            'name' => 'service_area_flip_cards',
+            'category' => 'services',
+            'description' => 'Shows child or sibling service_area posts as CSS-grid flip cards. On a parent page shows children; on a child page shows siblings (excluding self). Uses the same flip-box layout as [myls_card_grid].',
+            'basic_usage' => '[service_area_flip_cards]',
+            'attributes' => [
+                'post_id'          => ['default' => '0',            'description' => 'Post ID (0 = current post)'],
+                'orderby'          => ['default' => 'title',        'description' => 'Sort field'],
+                'order'            => ['default' => 'ASC',          'description' => 'Sort direction'],
+                'button_text'      => ['default' => 'Learn More',   'description' => 'Button label on each card'],
+                'image_size'       => ['default' => 'medium_large', 'description' => 'WordPress image size'],
+                'use_icons'        => ['default' => '0',            'description' => '1 = show icon instead of image when no thumbnail'],
+                'icon_class'       => ['default' => 'fa fa-map-marker', 'description' => 'Font Awesome class (when use_icons=1)'],
+                'show_excerpt'     => ['default' => '1',            'description' => '1 = show excerpt below title'],
+                'excerpt_words'    => ['default' => '24',           'description' => 'Word count for excerpt'],
+                'mobile_columns'   => ['default' => '1',            'description' => 'Columns on mobile'],
+                'tablet_columns'   => ['default' => '2',            'description' => 'Columns on tablet'],
+                'desktop_columns'  => ['default' => '3',            'description' => 'Columns on desktop'],
+                'wide_columns'     => ['default' => '4',            'description' => 'Columns on wide screens'],
+                'gap'              => ['default' => '1rem',         'description' => 'CSS grid gap'],
+                'empty_text'       => ['default' => '',             'description' => 'Text when no areas found (blank = hidden)'],
+                'wrapper_class'    => ['default' => '',             'description' => 'Extra CSS class on wrapper'],
+            ],
+            'examples' => [
+                ['label' => 'Auto-detect context',    'code' => '[service_area_flip_cards]'],
+                ['label' => 'Custom button text',     'code' => '[service_area_flip_cards button_text="View Area"]'],
+                ['label' => '3 desktop columns',      'code' => '[service_area_flip_cards desktop_columns="3"]'],
+                ['label' => 'Icon fallback',          'code' => '[service_area_flip_cards use_icons="1" icon_class="fa fa-map-marker"]'],
+                ['label' => 'Empty state message',    'code' => '[service_area_flip_cards empty_text="No areas found."]'],
+            ],
+            'tips' => [
+                'Automatically detects parent/child context — no configuration needed',
+                'On a parent page it shows children; on a child page it shows siblings',
+                'Column counts are controlled per breakpoint via CSS grid variables',
+                'Uses the same flip-card visual style as [myls_card_grid]',
+            ],
+        ],
+
+        [
+            'name' => 'service_area_siblings',
+            'category' => 'services',
+            'description' => 'Shows child or sibling service_area posts in a Bootstrap card-grid layout (same visual style as [service_grid]). On a parent page shows children; on a child page shows siblings (excluding self).',
+            'basic_usage' => '[service_area_siblings]',
+            'attributes' => [
+                'post_id'        => ['default' => '0',                    'description' => 'Post ID (0 = current post)'],
+                'orderby'        => ['default' => 'title',                'description' => 'Sort field'],
+                'order'          => ['default' => 'ASC',                  'description' => 'Sort direction'],
+                'columns'        => ['default' => '4',                    'description' => 'Columns on desktop: 2, 3, 4, or 6'],
+                'image_size'     => ['default' => 'large',                'description' => 'WordPress image size'],
+                'center'         => ['default' => '1',                    'description' => '1 = center incomplete rows'],
+                'button'         => ['default' => '0',                    'description' => '1 = show button (off by default)'],
+                'button_text'    => ['default' => 'Learn More',           'description' => 'Button label'],
+                'button_class'   => ['default' => 'btn btn-primary mt-2', 'description' => 'CSS classes for button'],
+                'show_excerpt'   => ['default' => '1',                    'description' => '1 = show excerpt below title'],
+                'excerpt_words'  => ['default' => '20',                   'description' => 'Word count for excerpt'],
+                'image_crop'     => ['default' => '0',                    'description' => '1 = uniform image height via CSS'],
+                'image_height'   => ['default' => '220',                  'description' => 'Image height in px (when image_crop=1)'],
+                'aspect_ratio'   => ['default' => '',                     'description' => 'CSS aspect ratio: 1/1, 4/3, 16/9 (blank = natural)'],
+                'empty_text'     => ['default' => '',                     'description' => 'Text when no areas found (blank = hidden)'],
+                'wrapper_class'  => ['default' => '',                     'description' => 'Extra CSS class on wrapper'],
+            ],
+            'examples' => [
+                ['label' => 'Auto-detect context',    'code' => '[service_area_siblings]'],
+                ['label' => '3 columns with button',  'code' => '[service_area_siblings columns="3" button="1"]'],
+                ['label' => 'Cropped images',         'code' => '[service_area_siblings image_crop="1" image_height="200"]'],
+                ['label' => 'Square images, no text',  'code' => '[service_area_siblings aspect_ratio="1/1" show_excerpt="0"]'],
+            ],
+            'tips' => [
+                'Automatically detects parent/child context — same logic as [service_area_flip_cards]',
+                'Uses the same Bootstrap card layout and CSS classes as [service_grid]',
+                'Button is OFF by default — add button="1" to show it',
+                'Supports image cropping and aspect ratio just like [service_grid]',
+            ],
+        ],
+
+        [
             'name' => 'service_posts',
             'category' => 'services',
             'description' => 'Displays service posts in a configurable card/list layout with featured images and excerpts.',
@@ -368,9 +444,48 @@ function mlseo_compile_shortcode_documentation() {
             ],
         ],
 
+        [
+            'name' => 'myls_pricing_table',
+            'category' => 'services',
+            'description' => 'Renders a live pricing table from Service Schema → Price Ranges settings. Reads the option at render time so admin changes appear immediately — no page regeneration required.',
+            'basic_usage' => '[myls_pricing_table]',
+            'attributes' => [
+                'post_id' => ['default' => '(current post)', 'description' => 'Post ID to filter ranges by. 0 = show global ranges only.'],
+            ],
+            'examples' => [
+                ['label' => 'Current post prices',    'code' => '[myls_pricing_table]'],
+                ['label' => 'Global ranges only',     'code' => '[myls_pricing_table post_id="0"]'],
+                ['label' => 'Specific post',          'code' => '[myls_pricing_table post_id="123"]'],
+            ],
+            'tips' => [
+                'Manage price ranges in Schema → Service Schema → Price Ranges',
+                'Global ranges (no post assigned) always appear; post-specific ranges appear when that post is viewed',
+                'Changes in admin are reflected immediately — no page cache flush needed',
+                'Returns empty string when no ranges match — the section stays blank instead of showing an empty table',
+            ],
+        ],
+
         // ============================================================
         // CONTENT DISPLAY
         // ============================================================
+
+        [
+            'name' => 'myls_tldr',
+            'category' => 'content',
+            'description' => 'Renders a visually distinct TL;DR summary box with blue accent styling. Wrapping shortcode — place content between opening and closing tags.',
+            'basic_usage' => '[myls_tldr]Summary text here[/myls_tldr]',
+            'attributes' => [],
+            'examples' => [
+                ['label' => 'Basic summary',         'code' => '[myls_tldr]Premier Pro Wash is the top-rated pressure washing company in the area.[/myls_tldr]'],
+                ['label' => 'With nested shortcode', 'code' => '[myls_tldr]Serving [city_state] and surrounding areas since 2010.[/myls_tldr]'],
+            ],
+            'tips' => [
+                'Inner content supports HTML and nested shortcodes',
+                'CSS is inlined only when the shortcode is present on the page',
+                'Add via Elementor HTML widget, Gutenberg shortcode block, or classic editor',
+                'No schema output — this is a visual/content tool only',
+            ],
+        ],
 
         [
             'name' => 'about_the_area',
