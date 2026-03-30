@@ -24,7 +24,8 @@
  *   [service_grid aspect_ratio="1/1"]                    // square images (any CSS aspect-ratio value)
  *   [service_grid aspect_ratio="4/3"]                    // landscape images
  *   [service_grid aspect_ratio="3/4"]                    // portrait images
- *   
+ *   [service_grid exclude_current="1"]                  // hide current service on single pages
+ *
  * Column Options:
  *   columns="2"  // 2 per row on desktop (col-lg-6)
  *   columns="3"  // 3 per row on desktop (col-lg-4)
@@ -77,6 +78,9 @@ if ( ! function_exists('ssseo_service_grid_shortcode_v2') ) {
       
       // Aspect ratio for images
       'aspect_ratio'   => '',   // e.g. '1/1', '4/3', '3/4', '16/9' – blank = natural ratio
+
+      // Exclude current post
+      'exclude_current' => '0', // 1|0 : exclude current post from grid (useful on single service pages)
     ], $atts, 'service_grid' );
 
     // Normalize row classes if centering disabled
@@ -129,14 +133,21 @@ if ( ! function_exists('ssseo_service_grid_shortcode_v2') ) {
     $img_h = max( 80, (int) $a['image_height'] ); // safety min
 
     // Query services
-    $q = new WP_Query( [
+    $query_args = [
       'post_type'      => 'service',
       'posts_per_page' => intval( $a['posts_per_page'] ),
       'post_status'    => 'publish',
       'orderby'        => $a['orderby'],
       'order'          => $a['order'],
       'no_found_rows'  => true,
-    ] );
+    ];
+
+    // Exclude current service post from grid
+    if ( $a['exclude_current'] === '1' && is_singular( 'service' ) ) {
+      $query_args['post__not_in'] = [ get_the_ID() ];
+    }
+
+    $q = new WP_Query( $query_args );
 
     ob_start();
 

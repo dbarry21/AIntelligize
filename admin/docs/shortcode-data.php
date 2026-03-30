@@ -133,7 +133,8 @@ function mlseo_compile_shortcode_documentation() {
                 'image_height'   => ['default' => '220',                  'description' => 'Image height in px (when image_crop=1)'],
                 'aspect_ratio'   => ['default' => '',                     'description' => 'CSS aspect ratio for images: 1/1, 4/3, 16/9, 3/4 (blank = natural)'],
                 'featured_first' => ['default' => '0',                    'description' => '1 = first card spans wider'],
-                'center'         => ['default' => '1',                    'description' => '1 = center incomplete rows'],
+                'center'          => ['default' => '1',                    'description' => '1 = center incomplete rows'],
+                'exclude_current' => ['default' => '0',                    'description' => '1 = exclude current service post from grid (for single service pages)'],
             ],
             'examples' => [
                 ['label' => 'Default 4 columns', 'code' => '[service_grid]'],
@@ -142,6 +143,7 @@ function mlseo_compile_shortcode_documentation() {
                 ['label' => 'Square images, 6 cols', 'code' => '[service_grid columns="6" aspect_ratio="1/1" show_excerpt="0" button="0"]'],
                 ['label' => 'Landscape ratio', 'code' => '[service_grid aspect_ratio="4/3"]'],
                 ['label' => 'Featured first card', 'code' => '[service_grid featured_first="1"]'],
+                ['label' => 'Exclude current service', 'code' => '[service_grid exclude_current="1"]'],
             ],
             'tips' => [
                 'Use aspect_ratio="1/1" for square images — works great with 6-column layouts',
@@ -149,6 +151,7 @@ function mlseo_compile_shortcode_documentation() {
                 'Tagline comes from the Service Tagline metabox; excerpt from WP excerpt',
                 'Tagline only shows below the title — no more duplication (v5.0 fix)',
                 'Incomplete last rows are auto-centered for a clean look',
+                'Use exclude_current="1" on single service pages to show "Other Services" without the current one',
             ],
         ],
 
