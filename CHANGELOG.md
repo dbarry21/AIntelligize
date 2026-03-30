@@ -1,3 +1,18 @@
+## 7.9.18.54 — 2026-03-30
+
+### Fixed — Schema: FAQ bullets, closing time, geo precision
+
+- **FAQ `acceptedAnswer.text`:** Bullet-list answers no longer run together as one
+  unreadable string. `myls_strip_answer_prefix()` now converts newline separators to
+  ` | ` before whitespace collapse, producing "Bullet 1 | Bullet 2 | Bullet 3".
+- **`OpeningHoursSpecification`:** `closes` value `"23:59"` is now normalised to
+  `"24:00"` per Schema.org spec (midnight closing).
+- **Geo coordinate precision:** `round($lat_f, 6)` / `round($lng_f, 6)` already
+  present in `myls_build_geo_coordinates()` — no code change needed; confirmed correct.
+
+**Files changed:** `inc/schema/helpers.php`, `inc/schema/providers/localbusiness.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.53 — 2026-03-30
 
 ### Fixed/Added — Award name+URL split + Service dateModified

@@ -95,8 +95,15 @@ if ( ! function_exists('myls_strip_answer_prefix') ) {
 		// e.g. "• Contact us today." or "* Call us." appearing at the very end.
 		$clean = rtrim( $clean, " \t\n\r\0\x0B.,;:•*-–—" );
 
+		// ── Step 4.5: Convert newline-separated bullet items to pipe-separated ─
+		// When $text arrives as plain text (no <p> tags), bullet items are separated
+		// by newlines. Replacing them before the \s+ collapse prevents bullets from
+		// running together as a single unreadable string.
+		$clean = preg_replace( '/\n+/', ' | ', $clean );
+
 		// ── Step 5: Collapse whitespace and trim ──────────────────────────────
 		$clean = trim( preg_replace( '/\s+/', ' ', $clean ) );
+		$clean = trim( $clean, " \t|" ); // strip leading/trailing orphan pipes
 
 		return trim( $clean ) !== '' ? trim( $clean ) : trim( $text );
 	}

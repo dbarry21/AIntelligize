@@ -117,6 +117,7 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			$d = trim( (string) ( $h['day']   ?? '' ) );
 			$o = trim( (string) ( $h['open']  ?? '' ) );
 			$c = trim( (string) ( $h['close'] ?? '' ) );
+			$c = ( $c === '23:59' ) ? '24:00' : $c; // Schema.org uses "24:00" for midnight closing
 			if ( $d && $o && $c ) {
 				$hours[] = [
 					'@type'     => 'OpeningHoursSpecification',
