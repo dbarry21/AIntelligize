@@ -1,3 +1,15 @@
+## 7.9.18.55 — 2026-03-30
+
+### Fixed — Geo coordinate precision (real fix)
+
+- **`GeoCoordinates`:** Replaced `round($lat_f, 6)` with `number_format($lat_f, 6, '.', '')`.
+  `round()` still returns a PHP float which `json_encode` serializes at full IEEE 754
+  mantissa precision (e.g. `27.77835999999999927...`). `number_format()` outputs a string
+  with exactly 6 decimal places, bypassing `serialize_precision = -1` entirely.
+  Schema.org accepts `Text` for latitude/longitude.
+
+**Files changed:** `inc/schema/helpers.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.54 — 2026-03-30
 
 ### Fixed — Schema: FAQ bullets, closing time, geo precision
