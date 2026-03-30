@@ -21,6 +21,27 @@ if ( ! function_exists('myls_sanitize_csv') ) {
 }
 
 /**
+ * Extract award name string from either legacy flat-string format or the
+ * newer {name, url} object format introduced in v7.9.18.53.
+ *
+ * Backward-compatible: old awards saved as plain strings still work.
+ *
+ * @param  mixed  $award  String or associative array with 'name' key.
+ * @return string         Decoded, trimmed award name — empty string if none.
+ */
+if ( ! function_exists('myls_parse_award_name') ) {
+    function myls_parse_award_name( $award ): string {
+        if ( is_string( $award ) ) {
+            return wp_specialchars_decode( trim( $award ), ENT_QUOTES );
+        }
+        if ( is_array( $award ) ) {
+            return wp_specialchars_decode( trim( (string) ( $award['name'] ?? '' ) ), ENT_QUOTES );
+        }
+        return '';
+    }
+}
+
+/**
  * Extract the opening answer block from FAQ answer HTML for schema output.
  *
  * AI citation engines (ChatGPT, Gemini, Perplexity) read acceptedAnswer.text
@@ -131,8 +152,8 @@ if ( ! function_exists('myls_build_tagline_credentials') ) {
         $awards = get_option('myls_org_awards', []);
         if ( is_array($awards) ) {
             foreach ( $awards as $award ) {
-                $award = sanitize_text_field( (string) $award );
-                if ( $award !== '' ) $parts[] = $award;
+                $name = myls_parse_award_name( $award );
+                if ( $name !== '' ) $parts[] = $name;
             }
         }
 

@@ -1,3 +1,22 @@
+## 7.9.18.53 — 2026-03-30
+
+### Fixed/Added — Award name+URL split + Service dateModified
+- **Award admin UI:** Awards field now has separate Name and URL inputs per entry.
+  Name is output in schema `award` property (schema.org-valid plain text); URL is
+  stored for reference but not injected into the award string.
+- **Backward compat:** Old flat-string awards auto-normalise to `{name, url}` on
+  load — no data loss.
+- **Helper:** Added `myls_parse_award_name()` to `inc/schema/helpers.php`.
+  All award consumers (localbusiness, organization, build-service-schema,
+  helpers, ai-elementor-builder) updated to use it.
+- **Service `dateModified`:** Added `dateModified` (ISO 8601) to the Service
+  JSON-LD node using `get_the_modified_date('c', $post_id)`.
+
+**Files changed:** `inc/schema/helpers.php`, `admin/tabs/schema/subtab-organization.php`,
+`inc/schema/providers/localbusiness.php`, `inc/schema/providers/organization.php`,
+`inc/schema/providers/build-service-schema.php`, `inc/ajax/ai-elementor-builder.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.52 — 2026-03-30
 
 ### Added — `exclude_current` attribute for `[service_grid]`

@@ -72,8 +72,13 @@ $spec = [
 		if ( empty($socials) ) { $socials = ['']; }
 
 		// Values are sanitized at save time — do NOT re-sanitize on read or entities will double-encode.
-		$awards  = array_values(array_filter((array) get_option('myls_org_awards', [])));
-		if ( empty($awards) ) { $awards = ['']; }
+		// Normalize: old entries saved as plain strings are converted to {name, url} for display.
+		$awards_raw = array_values( array_filter( (array) get_option('myls_org_awards', []) ) );
+		$awards = array_map( function( $a ) {
+			if ( is_string($a) ) return [ 'name' => $a, 'url' => '' ];
+			return [ 'name' => (string) ( $a['name'] ?? '' ), 'url' => (string) ( $a['url'] ?? '' ) ];
+		}, $awards_raw );
+		if ( empty($awards) ) { $awards = [ [ 'name' => '', 'url' => '' ] ]; }
 
 		$certs  = array_values(array_filter((array) get_option('myls_org_certifications', [])));
 		if ( empty($certs) ) { $certs = ['']; }
@@ -309,15 +314,24 @@ $spec = [
 				
 					<div class="row" style="margin-top:16px;">
 						<div class="col-12">
-							<label class="form-label">Awards (one per line)</label>
+							<label class="form-label">Awards</label>
 							<div class="text-muted" style="margin:-6px 0 10px 0; font-size: 12px;">
-								These are output on Organization / LocalBusiness schema as <code>award</code> strings (Schema.org-valid).
+								Output as <code>award</code> strings on Organization / LocalBusiness schema. The URL is stored for reference but not injected into the award text.
 							</div>
 
 							<div id="myls-org-awards">
-								<?php foreach ( $awards as $i => $a_txt ) : ?>
-									<div class="d-flex" style="gap:.5rem; margin-bottom:.5rem;">
-										<input type="text" name="myls_org_awards[]" value="<?php echo esc_attr($a_txt); ?>" placeholder="e.g. Best of Tampa Bay 2024">
+								<?php foreach ( $awards as $i => $award ) : ?>
+									<div class="myls-award-row d-flex align-items-center" style="gap:.5rem; margin-bottom:.5rem;">
+										<input type="text"
+											name="myls_org_awards[<?php echo $i; ?>][name]"
+											value="<?php echo esc_attr( $award['name'] ); ?>"
+											placeholder="e.g. Best of Tampa Bay 2024"
+											style="flex:2;">
+										<input type="url"
+											name="myls_org_awards[<?php echo $i; ?>][url]"
+											value="<?php echo esc_attr( $award['url'] ); ?>"
+											placeholder="Award URL (optional)"
+											style="flex:3;">
 										<button class="myls-btn myls-btn-outline myls-remove-award" type="button">Remove</button>
 									</div>
 								<?php endforeach; ?>
@@ -563,17 +577,20 @@ $spec = [
 		(function(){
 		  const wrap = document.getElementById('myls-org-awards');
 		  document.getElementById('myls-org-add-award')?.addEventListener('click', function(){
+			const idx = wrap.querySelectorAll('.myls-award-row').length;
 			const row = document.createElement('div');
-			row.className = 'd-flex';
+			row.className = 'myls-award-row d-flex align-items-center';
 			row.style.gap = '.5rem';
 			row.style.marginBottom = '.5rem';
-			row.innerHTML = '<input type="text" name="myls_org_awards[]" placeholder="e.g. Best of Tampa Bay 2024">'
-						  + '<button class="myls-btn myls-btn-outline myls-remove-award" type="button">Remove</button>';
+			row.innerHTML =
+				'<input type="text" name="myls_org_awards['+idx+'][name]" placeholder="e.g. Best of Tampa Bay 2024" style="flex:2;">'
+				+ '<input type="url" name="myls_org_awards['+idx+'][url]" placeholder="Award URL (optional)" style="flex:3;">'
+				+ '<button class="myls-btn myls-btn-outline myls-remove-award" type="button">Remove</button>';
 			wrap.appendChild(row);
 		  });
 		  wrap?.addEventListener('click', function(e){
 			const btn = e.target.closest('.myls-remove-award');
-			if (btn) { btn.parentElement.remove(); }
+			if (btn) { btn.closest('.myls-award-row').remove(); }
 		  });
 		
 
@@ -806,13 +823,23 @@ $spec = [
 		update_option('myls_org_social_profiles', $raw_socials);
 
 
-		// Awards — wp_unslash first: WordPress slashes $_POST values and sanitize_text_field
+		// Awards — stored as [{name, url}] objects since v7.9.18.53.
+		// wp_unslash before sanitizing: WP slashes $_POST values and sanitize_text_field
 		// does NOT strip slashes, causing stored values to contain literal backslashes.
-		$raw_awards = isset($_POST['myls_org_awards']) && is_array($_POST['myls_org_awards'])
-			? array_map('sanitize_text_field', array_map('wp_unslash', $_POST['myls_org_awards']))
-			: [];
-		$raw_awards = array_values(array_filter($raw_awards));
-		update_option('myls_org_awards', $raw_awards);
+		$raw_awards   = ( isset($_POST['myls_org_awards']) && is_array($_POST['myls_org_awards']) ) ? $_POST['myls_org_awards'] : [];
+		$clean_awards = [];
+		foreach ( $raw_awards as $a ) {
+			if ( ! is_array($a) ) {
+				// Back-compat: plain string submitted (shouldn't happen from new UI)
+				$name = sanitize_text_field( wp_unslash( (string) $a ) );
+				if ( $name !== '' ) $clean_awards[] = [ 'name' => $name, 'url' => '' ];
+				continue;
+			}
+			$name = sanitize_text_field( wp_unslash( (string) ( $a['name'] ?? '' ) ) );
+			$url  = esc_url_raw( wp_unslash( (string) ( $a['url']  ?? '' ) ) );
+			if ( $name !== '' ) $clean_awards[] = [ 'name' => $name, 'url' => $url ];
+		}
+		update_option('myls_org_awards', $clean_awards);
 
 		// Certifications — same wp_unslash pattern.
 		$raw_certs = isset($_POST['myls_org_certifications']) && is_array($_POST['myls_org_certifications'])
