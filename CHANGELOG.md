@@ -1,3 +1,13 @@
+## 7.9.18.51 — 2026-03-30
+
+### Fixed — Service grid button alignment override
+- **Button `!important`:** Bootstrap's `.mt-2` utility applies `margin-top: 0.5rem !important`,
+  overriding the `margin-top: auto` added in v7.9.18.50. Added `!important` to
+  `.myls-sg-btn` rule so it wins the specificity battle and buttons consistently
+  sit at the bottom of each card.
+
+**Files changed:** `assets/frontend.css`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.50 — 2026-03-30
 
 ### Added — Shortcode documentation + service grid fix
