@@ -672,11 +672,7 @@ add_filter('myls_schema_graph', function(array $graph) {
 	if ( ! empty($area_served) ) $service['areaServed'] = $area_served;
 	$service['serviceOutput'] = $service_output; // always present — noun-phrase deliverable
 
-	// NOTE: aggregateRating is intentionally omitted from Service schema.
-	// Google's Rich Results spec does not support aggregateRating on @type Service —
-	// only on LocalBusiness, Product, Recipe, Book, etc. Attaching it here causes
-	// "Invalid object type for field <parent_node>" in the Rich Results Test.
-	// aggregateRating belongs on the LocalBusiness node (localbusiness.php) only.
+	if ( is_array( $agg_rating ) ) $service['aggregateRating'] = $agg_rating;
 
 	// ── Price Ranges (hasOfferCatalog → OfferCatalog → Offer) ────────────
 	// Look up myls_service_price_ranges for any entry whose post_ids contains
