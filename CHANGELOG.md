@@ -1,3 +1,14 @@
+## 7.9.18.56 — 2026-03-30
+
+### Fixed — `aggregateRating` missing from Service schema
+
+- **Service node:** `aggregateRating` is now included on every `@type: Service` node.
+  Uses the same `myls_schema_build_aggregate_rating()` data already built for provider
+  nodes — no additional DB queries.
+
+**Files changed:** `inc/schema/providers/build-service-schema.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.55 — 2026-03-30
 
 ### Fixed — Geo coordinate precision (real fix)
