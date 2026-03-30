@@ -1,3 +1,13 @@
+## 7.9.18.52 — 2026-03-30
+
+### Added — `exclude_current` attribute for `[service_grid]`
+- **New attribute:** `exclude_current="1"` excludes the current service post from
+  the grid when on a single service page. Uses `post__not_in` with `is_singular('service')`
+  guard so it only applies in the correct context.
+
+**Files changed:** `modules/shortcodes/service-grid.php`, `admin/docs/shortcode-data.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.51 — 2026-03-30
 
 ### Fixed — Service grid button alignment override
