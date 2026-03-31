@@ -1,3 +1,10 @@
+## 7.9.18.60 — 2026-03-30
+
+### Fixed
+- LocalBusiness / typed schema node (e.g. `RoofingContractor`) now includes `sameAs` — mirrored from `myls_org_social_profiles`, matching the Organization node so AI crawlers and knowledge-graph tools resolve the brand identity across both entities
+
+---
+
 ## 7.9.18.59 — 2026-03-30
 
 ### Added
