@@ -61,7 +61,7 @@ $spec = [
 			'country'     => get_option('myls_org_country',     get_option('ssseo_organization_country','')),
 			'lat'         => get_option('myls_org_lat',         get_option('ssseo_organization_latitude','')),
 			'lng'         => get_option('myls_org_lng',         get_option('ssseo_organization_longitude','')),
-			'default_service_label' => get_option('myls_org_default_service_label', get_option('ssseo_default_service_label','')),
+			'default_service_label' => get_option('myls_org_default_service_label', get_option('ssseo_default_service_label','RoofingContractor')),
 			'areas'       => get_option('myls_org_areas',       get_option('ssseo_organization_areas_served','')),
 		];
 
@@ -200,6 +200,18 @@ $spec = [
 								<?php endforeach; ?>
 							</select>
 							<div class="form-text">Used by Service/LocalBusiness schema when a label is not provided.</div>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label" for="myls_org_service_name_label">Service Label</label>
+							<input type="text"
+							       id="myls_org_service_name_label"
+							       name="myls_org_service_name_label"
+							       value="<?php echo esc_attr( get_option( 'myls_org_service_name_label', '' ) ); ?>"
+							       placeholder="e.g. Roofing Services">
+							<div class="form-text">
+								Human-readable label for your primary service offering.
+								Used as <code>hasOfferCatalog.name</code> on the LocalBusiness schema node.
+							</div>
 						</div>
 						<div class="col-md-6">
 							<label class="form-label">Description</label>
@@ -796,6 +808,7 @@ $spec = [
 		update_option('myls_org_email', sanitize_email($_POST['myls_org_email'] ?? ''));
 		update_option('myls_org_description', sanitize_textarea_field($_POST['myls_org_description'] ?? ''));
 		update_option('myls_org_default_service_label', sanitize_text_field($_POST['myls_org_default_service_label'] ?? ''));
+		update_option('myls_org_service_name_label',    sanitize_text_field($_POST['myls_org_service_name_label']    ?? ''));
 
 		// Logo
 		update_option('myls_org_logo_id', absint($_POST['myls_org_logo_id'] ?? 0));
