@@ -1,3 +1,13 @@
+## 7.9.18.59 — 2026-03-30
+
+### Added
+- Per-location rating enable/disable toggle in Schema → LocalBusiness Place ID field
+- API Integration tab: enabled/disabled status badge per location; Fetch Now button hidden and "using Default Place ID" notice shown when location is disabled
+- Fetch All Location Ratings button only shown when 2+ locations are enabled
+- `myls_get_current_page_place_id()` now respects `rating_enabled` flag — disabled location falls back to Default Place ID for all rating shortcodes
+
+---
+
 ## 7.9.18.58 — 2026-03-30
 
 ### Fixed

@@ -97,13 +97,27 @@ if ( ! function_exists( 'myls_get_rating_data_for_place' ) ) {
  * @return string  Place ID or empty string.
  */
 if ( ! function_exists( 'myls_get_current_page_place_id' ) ) {
+	/**
+	 * Resolve the Google Place ID for the current front-end page.
+	 *
+	 * Priority:
+	 *  1. Assigned location's place_id — only when rating_enabled !== '0'.
+	 *  2. Global default Place ID (myls_google_places_place_id).
+	 *
+	 * @return string  Place ID or empty string.
+	 */
 	function myls_get_current_page_place_id() : string {
 		if ( is_singular() ) {
 			$post_id = (int) get_queried_object_id();
 			if ( $post_id > 0 ) {
 				$loc = myls_get_assigned_location_raw( $post_id );
 				if ( is_array( $loc ) && ! empty( $loc['place_id'] ) ) {
-					return sanitize_text_field( $loc['place_id'] );
+					// Respect per-location rating toggle — default to enabled.
+					$enabled = ( ( $loc['rating_enabled'] ?? '1' ) !== '0' );
+					if ( $enabled ) {
+						return sanitize_text_field( $loc['place_id'] );
+					}
+					// Disabled: fall through to global default below.
 				}
 			}
 		}
