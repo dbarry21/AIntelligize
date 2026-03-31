@@ -172,8 +172,9 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 				// Strip trailing state abbreviation for cleaner city name
 				// Handles "Bradenton FL", "Bradenton, FL", "Apollo Beach, FL"
 				$city_clean = preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $city_name );
+				$area_type = ( stripos( $city_clean, 'county' ) !== false ) ? 'AdministrativeArea' : 'City';
 				$area_served[] = [
-					'@type' => 'City',
+					'@type' => $area_type,
 					'name'  => $city_clean,
 					'url'   => get_permalink( $sa->ID ),
 				];
@@ -210,9 +211,13 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 						],
 					];
 				}
+				$catalog_name = sanitize_text_field( get_option( 'myls_org_service_name_label', '' ) );
+				if ( empty( $catalog_name ) ) {
+					$catalog_name = wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES ) . ' Services';
+				}
 				$offer_catalog = [
 					'@type'           => 'OfferCatalog',
-					'name'            => wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES ) . ' Services',
+					'name'            => $catalog_name,
 					'itemListElement' => $offer_items,
 				];
 			}
@@ -221,8 +226,20 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 		// Decode HTML entities — JSON-LD strings must be plain text, not HTML-encoded.
 		$lb_name = wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES );
 
+		// Business type: driven by myls_org_default_service_label option.
+		// Allowlisted — falls back to RoofingContractor if option is empty or unrecognised.
+		$business_type = sanitize_text_field( get_option( 'myls_org_default_service_label', 'RoofingContractor' ) );
+		$valid_lb_types = [
+			'LocalBusiness', 'Plumber', 'Electrician', 'HVACBusiness', 'RoofingContractor',
+			'PestControl', 'LegalService', 'CleaningService', 'AutoRepair', 'MedicalBusiness',
+			'Locksmith', 'MovingCompany', 'RealEstateAgent', 'ITService',
+		];
+		if ( ! in_array( $business_type, $valid_lb_types, true ) ) {
+			$business_type = 'RoofingContractor';
+		}
+
 		return array_filter( [
-			'@type'    => 'LocalBusiness',
+			'@type'    => $business_type,
 			'@id'      => trailingslashit( home_url( '/' ) ) . '#localbusiness',
 
 			// Only Business Image URL, else Org Logo

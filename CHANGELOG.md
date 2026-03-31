@@ -1,3 +1,25 @@
+## 7.9.18.57 — 2026-03-30
+
+### Fixed
+- `aggregateRating.ratingValue` PHP float precision bug — now output as formatted string (e.g. `"4.4"`) using `number_format` + `rtrim`
+- `acceptedAnswer.text` in FAQPage schema: pipe characters stripped, whitespace collapsed, truncated to ≤ 60 words with sentence-boundary preference
+- `areaServed` in LocalBusiness and service-areas ItemList now uses `@type: AdministrativeArea` when area name contains "County" (was always `City`)
+- Removed `location.geo` from Organization schema node — geo coordinates belong on LocalBusiness only
+- Removed duplicate services `ItemList` from `@graph` — `hasOfferCatalog` on LocalBusiness is canonical
+
+### Changed
+- LocalBusiness `@type` now driven by `myls_org_default_service_label` option; allowlisted against 14 valid Schema.org types; defaults to `RoofingContractor`
+- `myls_org_default_service_label` UI default changed from empty to `RoofingContractor`
+
+### Added
+- **Place ID field** per location row in LocalBusiness tab — stored as `place_id` in `myls_lb_locations`; per-location ID takes priority over global `myls_google_places_place_id` in rating fetch
+- **Service Label** free-text input (`myls_org_service_name_label`) in Organization tab — wired into `hasOfferCatalog.name` on the LocalBusiness schema node
+
+**Files changed:** `inc/schema/helpers.php`, `inc/schema/providers/localbusiness.php`,
+`inc/schema/providers/organization.php`, `inc/schema/providers/itemlist.php`,
+`admin/tabs/schema/subtab-organization.php`, `admin/tabs/schema/subtab-localbusiness.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.56 — 2026-03-30
 
 ### Fixed — `aggregateRating` missing from Service schema

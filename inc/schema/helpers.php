@@ -105,6 +105,33 @@ if ( ! function_exists('myls_strip_answer_prefix') ) {
 		$clean = trim( preg_replace( '/\s+/', ' ', $clean ) );
 		$clean = trim( $clean, " \t|" ); // strip leading/trailing orphan pipes
 
+		// ── Step 6: Remove pipe separators ───────────────────────────────────────
+		// Pipes were inserted as pseudo-bullet separators in step 4.5. Strip them
+		// now so acceptedAnswer.text is clean plain prose for AI citation.
+		$clean = str_replace( '|', '', $clean );
+
+		// ── Step 7: Strip any remaining HTML tags ─────────────────────────────
+		$clean = wp_strip_all_tags( $clean );
+
+		// ── Step 8: Final whitespace collapse ─────────────────────────────────
+		$clean = preg_replace( '/\s+/', ' ', trim( $clean ) );
+
+		// ── Step 9: Truncate to ≤ 60 words (schema field only) ────────────────
+		// On-page HTML accordion content is entirely separate — this function
+		// is only called for acceptedAnswer.text in JSON-LD output.
+		$words = explode( ' ', $clean );
+		if ( count( $words ) > 65 ) {
+			$words = array_slice( $words, 0, 60 );
+			$clean = implode( ' ', $words );
+			// Prefer ending at a sentence boundary in the second half of the string
+			$last_period = strrpos( $clean, '.' );
+			if ( $last_period !== false && $last_period > (int)( strlen( $clean ) * 0.5 ) ) {
+				$clean = substr( $clean, 0, $last_period + 1 );
+			} else {
+				$clean = rtrim( $clean, ' ,' ) . '...';
+			}
+		}
+
 		return trim( $clean ) !== '' ? trim( $clean ) : trim( $text );
 	}
 }
@@ -212,6 +239,18 @@ if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
 
 		$source = $opt['source'] ?? 'google';
 
+		// Per-location place_id takes priority over global myls_google_places_place_id.
+		// This value is available for cron-based Places API fetch logic.
+		$lb_locs = get_option( 'myls_lb_locations', [] );
+		$primary_place_id = '';
+		if ( ! empty( $lb_locs[0]['place_id'] ) ) {
+			$primary_place_id = sanitize_text_field( $lb_locs[0]['place_id'] );
+		}
+		if ( empty( $primary_place_id ) ) {
+			$primary_place_id = get_option( 'myls_google_places_place_id', '' );
+		}
+		// $primary_place_id is now the canonical Place ID for any fetch/refresh logic.
+
 		if ( $source === 'google' ) {
 			// Read from Google Places cron data
 			$rating = trim( (string) get_option( 'myls_google_places_rating', '' ) );
@@ -249,7 +288,7 @@ if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
 
 		return [
 			'@type'       => 'AggregateRating',
-			'ratingValue' => (float) $rating,
+			'ratingValue' => rtrim( rtrim( number_format( (float) $rating, 1, '.', '' ), '0' ), '.' ),
 			'reviewCount' => (int)   $count,
 			'bestRating'  => (int)   $best_rating,
 			'worstRating' => (int)   $worst_rating,
