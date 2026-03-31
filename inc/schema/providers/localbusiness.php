@@ -237,6 +237,19 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			}
 		}
 
+		// sameAs: shared with Organization — social profile URLs.
+		// Both entities should carry sameAs so AI crawlers / knowledge-graph tools
+		// can resolve the brand across both the site-wide identity node and the
+		// specific business-type node.
+		$socials = get_option( 'myls_org_social_profiles', [] );
+		if ( ! is_array( $socials ) ) $socials = [];
+		$socials = array_values( array_filter( array_map( 'trim', $socials ) ) );
+		$same_as = ! empty( $socials )
+			? array_map( function( $u ) {
+				return esc_url_raw( html_entity_decode( $u, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+			}, $socials )
+			: null;
+
 		// Business type: driven by myls_org_default_service_label option.
 		// Allowlisted — falls back to RoofingContractor if option is empty or unrecognised.
 		$business_type = sanitize_text_field( get_option( 'myls_org_default_service_label', 'RoofingContractor' ) );
@@ -286,6 +299,9 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			// employee + founder: Person @id references (all pages)
 			'employee' => $employee,
 			'founder'  => $employee,  // owners are founders — same @id refs
+
+			// sameAs: mirrored from Organization social profiles.
+			'sameAs' => $same_as,
 
 			// Link to Organization entity by @id reference (not inline duplicate)
 			'parentOrganization' => [ '@id' => home_url( '/#organization' ) ],
