@@ -223,6 +223,84 @@ myls_register_admin_tab([
 							<p class="description">Last Place ID test: <em><?php echo esc_html($last_pid_test); ?></em></p>
 							<div id="myls-places-pid-test-result" class="notice inline" style="margin-top:8px;"></div>
 
+						<?php
+						// -- Per-location Place ID rows -----------------------------------------------
+						// Sourced read-only from Schema -> LocalBusiness tab.
+						$lb_locations = get_option( 'myls_lb_locations', [] );
+						if ( is_array( $lb_locations ) ) :
+							$loc_rows_rendered = 0;
+							foreach ( $lb_locations as $li => $loc ) :
+								if ( ! is_array( $loc ) ) continue;
+								$loc_pid   = trim( (string) ( $loc['place_id'] ?? '' ) );
+								$loc_label = trim( (string) ( $loc['location_label'] ?? ( $loc['name'] ?? '' ) ) );
+								if ( $loc_label === '' ) $loc_label = 'Location #' . ( $li + 1 );
+								if ( $loc_pid === '' ) continue;
+								$loc_rows_rendered++;
+								$loc_key = sanitize_key( $loc_pid );
+								$loc_r   = get_option( 'myls_loc_rating_' . $loc_key, '' );
+								$loc_rc  = get_option( 'myls_loc_rating_count_' . $loc_key, '' );
+								$loc_t   = get_option( 'myls_loc_rating_fetched_at_' . $loc_key, '' );
+						?>
+							<hr style="margin:16px 0;">
+							<label class="form-label">
+								<?php echo esc_html( $loc_label ); ?> &mdash; Place ID
+							</label>
+							<div class="input-group" style="display:flex; gap:8px; align-items:center;">
+								<input type="text"
+								       class="regular-text myls-loc-place-id-display"
+								       value="<?php echo esc_attr( $loc_pid ); ?>"
+								       placeholder="ChIJ..."
+								       readonly
+								       data-loc-index="<?php echo (int) $li; ?>"
+								       style="background:#f6f7f7; color:#50575e;">
+								<button type="button"
+								        class="button myls-test-loc-pid"
+								        data-nonce="<?php echo esc_attr( $ajax_nonce ); ?>"
+								        data-place-id="<?php echo esc_attr( $loc_pid ); ?>"
+								        data-loc-index="<?php echo (int) $li; ?>">
+									Test Place ID
+								</button>
+								<button type="button"
+								        class="button myls-fetch-loc-rating"
+								        data-nonce="<?php echo esc_attr( $ajax_nonce ); ?>"
+								        data-place-id="<?php echo esc_attr( $loc_pid ); ?>"
+								        data-loc-label="<?php echo esc_attr( $loc_label ); ?>"
+								        data-loc-index="<?php echo (int) $li; ?>">
+									Fetch Now
+								</button>
+							</div>
+							<p class="description" style="margin-top:4px;">
+								Place ID managed in <a href="<?php echo esc_url( admin_url( 'admin.php?page=aintelligize&amp;tab=schema&amp;subtab=localbusiness' ) ); ?>">Schema &rarr; LocalBusiness</a>.
+							</p>
+							<div id="myls-loc-pid-test-result-<?php echo (int) $li; ?>" class="notice inline" style="margin-top:6px;"></div>
+							<div class="myls-loc-rating-display" id="myls-loc-rating-display-<?php echo (int) $li; ?>"
+							     style="font-size:.9rem; color:#1d2327; margin-top:6px;">
+								<?php if ( $loc_r !== '' && $loc_rc !== '' ) : ?>
+									<strong><?php echo esc_html( $loc_r ); ?> stars</strong> &nbsp;&middot;&nbsp;
+									<strong><?php echo esc_html( $loc_rc ); ?> ratings</strong>
+									<?php if ( $loc_t ) : ?>
+										&nbsp;<span style="color:#6b7280;font-size:.8rem;">fetched <?php echo esc_html( $loc_t ); ?></span>
+									<?php endif; ?>
+								<?php else : ?>
+									<span style="color:#6b7280;">Not yet fetched &mdash; click Fetch Now</span>
+								<?php endif; ?>
+							</div>
+							<div id="myls-loc-rating-result-<?php echo (int) $li; ?>" class="notice inline" style="margin-top:4px;"></div>
+						<?php
+							endforeach;
+							if ( $loc_rows_rendered > 1 ) :
+						?>
+							<hr style="margin:16px 0;">
+							<button type="button" class="button button-secondary" id="myls-fetch-all-loc-ratings"
+							        data-nonce="<?php echo esc_attr( $ajax_nonce ); ?>">
+								Fetch All Location Ratings
+							</button>
+							<div id="myls-fetch-all-result" class="notice inline" style="margin-top:8px;"></div>
+						<?php
+							endif;
+						endif;
+						?>
+
 							<hr style="margin:16px 0;">
 
 							<label class="form-label">Google Rating &amp; Review Count</label>
@@ -555,6 +633,89 @@ myls_register_admin_tab([
 			  })
 			  .fail(()=>paint($box, false, 'Network error fetching rating'))
 			  .always(()=>$btn.prop('disabled', false).text('Fetch Now'));
+		  });
+
+		  // -- Per-location Place ID test buttons --
+		  $(document).on('click', '.myls-test-loc-pid', function() {
+			const key      = $('#myls_google_places_api_key').val();
+			const place_id = $(this).data('place-id');
+			const idx      = $(this).data('loc-index');
+			const $box     = $('#myls-loc-pid-test-result-' + idx)
+			                   .removeClass('notice-success notice-error')
+			                   .html('<em>Testing...</em>');
+			$.post(POST_URL, { action: 'myls_test_places_pid', key, place_id, nonce })
+			 .done(r => paint($box, !!(r && r.success),
+			       (r && r.data && r.data.message) || (r && r.data) ||
+			       (r && r.success ? 'Place ID OK' : 'Place ID test failed')))
+			 .fail(() => paint($box, false, 'Network error during Place ID test'));
+		  });
+
+		  // -- Per-location Fetch Now buttons --
+		  $(document).on('click', '.myls-fetch-loc-rating', function() {
+			const key      = $('#myls_google_places_api_key').val();
+			const place_id = $(this).data('place-id');
+			const label    = $(this).data('loc-label') || 'Location';
+			const idx      = $(this).data('loc-index');
+			const $btn     = $(this).prop('disabled', true).text('Fetching...');
+			const $box     = $('#myls-loc-rating-result-' + idx)
+			                   .removeClass('notice-success notice-error')
+			                   .html('<em>Fetching...</em>');
+			$.post(POST_URL, { action: 'myls_fetch_places_rating', key, place_id, nonce })
+			 .done(function(r) {
+				if (r && r.success && r.data) {
+				  paint($box, true, r.data.message);
+				  $('#myls-loc-rating-display-' + idx).html(
+					'<strong>' + r.data.rating + ' stars</strong> &nbsp;&middot;&nbsp; ' +
+					'<strong>' + r.data.review_count + ' ratings</strong>' +
+					' &nbsp;<span style="color:#6b7280;font-size:.8rem;">just fetched</span>'
+				  );
+				} else {
+				  paint($box, false, (r && r.data) || 'Fetch failed');
+				}
+			 })
+			 .fail(() => paint($box, false, 'Network error fetching rating'))
+			 .always(() => $btn.prop('disabled', false).text('Fetch Now'));
+		  });
+
+		  // -- Fetch All Location Ratings --
+		  $('#myls-fetch-all-loc-ratings').on('click', function() {
+			const $btn = $(this).prop('disabled', true).text('Fetching all...');
+			const $box = $('#myls-fetch-all-result')
+			               .removeClass('notice-success notice-error')
+			               .html('<em>Fetching all locations...</em>');
+			const key  = $('#myls_google_places_api_key').val();
+			const $locBtns = $('.myls-fetch-loc-rating');
+			const total    = $locBtns.length;
+
+			if (total === 0) {
+			  paint($box, false, 'No location Place IDs found.');
+			  $btn.prop('disabled', false).text('Fetch All Location Ratings');
+			  return;
+			}
+
+			function fetchNext(i) {
+			  if (i >= total) {
+				paint($box, true, 'All ' + total + ' location(s) fetched.');
+				$btn.prop('disabled', false).text('Fetch All Location Ratings');
+				return;
+			  }
+			  const $b       = $locBtns.eq(i);
+			  const place_id = $b.data('place-id');
+			  const idx      = $b.data('loc-index');
+			  $.post(POST_URL, { action: 'myls_fetch_places_rating', key, place_id, nonce })
+			   .done(function(r) {
+				if (r && r.success && r.data) {
+				  $('#myls-loc-rating-display-' + idx).html(
+					'<strong>' + r.data.rating + ' stars</strong> &nbsp;&middot;&nbsp; ' +
+					'<strong>' + r.data.review_count + ' ratings</strong>' +
+					' &nbsp;<span style="color:#6b7280;font-size:.8rem;">just fetched</span>'
+				  );
+				}
+			   })
+			   .always(() => fetchNext(i + 1));
+			}
+
+			fetchNext(0);
 		  });
 
 		  // --- Static Maps ---
