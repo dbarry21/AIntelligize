@@ -226,6 +226,17 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 		// Decode HTML entities — JSON-LD strings must be plain text, not HTML-encoded.
 		$lb_name = wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES );
 
+		// Resolve current WebPage @id for mainEntityOfPage back-reference.
+		// Null on non-singular pages; array_filter() in the return block will strip it.
+		$current_post_id     = get_queried_object_id();
+		$main_entity_of_page = null;
+		if ( $current_post_id > 0 ) {
+			$wep_permalink = get_permalink( $current_post_id );
+			if ( $wep_permalink ) {
+				$main_entity_of_page = [ '@id' => trailingslashit( $wep_permalink ) . '#webpage' ];
+			}
+		}
+
 		// Business type: driven by myls_org_default_service_label option.
 		// Allowlisted — falls back to RoofingContractor if option is empty or unrecognised.
 		$business_type = sanitize_text_field( get_option( 'myls_org_default_service_label', 'RoofingContractor' ) );
@@ -278,6 +289,10 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 
 			// Link to Organization entity by @id reference (not inline duplicate)
 			'parentOrganization' => [ '@id' => home_url( '/#organization' ) ],
+
+			// mainEntityOfPage: bidirectional back-reference to current WebPage node.
+			// array_filter() removes this when null (non-singular pages).
+			'mainEntityOfPage'   => $main_entity_of_page,
 
 			// ContactPoint for customer service (mirrors Organization pattern)
 			'contactPoint' => ( trim( $loc['phone'] ?? '' ) !== '' ) ? [[

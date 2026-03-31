@@ -74,15 +74,26 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 		}
 	}
 
-	// Fallback: link to LocalBusiness
+	// Fallback: link to LocalBusiness by @id (not @type string match).
+	// This correctly handles RoofingContractor and all other LocalBusiness subtypes
+	// since @id is always /#localbusiness regardless of @type value.
 	if ( ! $about_id ) {
+		$lb_id = home_url( '/#localbusiness' );
 		foreach ( $graph as $gn ) {
-			if ( is_array( $gn ) && ! empty( $gn['@id'] ) ) {
-				$t = is_array( $gn['@type'] ?? '' ) ? ( $gn['@type'][0] ?? '' ) : ( $gn['@type'] ?? '' );
-				if ( stripos( $t, 'LocalBusiness' ) !== false || stripos( $t, 'Business' ) !== false ) {
-					$about_id = $gn['@id'];
-					break;
-				}
+			if ( is_array( $gn ) && isset( $gn['@id'] ) && $gn['@id'] === $lb_id ) {
+				$about_id = $lb_id;
+				break;
+			}
+		}
+	}
+
+	// Final fallback to Organization if LocalBusiness not in graph
+	if ( ! $about_id ) {
+		$org_id = home_url( '/#organization' );
+		foreach ( $graph as $gn ) {
+			if ( is_array( $gn ) && isset( $gn['@id'] ) && $gn['@id'] === $org_id ) {
+				$about_id = $org_id;
+				break;
 			}
 		}
 	}

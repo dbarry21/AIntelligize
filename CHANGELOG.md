@@ -1,3 +1,18 @@
+## 7.9.18.58 — 2026-03-30
+
+### Fixed
+- LocalBusiness schema: added `mainEntityOfPage` back-reference to current WebPage `@id`
+- About page schema: removed duplicate `sameAs` from inline embedded entity
+- About page + WebPage `about` property: resolved by `@id` match (`/#localbusiness`) — stable across `@type` changes (e.g. `RoofingContractor`)
+
+### Added
+- API Integration tab: per-location Place ID rows with Test / Fetch Now buttons and per-location rating display
+- `myls_fetch_places_rating` AJAX handler now writes per-location rating cache (`myls_loc_rating_{key}`)
+- Helper functions: `myls_get_assigned_location_raw()`, `myls_get_rating_data_for_place()`, `myls_get_current_page_place_id()`
+- `[google_rating_badge]`, `[google_review_count]`, `[google_aggregate_rating]` shortcodes are now location-aware (resolve rating from assigned location's Place ID)
+
+---
+
 ## 7.9.18.57 — 2026-03-30
 
 ### Fixed

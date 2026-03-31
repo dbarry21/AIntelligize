@@ -68,13 +68,6 @@ if ( ! function_exists('myls_about_get_primary_entity') ) {
 					$entity['address'] = $address;
 				}
 
-				// Social profiles
-				$socials = get_option('myls_org_social_profiles', []);
-				if ( is_array($socials) ) {
-					$socials = array_values(array_filter(array_map('trim', $socials)));
-					if ( $socials ) $entity['sameAs'] = array_map('esc_url_raw', $socials);
-				}
-
 				return $entity;
 			}
 		}
@@ -100,11 +93,6 @@ if ( ! function_exists('myls_about_get_primary_entity') ) {
 		if ( $logo_url )     $entity['logo']        = esc_url_raw($logo_url);
 		if ( $image_url )    $entity['image']       = esc_url_raw($image_url);
 
-		$socials = get_option('myls_org_social_profiles', []);
-		if ( is_array($socials) ) {
-			$socials = array_values(array_filter(array_map('trim', $socials)));
-			if ( $socials ) $entity['sameAs'] = array_map('esc_url_raw', $socials);
-		}
 
 		// Address (optional)
 		$address = array_filter([
@@ -145,15 +133,15 @@ add_filter('myls_schema_graph', function(array $graph) {
 
 	// WebSite node is already provided by website.php — no duplicate needed.
 
-	// about: prefer LocalBusiness @id if in graph, else Organization @id
+	// about: prefer LocalBusiness @id if in graph, else Organization @id.
+	// Use @id match (not @type string) — works for RoofingContractor and all other subtypes.
 	$about_ref = [ '@id' => home_url( '/#organization' ) ];
+	$lb_id     = home_url( '/#localbusiness' );
+
 	foreach ( $graph as $gn ) {
-		if ( is_array( $gn ) && ! empty( $gn['@id'] ) ) {
-			$t = is_array( $gn['@type'] ?? '' ) ? ( $gn['@type'][0] ?? '' ) : ( $gn['@type'] ?? '' );
-			if ( stripos( $t, 'LocalBusiness' ) !== false || stripos( $t, 'Business' ) !== false ) {
-				$about_ref = [ '@id' => $gn['@id'] ];
-				break;
-			}
+		if ( is_array( $gn ) && isset( $gn['@id'] ) && $gn['@id'] === $lb_id ) {
+			$about_ref = [ '@id' => $lb_id ];
+			break;
 		}
 	}
 
