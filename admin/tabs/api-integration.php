@@ -228,22 +228,34 @@ myls_register_admin_tab([
 						// Sourced read-only from Schema -> LocalBusiness tab.
 						$lb_locations = get_option( 'myls_lb_locations', [] );
 						if ( is_array( $lb_locations ) ) :
-							$loc_rows_rendered = 0;
+							$loc_rows_rendered   = 0;
+							$loc_fetchable_count = 0;
 							foreach ( $lb_locations as $li => $loc ) :
 								if ( ! is_array( $loc ) ) continue;
-								$loc_pid   = trim( (string) ( $loc['place_id'] ?? '' ) );
-								$loc_label = trim( (string) ( $loc['location_label'] ?? ( $loc['name'] ?? '' ) ) );
+								$loc_pid     = trim( (string) ( $loc['place_id'] ?? '' ) );
+								$loc_label   = trim( (string) ( $loc['location_label'] ?? ( $loc['name'] ?? '' ) ) );
+								$loc_enabled = ( ( $loc['rating_enabled'] ?? '1' ) !== '0' );
 								if ( $loc_label === '' ) $loc_label = 'Location #' . ( $li + 1 );
 								if ( $loc_pid === '' ) continue;
 								$loc_rows_rendered++;
+								if ( $loc_enabled ) $loc_fetchable_count++;
 								$loc_key = sanitize_key( $loc_pid );
 								$loc_r   = get_option( 'myls_loc_rating_' . $loc_key, '' );
 								$loc_rc  = get_option( 'myls_loc_rating_count_' . $loc_key, '' );
 								$loc_t   = get_option( 'myls_loc_rating_fetched_at_' . $loc_key, '' );
 						?>
 							<hr style="margin:16px 0;">
-							<label class="form-label">
+							<label class="form-label" style="display:flex;align-items:center;gap:8px;">
 								<?php echo esc_html( $loc_label ); ?> &mdash; Place ID
+								<?php if ( $loc_enabled ) : ?>
+									<span style="display:inline-flex;align-items:center;gap:3px;background:#d1fae5;color:#065f46;font-size:.72rem;font-weight:600;padding:1px 7px;border-radius:10px;letter-spacing:.02em;">
+										&#10003; Enabled
+									</span>
+								<?php else : ?>
+									<span style="display:inline-flex;align-items:center;gap:3px;background:#fee2e2;color:#991b1b;font-size:.72rem;font-weight:600;padding:1px 7px;border-radius:10px;letter-spacing:.02em;">
+										&#8212; Disabled
+									</span>
+								<?php endif; ?>
 							</label>
 							<div class="input-group" style="display:flex; gap:8px; align-items:center;">
 								<input type="text"
@@ -260,35 +272,46 @@ myls_register_admin_tab([
 								        data-loc-index="<?php echo (int) $li; ?>">
 									Test Place ID
 								</button>
-								<button type="button"
-								        class="button myls-fetch-loc-rating"
-								        data-nonce="<?php echo esc_attr( $ajax_nonce ); ?>"
-								        data-place-id="<?php echo esc_attr( $loc_pid ); ?>"
-								        data-loc-label="<?php echo esc_attr( $loc_label ); ?>"
-								        data-loc-index="<?php echo (int) $li; ?>">
-									Fetch Now
-								</button>
+								<?php if ( $loc_enabled ) : ?>
+									<button type="button"
+									        class="button myls-fetch-loc-rating"
+									        data-nonce="<?php echo esc_attr( $ajax_nonce ); ?>"
+									        data-place-id="<?php echo esc_attr( $loc_pid ); ?>"
+									        data-loc-label="<?php echo esc_attr( $loc_label ); ?>"
+									        data-loc-index="<?php echo (int) $li; ?>">
+										Fetch Now
+									</button>
+								<?php endif; ?>
 							</div>
 							<p class="description" style="margin-top:4px;">
 								Place ID managed in <a href="<?php echo esc_url( admin_url( 'admin.php?page=aintelligize&amp;tab=schema&amp;subtab=localbusiness' ) ); ?>">Schema &rarr; LocalBusiness</a>.
+								<?php if ( ! $loc_enabled ) : ?>
+									&nbsp;<span style="color:#991b1b;">Rating shortcodes for this location will use the Default Place ID.</span>
+								<?php endif; ?>
 							</p>
 							<div id="myls-loc-pid-test-result-<?php echo (int) $li; ?>" class="notice inline" style="margin-top:6px;"></div>
-							<div class="myls-loc-rating-display" id="myls-loc-rating-display-<?php echo (int) $li; ?>"
-							     style="font-size:.9rem; color:#1d2327; margin-top:6px;">
-								<?php if ( $loc_r !== '' && $loc_rc !== '' ) : ?>
-									<strong><?php echo esc_html( $loc_r ); ?> stars</strong> &nbsp;&middot;&nbsp;
-									<strong><?php echo esc_html( $loc_rc ); ?> ratings</strong>
-									<?php if ( $loc_t ) : ?>
-										&nbsp;<span style="color:#6b7280;font-size:.8rem;">fetched <?php echo esc_html( $loc_t ); ?></span>
+							<?php if ( $loc_enabled ) : ?>
+								<div class="myls-loc-rating-display" id="myls-loc-rating-display-<?php echo (int) $li; ?>"
+								     style="font-size:.9rem; color:#1d2327; margin-top:6px;">
+									<?php if ( $loc_r !== '' && $loc_rc !== '' ) : ?>
+										<strong><?php echo esc_html( $loc_r ); ?> stars</strong> &nbsp;&middot;&nbsp;
+										<strong><?php echo esc_html( $loc_rc ); ?> ratings</strong>
+										<?php if ( $loc_t ) : ?>
+											&nbsp;<span style="color:#6b7280;font-size:.8rem;">fetched <?php echo esc_html( $loc_t ); ?></span>
+										<?php endif; ?>
+									<?php else : ?>
+										<span style="color:#6b7280;">Not yet fetched &mdash; click Fetch Now</span>
 									<?php endif; ?>
-								<?php else : ?>
-									<span style="color:#6b7280;">Not yet fetched &mdash; click Fetch Now</span>
-								<?php endif; ?>
-							</div>
-							<div id="myls-loc-rating-result-<?php echo (int) $li; ?>" class="notice inline" style="margin-top:4px;"></div>
+								</div>
+								<div id="myls-loc-rating-result-<?php echo (int) $li; ?>" class="notice inline" style="margin-top:4px;"></div>
+							<?php else : ?>
+								<div style="font-size:.9rem; color:#6b7280; margin-top:6px; font-style:italic;">
+									Location ratings disabled &mdash; using Default Place ID for shortcodes.
+								</div>
+							<?php endif; ?>
 						<?php
 							endforeach;
-							if ( $loc_rows_rendered > 1 ) :
+							if ( $loc_fetchable_count > 1 ) :
 						?>
 							<hr style="margin:16px 0;">
 							<button type="button" class="button button-secondary" id="myls-fetch-all-loc-ratings"
