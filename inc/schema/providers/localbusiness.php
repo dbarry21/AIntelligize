@@ -251,15 +251,66 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			: null;
 
 		// Business type: driven by myls_org_default_service_label option.
-		// Allowlisted — falls back to RoofingContractor if option is empty or unrecognised.
+		// Full Schema.org LocalBusiness hierarchy — must stay in sync with
+		// the dropdown in admin/tabs/schema/subtab-organization.php.
 		$business_type = sanitize_text_field( get_option( 'myls_org_default_service_label', 'RoofingContractor' ) );
 		$valid_lb_types = [
-			'LocalBusiness', 'Plumber', 'Electrician', 'HVACBusiness', 'RoofingContractor',
-			'PestControl', 'LegalService', 'CleaningService', 'AutoRepair', 'MedicalBusiness',
-			'Locksmith', 'MovingCompany', 'RealEstateAgent', 'ITService',
+			'LocalBusiness',
+			// Automotive
+			'AutomotiveBusiness', 'AutoBodyShop', 'AutoDealer', 'AutoPartsStore',
+			'AutoRental', 'AutoRepair', 'AutoWash', 'GasStation',
+			'MotorcycleDealer', 'MotorcycleRepair',
+			// Emergency Services
+			'EmergencyService', 'FireStation', 'Hospital', 'PoliceStation',
+			// Entertainment
+			'EntertainmentBusiness', 'AdultEntertainment', 'AmusementPark',
+			'ArtGallery', 'Casino', 'ComedyClub', 'MovieTheater', 'NightClub',
+			// Financial
+			'FinancialService', 'AccountingService', 'AutomatedTeller',
+			'BankOrCreditUnion', 'InsuranceAgency',
+			// Food & Drink
+			'FoodEstablishment', 'Bakery', 'BarOrPub', 'Brewery',
+			'CafeOrCoffeeShop', 'Distillery', 'FastFoodRestaurant',
+			'IceCreamShop', 'Restaurant', 'Winery',
+			// Health & Beauty
+			'HealthAndBeautyBusiness', 'BeautySalon', 'DaySpa', 'HairSalon',
+			'HealthClub', 'NailSalon', 'TattooParlor',
+			// Home & Construction
+			'HomeAndConstructionBusiness', 'Electrician', 'GeneralContractor',
+			'HVACBusiness', 'HousePainter', 'Locksmith', 'MovingCompany',
+			'Plumber', 'RoofingContractor',
+			// Legal
+			'LegalService', 'Attorney', 'Notary',
+			// Lodging
+			'LodgingBusiness', 'BedAndBreakfast', 'Campground', 'Hostel',
+			'Hotel', 'Motel', 'Resort', 'VacationRental',
+			// Medical
+			'MedicalBusiness', 'Dentist', 'MedicalClinic', 'Optician',
+			'Pharmacy', 'Physician', 'PrimaryCare', 'VeterinaryCare',
+			// Real Estate
+			'RealEstateAgent',
+			// Retail
+			'Store', 'BikeStore', 'BookStore', 'ClothingStore', 'ComputerStore',
+			'ConvenienceStore', 'DepartmentStore', 'ElectronicsStore', 'Florist',
+			'FurnitureStore', 'GardenStore', 'GroceryStore', 'HardwareStore',
+			'HobbyShop', 'HomeGoodsStore', 'JewelryStore', 'LiquorStore',
+			'MobilePhoneStore', 'MovieRentalStore', 'MusicStore',
+			'OfficeEquipmentStore', 'OutletStore', 'PawnShop', 'PetStore',
+			'ShoeStore', 'SportingGoodsStore', 'TireShop', 'ToyStore',
+			'WholesaleStore',
+			// Sports & Recreation
+			'SportsActivityLocation', 'BowlingAlley', 'ExerciseGym', 'GolfCourse',
+			'PublicSwimmingPool', 'SkiResort', 'SportsClub', 'StadiumOrArena',
+			'TennisComplex',
+			// Other
+			'AnimalShelter', 'ArchiveOrganization', 'ChildCare',
+			'DryCleaningOrLaundry', 'EmploymentAgency', 'GovernmentOffice',
+			'InternetCafe', 'Library', 'ProfessionalService', 'RadioStation',
+			'RecyclingCenter', 'SelfStorage', 'ShoppingCenter',
+			'TelevisionStation', 'TouristInformationCenter', 'TravelAgency',
 		];
 		if ( ! in_array( $business_type, $valid_lb_types, true ) ) {
-			$business_type = 'RoofingContractor';
+			$business_type = 'LocalBusiness';
 		}
 
 		return array_filter( [

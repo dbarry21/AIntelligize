@@ -39,12 +39,168 @@ $spec = [
 		}
 		wp_enqueue_script('jquery-ui-sortable');
 
-		// Service Type options (from ssseo-tools)
+		// Service Type options — grouped by Schema.org LocalBusiness hierarchy.
+		// Keys are optgroup labels ('' = no group); values are [ schema_type => display_label ].
 		$service_types = [
-			'',
-			'LocalBusiness','Plumber','Electrician','HVACBusiness','RoofingContractor',
-			'PestControl','LegalService','CleaningService','AutoRepair','MedicalBusiness',
-			'Locksmith','MovingCompany','RealEstateAgent','ITService',
+			'' => [
+				''              => '— Select —',
+				'LocalBusiness' => 'LocalBusiness (Generic)',
+			],
+			'Automotive' => [
+				'AutomotiveBusiness' => 'AutomotiveBusiness',
+				'AutoBodyShop'       => 'AutoBodyShop',
+				'AutoDealer'         => 'AutoDealer',
+				'AutoPartsStore'     => 'AutoPartsStore',
+				'AutoRental'         => 'AutoRental',
+				'AutoRepair'         => 'AutoRepair',
+				'AutoWash'           => 'AutoWash',
+				'GasStation'         => 'GasStation',
+				'MotorcycleDealer'   => 'MotorcycleDealer',
+				'MotorcycleRepair'   => 'MotorcycleRepair',
+			],
+			'Emergency Services' => [
+				'EmergencyService' => 'EmergencyService',
+				'FireStation'      => 'FireStation',
+				'Hospital'         => 'Hospital',
+				'PoliceStation'    => 'PoliceStation',
+			],
+			'Entertainment' => [
+				'EntertainmentBusiness' => 'EntertainmentBusiness',
+				'AdultEntertainment'    => 'AdultEntertainment',
+				'AmusementPark'         => 'AmusementPark',
+				'ArtGallery'            => 'ArtGallery',
+				'Casino'                => 'Casino',
+				'ComedyClub'            => 'ComedyClub',
+				'MovieTheater'          => 'MovieTheater',
+				'NightClub'             => 'NightClub',
+			],
+			'Financial' => [
+				'FinancialService'  => 'FinancialService',
+				'AccountingService' => 'AccountingService',
+				'AutomatedTeller'   => 'AutomatedTeller',
+				'BankOrCreditUnion' => 'BankOrCreditUnion',
+				'InsuranceAgency'   => 'InsuranceAgency',
+			],
+			'Food & Drink' => [
+				'FoodEstablishment'  => 'FoodEstablishment',
+				'Bakery'             => 'Bakery',
+				'BarOrPub'           => 'BarOrPub',
+				'Brewery'            => 'Brewery',
+				'CafeOrCoffeeShop'   => 'CafeOrCoffeeShop',
+				'Distillery'         => 'Distillery',
+				'FastFoodRestaurant' => 'FastFoodRestaurant',
+				'IceCreamShop'       => 'IceCreamShop',
+				'Restaurant'         => 'Restaurant',
+				'Winery'             => 'Winery',
+			],
+			'Health & Beauty' => [
+				'HealthAndBeautyBusiness' => 'HealthAndBeautyBusiness',
+				'BeautySalon'             => 'BeautySalon',
+				'DaySpa'                  => 'DaySpa',
+				'HairSalon'               => 'HairSalon',
+				'HealthClub'              => 'HealthClub',
+				'NailSalon'               => 'NailSalon',
+				'TattooParlor'            => 'TattooParlor',
+			],
+			'Home & Construction' => [
+				'HomeAndConstructionBusiness' => 'HomeAndConstructionBusiness',
+				'Electrician'                 => 'Electrician',
+				'GeneralContractor'           => 'GeneralContractor',
+				'HVACBusiness'                => 'HVACBusiness',
+				'HousePainter'                => 'HousePainter',
+				'Locksmith'                   => 'Locksmith',
+				'MovingCompany'               => 'MovingCompany',
+				'Plumber'                     => 'Plumber',
+				'RoofingContractor'           => 'RoofingContractor',
+			],
+			'Legal' => [
+				'LegalService' => 'LegalService',
+				'Attorney'     => 'Attorney',
+				'Notary'       => 'Notary',
+			],
+			'Lodging' => [
+				'LodgingBusiness' => 'LodgingBusiness',
+				'BedAndBreakfast' => 'BedAndBreakfast',
+				'Campground'      => 'Campground',
+				'Hostel'          => 'Hostel',
+				'Hotel'           => 'Hotel',
+				'Motel'           => 'Motel',
+				'Resort'          => 'Resort',
+				'VacationRental'  => 'VacationRental',
+			],
+			'Medical' => [
+				'MedicalBusiness' => 'MedicalBusiness',
+				'Dentist'         => 'Dentist',
+				'MedicalClinic'   => 'MedicalClinic',
+				'Optician'        => 'Optician',
+				'Pharmacy'        => 'Pharmacy',
+				'Physician'       => 'Physician',
+				'PrimaryCare'     => 'PrimaryCare',
+				'VeterinaryCare'  => 'VeterinaryCare',
+			],
+			'Real Estate' => [
+				'RealEstateAgent' => 'RealEstateAgent',
+			],
+			'Retail' => [
+				'Store'                => 'Store',
+				'BikeStore'            => 'BikeStore',
+				'BookStore'            => 'BookStore',
+				'ClothingStore'        => 'ClothingStore',
+				'ComputerStore'        => 'ComputerStore',
+				'ConvenienceStore'     => 'ConvenienceStore',
+				'DepartmentStore'      => 'DepartmentStore',
+				'ElectronicsStore'     => 'ElectronicsStore',
+				'Florist'              => 'Florist',
+				'FurnitureStore'       => 'FurnitureStore',
+				'GardenStore'          => 'GardenStore',
+				'GroceryStore'         => 'GroceryStore',
+				'HardwareStore'        => 'HardwareStore',
+				'HobbyShop'            => 'HobbyShop',
+				'HomeGoodsStore'       => 'HomeGoodsStore',
+				'JewelryStore'         => 'JewelryStore',
+				'LiquorStore'          => 'LiquorStore',
+				'MobilePhoneStore'     => 'MobilePhoneStore',
+				'MovieRentalStore'     => 'MovieRentalStore',
+				'MusicStore'           => 'MusicStore',
+				'OfficeEquipmentStore' => 'OfficeEquipmentStore',
+				'OutletStore'          => 'OutletStore',
+				'PawnShop'             => 'PawnShop',
+				'PetStore'             => 'PetStore',
+				'ShoeStore'            => 'ShoeStore',
+				'SportingGoodsStore'   => 'SportingGoodsStore',
+				'TireShop'             => 'TireShop',
+				'ToyStore'             => 'ToyStore',
+				'WholesaleStore'       => 'WholesaleStore',
+			],
+			'Sports & Recreation' => [
+				'SportsActivityLocation' => 'SportsActivityLocation',
+				'BowlingAlley'           => 'BowlingAlley',
+				'ExerciseGym'            => 'ExerciseGym',
+				'GolfCourse'             => 'GolfCourse',
+				'PublicSwimmingPool'     => 'PublicSwimmingPool',
+				'SkiResort'              => 'SkiResort',
+				'SportsClub'             => 'SportsClub',
+				'StadiumOrArena'         => 'StadiumOrArena',
+				'TennisComplex'          => 'TennisComplex',
+			],
+			'Other' => [
+				'AnimalShelter'            => 'AnimalShelter',
+				'ArchiveOrganization'      => 'ArchiveOrganization',
+				'ChildCare'                => 'ChildCare',
+				'DryCleaningOrLaundry'     => 'DryCleaningOrLaundry',
+				'EmploymentAgency'         => 'EmploymentAgency',
+				'GovernmentOffice'         => 'GovernmentOffice',
+				'InternetCafe'             => 'InternetCafe',
+				'Library'                  => 'Library',
+				'ProfessionalService'      => 'ProfessionalService',
+				'RadioStation'             => 'RadioStation',
+				'RecyclingCenter'          => 'RecyclingCenter',
+				'SelfStorage'              => 'SelfStorage',
+				'ShoppingCenter'           => 'ShoppingCenter',
+				'TelevisionStation'        => 'TelevisionStation',
+				'TouristInformationCenter' => 'TouristInformationCenter',
+				'TravelAgency'             => 'TravelAgency',
+			],
 		];
 
 		// Values (fallback to older ssseo_* options if migrating)
@@ -193,13 +349,21 @@ $spec = [
 						<div class="col-md-3">
 							<label class="form-label">Default Service Label</label>
 							<select name="myls_org_default_service_label">
-								<?php foreach ( $service_types as $opt ): ?>
-									<option value="<?php echo esc_attr($opt); ?>" <?php selected($v['default_service_label'], $opt); ?>>
-										<?php echo $opt === '' ? '— Select —' : esc_html($opt); ?>
-									</option>
+								<?php foreach ( $service_types as $group => $opts ) : ?>
+									<?php if ( $group !== '' ) : ?>
+										<optgroup label="<?php echo esc_attr( $group ); ?>">
+									<?php endif; ?>
+									<?php foreach ( $opts as $val => $label ) : ?>
+										<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $v['default_service_label'], $val ); ?>>
+											<?php echo esc_html( $label ); ?>
+										</option>
+									<?php endforeach; ?>
+									<?php if ( $group !== '' ) : ?>
+										</optgroup>
+									<?php endif; ?>
 								<?php endforeach; ?>
 							</select>
-							<div class="form-text">Used by Service/LocalBusiness schema when a label is not provided.</div>
+							<div class="form-text">Schema.org <code>@type</code> for the LocalBusiness node. <a href="https://schema.org/LocalBusiness" target="_blank" rel="noopener">View hierarchy ↗</a></div>
 						</div>
 						<div class="col-md-3">
 							<label class="form-label" for="myls_org_service_name_label">Service Label</label>

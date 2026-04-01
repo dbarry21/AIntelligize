@@ -1,3 +1,12 @@
+## 7.9.18.61 — 2026-03-31
+
+### Changed
+- Default Service Label dropdown (Schema → Organization) rebuilt with full Schema.org `LocalBusiness` hierarchy (~100 valid types) grouped into 14 `<optgroup>` categories: Automotive, Emergency Services, Entertainment, Financial, Food & Drink, Health & Beauty, Home & Construction, Legal, Lodging, Medical, Real Estate, Retail, Sports & Recreation, Other
+- Removed 3 invalid types that were never in Schema.org: `PestControl`, `CleaningService`, `ITService`
+- `$valid_lb_types` allowlist in `localbusiness.php` updated to match — unknown saved values now fall back to `LocalBusiness` (was `RoofingContractor`)
+
+---
+
 ## 7.9.18.60 — 2026-03-30
 
 ### Fixed
