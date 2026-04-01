@@ -164,15 +164,18 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 		if ( ! empty( $sa_roots ) ) {
 			$area_served = [];
 			foreach ( $sa_roots as $sa ) {
-				$city_name = html_entity_decode(
-				get_the_title( $sa->ID ),
-				ENT_QUOTES | ENT_HTML5,
-				'UTF-8'
-			);
-				// Strip trailing state abbreviation for cleaner city name
-				// Handles "Bradenton FL", "Bradenton, FL", "Apollo Beach, FL"
-				$city_clean = preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $city_name );
-				$area_type = ( stripos( $city_clean, 'county' ) !== false ) ? 'AdministrativeArea' : 'City';
+				// Use city_state meta/ACF field (city portion) when available;
+				// myls_sa_extract_city_state() falls back to post title if the field is empty.
+				if ( function_exists( 'myls_sa_extract_city_state' ) ) {
+					$loc        = myls_sa_extract_city_state( $sa->ID );
+					$city_clean = $loc['city'];
+				} else {
+					$city_clean = preg_replace(
+						'/[,\s]+[A-Z]{2}$/i', '',
+						html_entity_decode( get_the_title( $sa->ID ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
+					);
+				}
+				$area_type    = ( stripos( $city_clean, 'county' ) !== false ) ? 'AdministrativeArea' : 'City';
 				$area_served[] = [
 					'@type' => $area_type,
 					'name'  => $city_clean,

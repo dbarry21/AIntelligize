@@ -1,3 +1,10 @@
+## 7.9.18.62 — 2026-03-31
+
+### Fixed
+- `areaServed` in LocalBusiness schema and Service Areas ItemList now sources city name from the `city_state` ACF/post meta field on each `service_area` post (city portion only), falling back to post title only when the field is empty — previously always used the post title
+
+---
+
 ## 7.9.18.61 — 2026-03-31
 
 ### Changed
