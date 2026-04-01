@@ -1,3 +1,10 @@
+## 7.9.18.63 — 2026-03-31
+
+### Fixed
+- `myls_sa_extract_city_state()`: removed ACF `get_field()` dependency — now reads `_myls_city_state` (plugin-native meta box key) first, falls back to bare `city_state` key (legacy ACF data), then falls back to post title; no ACF required
+
+---
+
 ## 7.9.18.62 — 2026-03-31
 
 ### Fixed

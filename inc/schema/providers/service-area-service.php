@@ -28,11 +28,10 @@ if ( ! defined('ABSPATH') ) exit;
  */
 if ( ! function_exists('myls_sa_extract_city_state') ) {
 	function myls_sa_extract_city_state( int $post_id ) : array {
-		// Try ACF / post meta city_state field first
-		$city_state = '';
-		if ( function_exists('get_field') ) {
-			$city_state = trim( (string) get_field( 'city_state', $post_id ) );
-		}
+		// Priority 1: plugin-native meta key written by the MYLS City, State meta box.
+		$city_state = trim( (string) get_post_meta( $post_id, '_myls_city_state', true ) );
+
+		// Priority 2: legacy bare key written by ACF (backward compat — no ACF call).
 		if ( $city_state === '' ) {
 			$city_state = trim( (string) get_post_meta( $post_id, 'city_state', true ) );
 		}
