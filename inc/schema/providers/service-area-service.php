@@ -28,16 +28,14 @@ if ( ! defined('ABSPATH') ) exit;
  */
 if ( ! function_exists('myls_sa_extract_city_state') ) {
 	function myls_sa_extract_city_state( int $post_id ) : array {
-		// Priority 1: plugin-native meta key written by the MYLS City, State meta box.
-		$city_state = trim( (string) get_post_meta( $post_id, '_myls_city_state', true ) );
+		// Use the plugin-canonical helper (inc/city-state.php):
+		// reads _myls_city_state first, falls back to bare city_state key.
+		$city_state = function_exists( 'myls_get_city_state' )
+			? myls_get_city_state( $post_id )
+			: trim( (string) get_post_meta( $post_id, '_myls_city_state', true ) );
 
-		// Priority 2: legacy bare key written by ACF (backward compat — no ACF call).
-		if ( $city_state === '' ) {
-			$city_state = trim( (string) get_post_meta( $post_id, 'city_state', true ) );
-		}
-
-		// Parse from field or title
-		$raw = $city_state !== '' ? $city_state : wp_specialchars_decode( get_the_title( $post_id ), ENT_QUOTES );
+		// Final fallback to post title when field is empty.
+		$raw = ( $city_state !== '' ) ? $city_state : wp_specialchars_decode( get_the_title( $post_id ), ENT_QUOTES );
 
 		$state = '';
 		$city  = $raw;

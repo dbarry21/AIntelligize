@@ -1,3 +1,11 @@
+## 7.9.18.64 — 2026-03-31
+
+### Fixed
+- `inc/city-state.php` (plugin's canonical `myls_get_city_state()` helper) was never loaded — added `require_once` to `aintelligize.php`
+- `myls_sa_extract_city_state()` now delegates to `myls_get_city_state()` so `areaServed` city names in LocalBusiness schema and Service Areas ItemList correctly read from the `_myls_city_state` meta key written by the MYLS City, State meta box
+
+---
+
 ## 7.9.18.63 — 2026-03-31
 
 ### Fixed
