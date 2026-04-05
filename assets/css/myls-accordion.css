@@ -97,8 +97,8 @@
   text-overflow: ellipsis;
 }
 
-/* FAQ heading colour override */
-.myls-faq-heading,
-.myls-service-faq-heading {
-  color: var(--myls-faq-heading-color, inherit);
+/* FAQ heading colour override — !important needed to beat theme h2 rules */
+h2.myls-faq-heading,
+h3.myls-service-faq-heading {
+  color: var(--myls-faq-heading-color, inherit) !important;
 }
