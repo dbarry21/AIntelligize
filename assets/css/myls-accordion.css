@@ -97,7 +97,8 @@
   text-overflow: ellipsis;
 }
 
-/* FAQ heading colour override — !important needed to beat theme h2 rules */
+/* FAQ heading colour override — double-class + !important beats theme & Elementor global rules */
+h2.text-center.myls-faq-heading,
 h2.myls-faq-heading,
 h3.myls-service-faq-heading {
   color: var(--myls-faq-heading-color, inherit) !important;
