@@ -219,12 +219,13 @@ This section documents all available shortcodes and their usage.
 
 **Description:** Responsive card grid of service posts with images, titles, taglines/excerpts, and buttons. Supports 2–6 column layouts, aspect ratio control, featured first card, uniform image cropping, and center-aligned incomplete rows.
 
-**Key Attributes:** `columns`, `aspect_ratio`, `subtext`, `show_excerpt`, `button`, `image_crop`, `image_height`, `featured_first`
+**Key Attributes:** `columns`, `aspect_ratio`, `subtext`, `show_excerpt`, `button`, `btn_bg`, `btn_color`, `image_crop`, `image_height`, `featured_first`
 
 **Examples:**
 - `[service_grid columns="6" aspect_ratio="1/1" show_excerpt="0" button="0"]` — Square image grid
 - `[service_grid columns="3" subtext="excerpt"]` — 3-column with excerpts
 - `[service_grid aspect_ratio="4/3"]` — Landscape ratio images
+- `[service_grid btn_bg="#172751" btn_color="#ffffff"]` — Custom button colours
 
 ---
 
