@@ -1,8 +1,11 @@
-## 7.9.18.65 — 2026-04-05
+## 7.9.18.66 — 2026-04-05
 
 ### Fixed — FAQ accordion `heading_color` attribute
 - Added missing CSS rule to consume `--myls-faq-heading-color` variable —
   `.myls-faq-heading` and `.myls-service-faq-heading` now respect the attribute.
+- Added **Heading Color** picker to admin settings (Schema > FAQ) so it works
+  as a site-wide default — both `[faq_schema_accordion]` and `[service_faq_page]`
+  now fall back to the saved `myls_faq_heading_color` option.
 
 ### Added — `btn_bg` / `btn_color` attributes for `[service_grid]`
 - New `btn_bg` and `btn_color` shortcode attributes set button background and
@@ -11,8 +14,9 @@
 
 **Files changed:** `assets/css/myls-accordion.css`, `assets/css/myls-accordion.min.css`,
 `assets/frontend.css`, `modules/shortcodes/service-grid.php`,
-`plugin-docs/shortcodes.md`, `admin/docs/shortcode-data.php`,
-`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+`modules/shortcodes/faq-schema-accordion.php`, `modules/shortcodes/service-faq-page.php`,
+`admin/tabs/schema/subtab-faq.php`, `plugin-docs/shortcodes.md`,
+`admin/docs/shortcode-data.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
 
 ## 7.9.18.64 — 2026-03-31
 

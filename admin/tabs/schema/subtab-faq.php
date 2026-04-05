@@ -13,8 +13,9 @@ $spec = [
     $page_slug_val   = $page_exists ? get_post_field( 'post_name', $existing_page ) : 'service-faqs';
     $page_status_val = $page_exists ? get_post_status( $existing_page ) : 'publish';
 
-    $faq_btn_bg    = get_option( 'myls_faq_btn_bg', '#136B92' );
-    $faq_btn_color = get_option( 'myls_faq_btn_color', '#ffffff' );
+    $faq_btn_bg       = get_option( 'myls_faq_btn_bg', '#136B92' );
+    $faq_btn_color    = get_option( 'myls_faq_btn_color', '#ffffff' );
+    $faq_heading_color = get_option( 'myls_faq_heading_color', '' );
 
     // Count services + FAQ stats (with dedup).
     $service_count     = 0;
@@ -92,7 +93,7 @@ $spec = [
             <div class="card-body">
               <p class="text-muted mb-3" style="font-size:.9rem;">
                 Sets the site-wide default colors for the <code>[faq_schema_accordion]</code> shortcode.
-                These can be overridden per-shortcode using <code>btn_bg=""</code> and <code>btn_color=""</code> attributes.
+                These can be overridden per-shortcode using <code>btn_bg=""</code>, <code>btn_color=""</code>, and <code>heading_color=""</code> attributes.
               </p>
               <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-4">
@@ -117,6 +118,20 @@ $spec = [
                            placeholder="#ffffff" maxlength="30" style="max-width:110px;">
                   </div>
                 </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-bold" for="myls_faq_heading_color">Heading Color</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="color" class="form-control form-control-color" id="myls_faq_heading_color_picker"
+                           value="<?php echo esc_attr( $faq_heading_color ?: '#000000' ); ?>"
+                           style="width:48px;height:38px;padding:2px;cursor:pointer;">
+                    <input type="text" class="form-control form-control-sm font-monospace" id="myls_faq_heading_color"
+                           name="myls_faq_heading_color" value="<?php echo esc_attr( $faq_heading_color ); ?>"
+                           placeholder="" maxlength="30" style="max-width:110px;">
+                  </div>
+                  <small class="text-muted">Leave blank to inherit theme default.</small>
+                </div>
+              </div>
+              <div class="row g-3 align-items-end mt-1">
                 <div class="col-12 col-md-4">
                   <label class="form-label fw-bold">Preview</label>
                   <div id="myls_faq_color_preview"
@@ -411,8 +426,9 @@ $spec = [
                 preview.style.color      = col;
             }
         }
-        syncColor('myls_faq_btn_bg_picker',    'myls_faq_btn_bg');
-        syncColor('myls_faq_btn_color_picker', 'myls_faq_btn_color');
+        syncColor('myls_faq_btn_bg_picker',       'myls_faq_btn_bg');
+        syncColor('myls_faq_btn_color_picker',  'myls_faq_btn_color');
+        syncColor('myls_faq_heading_color_picker', 'myls_faq_heading_color');
     })();
     </script>
     <?php
@@ -431,10 +447,12 @@ $spec = [
     update_option('myls_faq_enabled', $val);
 
     // Save accordion colors.
-    $btn_bg    = sanitize_hex_color( $_POST['myls_faq_btn_bg']    ?? '' );
-    $btn_color = sanitize_hex_color( $_POST['myls_faq_btn_color'] ?? '' );
-    if ( $btn_bg    !== null ) update_option( 'myls_faq_btn_bg',    $btn_bg    ?: '' );
-    if ( $btn_color !== null ) update_option( 'myls_faq_btn_color', $btn_color ?: '' );
+    $btn_bg        = sanitize_hex_color( $_POST['myls_faq_btn_bg']        ?? '' );
+    $btn_color     = sanitize_hex_color( $_POST['myls_faq_btn_color']     ?? '' );
+    $heading_color = sanitize_hex_color( $_POST['myls_faq_heading_color'] ?? '' );
+    if ( $btn_bg        !== null ) update_option( 'myls_faq_btn_bg',        $btn_bg        ?: '' );
+    if ( $btn_color     !== null ) update_option( 'myls_faq_btn_color',     $btn_color     ?: '' );
+    if ( $heading_color !== null ) update_option( 'myls_faq_heading_color', $heading_color ?: '' );
   }
 ];
 

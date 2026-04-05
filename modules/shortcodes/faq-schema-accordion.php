@@ -106,6 +106,9 @@ JS;
 		if ( empty( $atts['btn_color'] ) ) {
 			$atts['btn_color'] = get_option( 'myls_faq_btn_color', '' );
 		}
+		if ( empty( $atts['heading_color'] ) ) {
+			$atts['heading_color'] = get_option( 'myls_faq_heading_color', '' );
+		}
 
 		// ------------------------------------------------------------
 		// Heading rules:
