@@ -129,6 +129,8 @@ function mlseo_compile_shortcode_documentation() {
                 'button_text'    => ['default' => 'Learn More',           'description' => 'Button label text'],
                 'button_class'   => ['default' => 'btn btn-primary mt-2', 'description' => 'CSS classes for button'],
                 'button_target'  => ['default' => '',                     'description' => 'Link target (_blank for new tab)'],
+                'btn_bg'         => ['default' => '',                     'description' => 'Button background colour (hex/rgb). Sets --myls-sg-btn-bg CSS variable.'],
+                'btn_color'      => ['default' => '',                     'description' => 'Button text colour (hex/rgb). Sets --myls-sg-btn-color CSS variable.'],
                 'image_crop'     => ['default' => '0',                    'description' => '1 = uniform image height via CSS'],
                 'image_height'   => ['default' => '220',                  'description' => 'Image height in px (when image_crop=1)'],
                 'aspect_ratio'   => ['default' => '',                     'description' => 'CSS aspect ratio for images: 1/1, 4/3, 16/9, 3/4 (blank = natural)'],
@@ -144,6 +146,7 @@ function mlseo_compile_shortcode_documentation() {
                 ['label' => 'Landscape ratio', 'code' => '[service_grid aspect_ratio="4/3"]'],
                 ['label' => 'Featured first card', 'code' => '[service_grid featured_first="1"]'],
                 ['label' => 'Exclude current service', 'code' => '[service_grid exclude_current="1"]'],
+                ['label' => 'Custom button colours', 'code' => '[service_grid btn_bg="#172751" btn_color="#ffffff"]'],
             ],
             'tips' => [
                 'Use aspect_ratio="1/1" for square images — works great with 6-column layouts',

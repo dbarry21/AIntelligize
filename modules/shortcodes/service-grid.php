@@ -60,6 +60,8 @@ if ( ! function_exists('ssseo_service_grid_shortcode_v2') ) {
       'button_class'   => 'btn btn-primary mt-2',
       'button_target'  => '',   // e.g. _blank
       'button_rel'     => '',   // e.g. nofollow
+      'btn_bg'         => '',   // button background colour
+      'btn_color'      => '',   // button text colour
 
       // Excerpt (NOW ON BY DEFAULT)
       'show_excerpt'   => '1',  // <-- changed default to 1
@@ -160,6 +162,14 @@ if ( ! function_exists('ssseo_service_grid_shortcode_v2') ) {
       $inline_vars = '--myls-img-h:' . esc_attr($img_h) . 'px;';
       if ( $aspect_ratio ) {
         $inline_vars .= '--myls-sg-ratio:' . esc_attr($aspect_ratio) . ';';
+      }
+      $btn_bg    = trim( (string) $a['btn_bg'] );
+      $btn_color = trim( (string) $a['btn_color'] );
+      if ( $btn_bg !== '' ) {
+        $inline_vars .= '--myls-sg-btn-bg:' . esc_attr( $btn_bg ) . ';';
+      }
+      if ( $btn_color !== '' ) {
+        $inline_vars .= '--myls-sg-btn-color:' . esc_attr( $btn_color ) . ';';
       }
 
       // Use a CSS variable for image height without hardcoding in CSS

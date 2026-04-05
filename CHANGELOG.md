@@ -1,3 +1,19 @@
+## 7.9.18.65 — 2026-04-05
+
+### Fixed — FAQ accordion `heading_color` attribute
+- Added missing CSS rule to consume `--myls-faq-heading-color` variable —
+  `.myls-faq-heading` and `.myls-service-faq-heading` now respect the attribute.
+
+### Added — `btn_bg` / `btn_color` attributes for `[service_grid]`
+- New `btn_bg` and `btn_color` shortcode attributes set button background and
+  text colour via CSS custom properties (`--myls-sg-btn-bg`, `--myls-sg-btn-color`).
+- Omitting the attributes preserves default Bootstrap `.btn-primary` styling.
+
+**Files changed:** `assets/css/myls-accordion.css`, `assets/css/myls-accordion.min.css`,
+`assets/frontend.css`, `modules/shortcodes/service-grid.php`,
+`plugin-docs/shortcodes.md`, `admin/docs/shortcode-data.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.64 — 2026-03-31
 
 ### Fixed
@@ -416,6 +432,7 @@
 `inc/ajax/ai-elementor-builder.php`, `aintelligize.php`, `readme.txt`,
 `CHANGELOG.md`
 
+>>>>>>> origin/main
 ## 7.9.18.34 — 2026-03-28
 
 ### Fixed — PHP 7.x compatibility (all PHP 8.0+ syntax removed)

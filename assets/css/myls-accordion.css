@@ -96,3 +96,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* FAQ heading colour override */
+.myls-faq-heading,
+.myls-service-faq-heading {
+  color: var(--myls-faq-heading-color, inherit);
+}
