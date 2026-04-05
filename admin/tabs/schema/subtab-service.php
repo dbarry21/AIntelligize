@@ -846,8 +846,82 @@ $spec = [
 })();
 </script>
 
-
-
+<!-- Service Grid Button Colors -->
+<?php
+    $sg_btn_bg    = get_option( 'myls_service_grid_btn_bg', '' );
+    $sg_btn_color = get_option( 'myls_service_grid_btn_color', '' );
+?>
+<div class="myls-block" style="margin-top:1.5rem;">
+  <div class="myls-block-title">Service Grid Button Colors</div>
+  <p class="text-muted mb-3" style="font-size:.9rem;">
+    Site-wide defaults for the <code>[service_grid]</code> button.
+    Override per-shortcode with <code>btn_bg=""</code> and <code>btn_color=""</code>.
+    Leave blank to use Bootstrap <code>.btn-primary</code>.
+  </p>
+  <div class="myls-row" style="gap:.75rem;">
+    <div class="myls-col col-4">
+      <label class="form-label fw-bold" for="myls_service_grid_btn_bg">Button Background</label>
+      <div class="d-flex align-items-center gap-2">
+        <input type="color" class="form-control form-control-color" id="myls_sg_btn_bg_picker"
+               value="<?php echo esc_attr( $sg_btn_bg ?: '#0d6efd' ); ?>"
+               style="width:48px;height:38px;padding:2px;cursor:pointer;">
+        <input type="text" class="form-control form-control-sm font-monospace" id="myls_service_grid_btn_bg"
+               name="myls_service_grid_btn_bg" value="<?php echo esc_attr( $sg_btn_bg ); ?>"
+               placeholder="" maxlength="30" style="max-width:110px;">
+      </div>
+    </div>
+    <div class="myls-col col-4">
+      <label class="form-label fw-bold" for="myls_service_grid_btn_color">Button Text</label>
+      <div class="d-flex align-items-center gap-2">
+        <input type="color" class="form-control form-control-color" id="myls_sg_btn_color_picker"
+               value="<?php echo esc_attr( $sg_btn_color ?: '#ffffff' ); ?>"
+               style="width:48px;height:38px;padding:2px;cursor:pointer;">
+        <input type="text" class="form-control form-control-sm font-monospace" id="myls_service_grid_btn_color"
+               name="myls_service_grid_btn_color" value="<?php echo esc_attr( $sg_btn_color ); ?>"
+               placeholder="" maxlength="30" style="max-width:110px;">
+      </div>
+    </div>
+    <div class="myls-col col-4">
+      <label class="form-label fw-bold">Preview</label>
+      <div id="myls_sg_color_preview"
+           style="background:<?php echo esc_attr( $sg_btn_bg ?: '#0d6efd' ); ?>;color:<?php echo esc_attr( $sg_btn_color ?: '#ffffff' ); ?>;padding:10px 16px;border-radius:6px;font-weight:bold;font-size:.9rem;cursor:default;user-select:none;">
+        Learn More ›
+      </div>
+    </div>
+  </div>
+  <div class="myls-actions" style="margin-top:.75rem;">
+    <button class="btn btn-primary" type="submit">Save Colors</button>
+  </div>
+</div>
+<script>
+(function(){
+    function syncColor(pickerId, textId) {
+        var picker = document.getElementById(pickerId);
+        var text   = document.getElementById(textId);
+        if (!picker || !text) return;
+        picker.addEventListener('input', function() {
+            text.value = this.value;
+            updateSgPreview();
+        });
+        text.addEventListener('input', function() {
+            var v = this.value.trim();
+            if (/^#[0-9a-fA-F]{3,6}$/.test(v)) picker.value = v;
+            updateSgPreview();
+        });
+    }
+    function updateSgPreview() {
+        var preview = document.getElementById('myls_sg_color_preview');
+        var bg  = document.getElementById('myls_service_grid_btn_bg')?.value  || '#0d6efd';
+        var col = document.getElementById('myls_service_grid_btn_color')?.value || '#ffffff';
+        if (preview) {
+            preview.style.background = bg;
+            preview.style.color      = col;
+        }
+    }
+    syncColor('myls_sg_btn_bg_picker',    'myls_service_grid_btn_bg');
+    syncColor('myls_sg_btn_color_picker', 'myls_service_grid_btn_color');
+})();
+</script>
 
     <?php
   },
@@ -861,6 +935,12 @@ $spec = [
     update_option('myls_service_default_type',  sanitize_text_field($_POST['myls_service_default_type'] ?? ''));
     update_option('myls_service_subtype',       sanitize_text_field($_POST['myls_service_subtype'] ?? ''));
     update_option('myls_service_output',        sanitize_text_field($_POST['myls_service_output'] ?? ''));
+
+    // Save service grid button colors.
+    $sg_btn_bg    = sanitize_hex_color( $_POST['myls_service_grid_btn_bg']    ?? '' );
+    $sg_btn_color = sanitize_hex_color( $_POST['myls_service_grid_btn_color'] ?? '' );
+    if ( $sg_btn_bg    !== null ) update_option( 'myls_service_grid_btn_bg',    $sg_btn_bg    ?: '' );
+    if ( $sg_btn_color !== null ) update_option( 'myls_service_grid_btn_color', $sg_btn_color ?: '' );
 
     /**
      * Persisted selections:

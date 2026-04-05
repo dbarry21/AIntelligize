@@ -85,6 +85,14 @@ if ( ! function_exists('ssseo_service_grid_shortcode_v2') ) {
       'exclude_current' => '0', // 1|0 : exclude current post from grid (useful on single service pages)
     ], $atts, 'service_grid' );
 
+    // Fall back to site-wide saved colors if shortcode attributes are not set.
+    if ( empty( $a['btn_bg'] ) ) {
+      $a['btn_bg'] = get_option( 'myls_service_grid_btn_bg', '' );
+    }
+    if ( empty( $a['btn_color'] ) ) {
+      $a['btn_color'] = get_option( 'myls_service_grid_btn_color', '' );
+    }
+
     // Normalize row classes if centering disabled
     $row_class = trim((string) $a['row_class']);
     if ( $a['center'] !== '1' ) {
