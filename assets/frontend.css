@@ -434,12 +434,13 @@ border:1px solid var(--myls-primary);
 .myls-service-grid .myls-sg-title a:hover { opacity: .8; }
 .myls-service-grid .myls-sg-tagline,
 .myls-service-grid .myls-sg-excerpt { font-size: .92em; opacity: .85; }
-.myls-sg-featured-first .col-md-6.col-lg-6:first-child .myls-sg-img { min-height: 280px; object-fit: cover; }
 .myls-service-grid .myls-sg-btn {
+  margin-top: auto !important;
   background-color: var(--myls-sg-btn-bg, revert) !important;
   border-color: var(--myls-sg-btn-bg, revert) !important;
   color: var(--myls-sg-btn-color, revert) !important;
 }
+.myls-sg-featured-first .col-md-6.col-lg-6:first-child .myls-sg-img { min-height: 280px; object-fit: cover; }
 
 /* ===== Divi 5-Column Layout (moved from inline CSS) ===== */
 @media (min-width: 768px) {

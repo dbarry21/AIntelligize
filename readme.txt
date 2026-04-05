@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.9.18.35
+Stable tag: 7.9.18.65
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -182,6 +182,32 @@ FAQ Quick Editor now supports multi-post batch save and WYSIWYG answers.
 Utilities now includes the FAQ Quick Editor and reorganized FAQ migration tools.
 
 == Changelog ==
+
+= 7.9.18.41 =
+* FIX: [myls_youtube_embed] no longer outputs a standalone VideoObject JSON-LD block on singular pages — the video-object-detector adds it to the main @graph instead, eliminating duplicate schema.
+* FIX: Inline VideoObject (non-singular fallback) now uses isFamilyFriendly boolean true and excerpt-based description instead of copying the video title.
+
+= 7.9.18.40 =
+* FIX: Video object detector now finds [myls_youtube_embed] inside Elementor Shortcode widgets (settings['shortcode']).
+
+= 7.9.18.39 =
+* FIX: AggregateRating ratingValue/reviewCount now output as JSON numbers, not strings.
+* FIX: Video object detector now recognises [myls_youtube_embed video_id="..."] shortcode and emits VideoObject schema for pages using it.
+
+= 7.9.18.38 =
+* FIX: VideoObject `isFamilyFriendly` now outputs as JSON boolean true (was string "true").
+* FIX: Service schema `name` now checks per-page `_myls_service_name` meta first, then global subtype, then page title.
+* NEW: HowTo schema repeater in MYLS FAQs metabox with AI auto-generate; outputs HowTo @graph node when steps are populated.
+
+= 7.9.18.37 =
+* FIX: `[google_aggregate_rating]` now always displays one decimal place (e.g. 4.8, 5.0).
+
+= 7.9.18.36 =
+* NEW: TL;DR block text is now saved as the WordPress post excerpt during page build, eliminating a redundant AI call.
+
+= 7.9.18.35 =
+* NEW: Icon Box / Image Box widget type chooser for Feature Cards and How It Works sections.
+* NEW: Business variables (name, city, phone, email) and AI prompt template saved in Page Setup snapshots.
 
 = 7.9.18.34 =
 * FIX: Replace all PHP 8.0+ syntax (`match()` expressions, union return types) with PHP 7.x equivalents across 4 files.

@@ -13,20 +13,127 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
+ * Return the raw location array assigned to the given post, or null.
+ * Mirrors assignment logic in myls_schema_localbusiness_for_post() but
+ * returns the raw $loc array rather than a built schema node.
+ *
+ * Priority: post meta fast path -> pages[] scan -> first-location fallback.
+ *
+ * @param int $post_id
+ * @return array|null
+ */
+if ( ! function_exists( 'myls_get_assigned_location_raw' ) ) {
+	function myls_get_assigned_location_raw( int $post_id ) : ?array {
+		if ( $post_id <= 0 ) return null;
+
+		$locs = function_exists( 'myls_lb_get_locations_cached' )
+			? myls_lb_get_locations_cached()
+			: (array) get_option( 'myls_lb_locations', [] );
+
+		if ( empty( $locs ) ) return null;
+
+		// Fast path: post meta
+		$is_assigned = get_post_meta( $post_id, '_myls_lb_assigned', true );
+		$loc_index   = get_post_meta( $post_id, '_myls_lb_loc_index', true );
+
+		if ( $is_assigned === '1' && $loc_index !== '' ) {
+			$i = (int) $loc_index;
+			if ( isset( $locs[ $i ] ) && is_array( $locs[ $i ] ) ) {
+				return $locs[ $i ];
+			}
+		}
+
+		// Scan pages[] assignment
+		foreach ( $locs as $loc ) {
+			if ( ! is_array( $loc ) ) continue;
+			$pages = array_map( 'absint', (array) ( $loc['pages'] ?? [] ) );
+			if ( ! empty( $pages ) && in_array( $post_id, $pages, true ) ) {
+				return $loc;
+			}
+		}
+
+		// First-location fallback (single-location sites)
+		return isset( $locs[0] ) && is_array( $locs[0] ) ? $locs[0] : null;
+	}
+}
+
+/**
+ * Get rating and review count for a Place ID.
+ * Checks per-location cached options (myls_loc_rating_{key}) first,
+ * then falls back to global options.
+ *
+ * @param string $place_id  Google Place ID (may be empty — returns global).
+ * @return array{rating: string, count: string, place_id: string}
+ */
+if ( ! function_exists( 'myls_get_rating_data_for_place' ) ) {
+	function myls_get_rating_data_for_place( string $place_id = '' ) : array {
+		$global_rating = trim( (string) get_option( 'myls_google_places_rating', '' ) );
+		$global_count  = trim( (string) get_option(
+			'myls_google_places_rating_count',
+			get_option( 'myls_google_places_review_count', '' )
+		) );
+		$global_pid    = trim( (string) get_option( 'myls_google_places_place_id', '' ) );
+
+		if ( $place_id === '' ) {
+			return [ 'rating' => $global_rating, 'count' => $global_count, 'place_id' => $global_pid ];
+		}
+
+		$loc_key    = sanitize_key( $place_id );
+		$loc_rating = trim( (string) get_option( 'myls_loc_rating_' . $loc_key, '' ) );
+		$loc_count  = trim( (string) get_option( 'myls_loc_rating_count_' . $loc_key, '' ) );
+
+		return [
+			'rating'   => $loc_rating !== '' ? $loc_rating : $global_rating,
+			'count'    => $loc_count  !== '' ? $loc_count  : $global_count,
+			'place_id' => $place_id,
+		];
+	}
+}
+
+/**
+ * Resolve the Google Place ID for the current front-end page.
+ * Assigned location's place_id takes priority; falls back to global.
+ *
+ * @return string  Place ID or empty string.
+ */
+if ( ! function_exists( 'myls_get_current_page_place_id' ) ) {
+	/**
+	 * Resolve the Google Place ID for the current front-end page.
+	 *
+	 * Priority:
+	 *  1. Assigned location's place_id — only when rating_enabled !== '0'.
+	 *  2. Global default Place ID (myls_google_places_place_id).
+	 *
+	 * @return string  Place ID or empty string.
+	 */
+	function myls_get_current_page_place_id() : string {
+		if ( is_singular() ) {
+			$post_id = (int) get_queried_object_id();
+			if ( $post_id > 0 ) {
+				$loc = myls_get_assigned_location_raw( $post_id );
+				if ( is_array( $loc ) && ! empty( $loc['place_id'] ) ) {
+					// Respect per-location rating toggle — default to enabled.
+					$enabled = ( ( $loc['rating_enabled'] ?? '1' ) !== '0' );
+					if ( $enabled ) {
+						return sanitize_text_field( $loc['place_id'] );
+					}
+					// Disabled: fall through to global default below.
+				}
+			}
+		}
+		return trim( (string) get_option( 'myls_google_places_place_id', '' ) );
+	}
+}
+
+/**
  * [google_review_count class=""]
  */
 add_shortcode( 'google_review_count', function ( $atts ) {
-	$atts = shortcode_atts( [ 'class' => '' ], $atts, 'google_review_count' );
-
-	$count = trim( (string) get_option( 'myls_google_places_rating_count',
-		get_option( 'myls_google_places_review_count', '' )
-	) );
-
+	$atts  = shortcode_atts( [ 'class' => '' ], $atts, 'google_review_count' );
+	$data  = myls_get_rating_data_for_place( myls_get_current_page_place_id() );
+	$count = $data['count'];
 	if ( $count === '' ) return '';
-
-	$cls = 'google-review-count';
-	if ( $atts['class'] !== '' ) $cls .= ' ' . esc_attr( $atts['class'] );
-
+	$cls = 'google-review-count' . ( $atts['class'] !== '' ? ' ' . esc_attr( $atts['class'] ) : '' );
 	return '<span class="' . esc_attr( $cls ) . '">' . esc_html( $count ) . '</span>';
 } );
 
@@ -34,15 +141,12 @@ add_shortcode( 'google_review_count', function ( $atts ) {
  * [google_aggregate_rating class=""]
  */
 add_shortcode( 'google_aggregate_rating', function ( $atts ) {
-	$atts = shortcode_atts( [ 'class' => '' ], $atts, 'google_aggregate_rating' );
-
-	$rating = trim( (string) get_option( 'myls_google_places_rating', '' ) );
-
+	$atts   = shortcode_atts( [ 'class' => '' ], $atts, 'google_aggregate_rating' );
+	$data   = myls_get_rating_data_for_place( myls_get_current_page_place_id() );
+	$rating = $data['rating'];
 	if ( $rating === '' ) return '';
-
-	$cls = 'google-aggregate-rating';
-	if ( $atts['class'] !== '' ) $cls .= ' ' . esc_attr( $atts['class'] );
-
+	$rating = number_format( (float) $rating, 1 );
+	$cls = 'google-aggregate-rating' . ( $atts['class'] !== '' ? ' ' . esc_attr( $atts['class'] ) : '' );
 	return '<span class="' . esc_attr( $cls ) . '">' . esc_html( $rating ) . '</span>';
 } );
 
@@ -81,22 +185,23 @@ add_shortcode( 'google_rating_badge', function ( $atts ) {
 		'dark'       => '0',
 	], $atts, 'google_rating_badge' );
 
-	$rating = trim( (string) get_option( 'myls_google_places_rating', '' ) );
-	$count  = trim( (string) get_option( 'myls_google_places_rating_count',
-		get_option( 'myls_google_places_review_count', '' )
-	) );
+	// ── Location-aware data resolution ──
+	$place_id = myls_get_current_page_place_id();
+	$data     = myls_get_rating_data_for_place( $place_id );
+	$rating   = $data['rating'];
+	$count    = $data['count'];
 
 	if ( $rating === '' || $count === '' ) return '';
 
 	$star_color = sanitize_hex_color( $atts['star_color'] ) ?: '#FFD700';
 	$is_dark    = $atts['dark'] === '1';
 
-	// ── Resolve link URL ──
+	// ── Resolve link URL using resolved place_id ──
 	$link_url = '';
 	if ( $atts['link'] === 'auto' ) {
-		$place_id = trim( (string) get_option( 'myls_google_places_place_id', '' ) );
-		if ( $place_id !== '' ) {
-			$link_url = 'https://search.google.com/local/reviews?placeid=' . urlencode( $place_id );
+		$resolved_pid = $data['place_id'];
+		if ( $resolved_pid !== '' ) {
+			$link_url = 'https://search.google.com/local/reviews?placeid=' . urlencode( $resolved_pid );
 		}
 	} elseif ( $atts['link'] !== '0' && $atts['link'] !== '' ) {
 		$link_url = $atts['link'];

@@ -27,50 +27,6 @@ add_filter( 'myls_schema_graph', function ( array $graph ) : array {
 	// Only emit on the front page — the business entity hub.
 	if ( ! is_front_page() ) return $graph;
 
-	// ── 1. Services ItemList ─────────────────────────────────────────
-	if ( apply_filters( 'myls_itemlist_services_enabled', true ) && post_type_exists( 'service' ) ) {
-
-		$services = get_posts( [
-			'post_type'        => 'service',
-			'post_status'      => 'publish',
-			'post_parent'      => 0,
-			'posts_per_page'   => 100,
-			'orderby'          => 'menu_order title',
-			'order'            => 'ASC',
-			'no_found_rows'    => true,
-			'suppress_filters' => true,
-		] );
-
-		if ( ! empty( $services ) ) {
-			$svc_items = [];
-			$pos = 0;
-			foreach ( $services as $svc ) {
-				$pos++;
-				$svc_items[] = [
-					'@type'    => 'ListItem',
-					'position' => $pos,
-					'item'     => [
-						'@type' => 'Service',
-						'name'  => wp_specialchars_decode( get_the_title( $svc->ID ), ENT_QUOTES ),
-						'url'   => get_permalink( $svc->ID ),
-					],
-				];
-			}
-
-			$org_name = wp_specialchars_decode(
-				get_option( 'myls_org_name', get_bloginfo( 'name' ) ),
-				ENT_QUOTES
-			);
-
-			$graph[] = [
-				'@type'           => 'ItemList',
-				'@id'             => home_url( '/#services-list' ),
-				'name'            => $org_name . ' Services',
-				'itemListElement' => $svc_items,
-			];
-		}
-	}
-
 	// ── 2. Service Areas ItemList ────────────────────────────────────
 	if ( apply_filters( 'myls_itemlist_service_areas_enabled', true ) && post_type_exists( 'service_area' ) ) {
 
@@ -90,20 +46,23 @@ add_filter( 'myls_schema_graph', function ( array $graph ) : array {
 			$pos = 0;
 			foreach ( $areas as $sa ) {
 				$pos++;
-				$city_name = html_entity_decode(
-				get_the_title( $sa->ID ),
-				ENT_QUOTES | ENT_HTML5,
-				'UTF-8'
-			);
-				// Strip trailing state abbreviation
-				// Handles "Bradenton FL", "Bradenton, FL", "Apollo Beach, FL"
-				$city_clean = preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $city_name );
-
+				// Use city_state meta/ACF field (city portion) when available;
+				// myls_sa_extract_city_state() falls back to post title if the field is empty.
+				if ( function_exists( 'myls_sa_extract_city_state' ) ) {
+					$loc        = myls_sa_extract_city_state( $sa->ID );
+					$city_clean = $loc['city'];
+				} else {
+					$city_clean = preg_replace(
+						'/[,\s]+[A-Z]{2}$/i', '',
+						html_entity_decode( get_the_title( $sa->ID ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
+					);
+				}
+				$area_type    = ( stripos( $city_clean, 'county' ) !== false ) ? 'AdministrativeArea' : 'City';
 				$area_items[] = [
 					'@type'    => 'ListItem',
 					'position' => $pos,
 					'item'     => [
-						'@type' => 'City',
+						'@type' => $area_type,
 						'name'  => $city_clean,
 						'url'   => get_permalink( $sa->ID ),
 					],

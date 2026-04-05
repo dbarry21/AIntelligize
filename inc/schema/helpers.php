@@ -21,6 +21,27 @@ if ( ! function_exists('myls_sanitize_csv') ) {
 }
 
 /**
+ * Extract award name string from either legacy flat-string format or the
+ * newer {name, url} object format introduced in v7.9.18.53.
+ *
+ * Backward-compatible: old awards saved as plain strings still work.
+ *
+ * @param  mixed  $award  String or associative array with 'name' key.
+ * @return string         Decoded, trimmed award name — empty string if none.
+ */
+if ( ! function_exists('myls_parse_award_name') ) {
+    function myls_parse_award_name( $award ): string {
+        if ( is_string( $award ) ) {
+            return wp_specialchars_decode( trim( $award ), ENT_QUOTES );
+        }
+        if ( is_array( $award ) ) {
+            return wp_specialchars_decode( trim( (string) ( $award['name'] ?? '' ) ), ENT_QUOTES );
+        }
+        return '';
+    }
+}
+
+/**
  * Extract the opening answer block from FAQ answer HTML for schema output.
  *
  * AI citation engines (ChatGPT, Gemini, Perplexity) read acceptedAnswer.text
@@ -74,8 +95,42 @@ if ( ! function_exists('myls_strip_answer_prefix') ) {
 		// e.g. "• Contact us today." or "* Call us." appearing at the very end.
 		$clean = rtrim( $clean, " \t\n\r\0\x0B.,;:•*-–—" );
 
+		// ── Step 4.5: Convert newline-separated bullet items to pipe-separated ─
+		// When $text arrives as plain text (no <p> tags), bullet items are separated
+		// by newlines. Replacing them before the \s+ collapse prevents bullets from
+		// running together as a single unreadable string.
+		$clean = preg_replace( '/\n+/', ' | ', $clean );
+
 		// ── Step 5: Collapse whitespace and trim ──────────────────────────────
 		$clean = trim( preg_replace( '/\s+/', ' ', $clean ) );
+		$clean = trim( $clean, " \t|" ); // strip leading/trailing orphan pipes
+
+		// ── Step 6: Remove pipe separators ───────────────────────────────────────
+		// Pipes were inserted as pseudo-bullet separators in step 4.5. Strip them
+		// now so acceptedAnswer.text is clean plain prose for AI citation.
+		$clean = str_replace( '|', '', $clean );
+
+		// ── Step 7: Strip any remaining HTML tags ─────────────────────────────
+		$clean = wp_strip_all_tags( $clean );
+
+		// ── Step 8: Final whitespace collapse ─────────────────────────────────
+		$clean = preg_replace( '/\s+/', ' ', trim( $clean ) );
+
+		// ── Step 9: Truncate to ≤ 60 words (schema field only) ────────────────
+		// On-page HTML accordion content is entirely separate — this function
+		// is only called for acceptedAnswer.text in JSON-LD output.
+		$words = explode( ' ', $clean );
+		if ( count( $words ) > 65 ) {
+			$words = array_slice( $words, 0, 60 );
+			$clean = implode( ' ', $words );
+			// Prefer ending at a sentence boundary in the second half of the string
+			$last_period = strrpos( $clean, '.' );
+			if ( $last_period !== false && $last_period > (int)( strlen( $clean ) * 0.5 ) ) {
+				$clean = substr( $clean, 0, $last_period + 1 );
+			} else {
+				$clean = rtrim( $clean, ' ,' ) . '...';
+			}
+		}
 
 		return trim( $clean ) !== '' ? trim( $clean ) : trim( $text );
 	}
@@ -131,8 +186,8 @@ if ( ! function_exists('myls_build_tagline_credentials') ) {
         $awards = get_option('myls_org_awards', []);
         if ( is_array($awards) ) {
             foreach ( $awards as $award ) {
-                $award = sanitize_text_field( (string) $award );
-                if ( $award !== '' ) $parts[] = $award;
+                $name = myls_parse_award_name( $award );
+                if ( $name !== '' ) $parts[] = $name;
             }
         }
 
@@ -184,6 +239,18 @@ if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
 
 		$source = $opt['source'] ?? 'google';
 
+		// Per-location place_id takes priority over global myls_google_places_place_id.
+		// This value is available for cron-based Places API fetch logic.
+		$lb_locs = get_option( 'myls_lb_locations', [] );
+		$primary_place_id = '';
+		if ( ! empty( $lb_locs[0]['place_id'] ) ) {
+			$primary_place_id = sanitize_text_field( $lb_locs[0]['place_id'] );
+		}
+		if ( empty( $primary_place_id ) ) {
+			$primary_place_id = get_option( 'myls_google_places_place_id', '' );
+		}
+		// $primary_place_id is now the canonical Place ID for any fetch/refresh logic.
+
 		if ( $source === 'google' ) {
 			// Read from Google Places cron data
 			$rating = trim( (string) get_option( 'myls_google_places_rating', '' ) );
@@ -221,10 +288,10 @@ if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
 
 		return [
 			'@type'       => 'AggregateRating',
-			'ratingValue' => $rating,
-			'reviewCount' => $count,
-			'bestRating'  => $best_rating,
-			'worstRating' => $worst_rating,
+			'ratingValue' => rtrim( rtrim( number_format( (float) $rating, 1, '.', '' ), '0' ), '.' ),
+			'reviewCount' => (int)   $count,
+			'bestRating'  => (int)   $best_rating,
+			'worstRating' => (int)   $worst_rating,
 		];
 	}
 }
@@ -353,8 +420,12 @@ if ( ! function_exists('myls_build_geo_coordinates') ) {
 
 		return [
 			'@type'     => 'GeoCoordinates',
-			'latitude'  => $lat_f,   // float — json_encode outputs bare number
-			'longitude' => $lng_f,   // float — json_encode outputs bare number
+			// number_format() produces a string with exactly 6 decimal places.
+			// This bypasses PHP's serialize_precision=-1 float serialization which
+			// outputs the full IEEE 754 mantissa (e.g. 27.77835999999999927...).
+			// Schema.org accepts Text for latitude/longitude.
+			'latitude'  => number_format( $lat_f, 6, '.', '' ),
+			'longitude' => number_format( $lng_f, 6, '.', '' ),
 		];
 	}
 }

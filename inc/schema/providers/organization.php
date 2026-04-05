@@ -38,9 +38,6 @@ add_filter('myls_schema_graph', function(array $graph) {
 	$postal   = trim( (string) get_option('myls_org_postal', '') );
 	$country  = trim( (string) get_option('myls_org_country', '') );
 
-	$lat = trim( (string) get_option('myls_org_lat', '') );
-	$lng = trim( (string) get_option('myls_org_lng', '') );
-
 	$logo_id  = (int) get_option('myls_org_logo_id', 0 );
 	$image_url= trim( (string) get_option('myls_org_image_url', '') );
 
@@ -50,9 +47,7 @@ add_filter('myls_schema_graph', function(array $graph) {
 
 	$awards = get_option('myls_org_awards', []);
 	if ( ! is_array($awards) ) $awards = [];
-	$awards = array_values( array_filter( array_map( function( $a ) {
-		return wp_specialchars_decode( trim( $a ), ENT_QUOTES );
-	}, $awards ) ) );
+	$awards = array_values( array_filter( array_map( 'myls_parse_award_name', $awards ) ) );
 
 	$certs = get_option('myls_org_certifications', []);
 	if ( ! is_array($certs) ) $certs = [];
@@ -130,16 +125,6 @@ add_filter('myls_schema_graph', function(array $graph) {
 		}
 		if ( ! empty($member_of) ) {
 			$node['memberOf'] = $member_of;
-		}
-	}
-
-	// Optional geo (allowed via Place link)
-	if ( $lat !== '' && $lng !== '' ) {
-		$geo = function_exists('myls_build_geo_coordinates')
-			? myls_build_geo_coordinates( $lat, $lng )
-			: null;
-		if ( $geo ) {
-			$node['location'] = [ '@type' => 'Place', 'geo' => $geo ];
 		}
 	}
 

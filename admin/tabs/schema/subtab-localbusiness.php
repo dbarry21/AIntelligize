@@ -127,7 +127,9 @@ $spec = [
       'lng'     => $org_effective['lng'],
       'hours'   => [['day'=>'','open'=>'','close'=>'']],
       'pages'   => [],
-      'image_url' => '',  
+      'image_url' => '',
+      'place_id'       => '',
+      'rating_enabled' => '1',
     ];
 
     // ---------- DEBUG scaffold ----------
@@ -385,6 +387,33 @@ $spec = [
                         📍 Get Coordinates
                     </button>
                     <span class="myls-geo-status" style="font-size:12px;color:#6b7280;"></span>
+                  </div>
+
+                  <div class="myls-col col-6">
+                    <label class="form-label">Google Place ID</label>
+                    <input type="text"
+                           name="myls_locations[<?php echo $i; ?>][place_id]"
+                           value="<?php echo esc_attr( $loc['place_id'] ?? '' ); ?>"
+                           placeholder="ChIJ..."
+                           class="regular-text">
+                    <p class="form-text" style="font-size:12px;margin-top:4px;">
+                      Google Maps Place ID for this location — used to fetch live ratings.
+                      <a href="https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder"
+                         target="_blank" rel="noopener">Find your Place ID ↗</a>
+                    </p>
+                    <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;cursor:pointer;">
+                      <input type="hidden"
+                             name="myls_locations[<?php echo $i; ?>][rating_enabled]"
+                             value="0">
+                      <input type="checkbox"
+                             name="myls_locations[<?php echo $i; ?>][rating_enabled]"
+                             value="1"
+                             <?php checked( ( $loc['rating_enabled'] ?? '1' ) !== '0' ); ?>>
+                      Enable location-specific ratings
+                    </label>
+                    <p class="form-text" style="font-size:12px;margin-top:2px;color:#6b7280;">
+                      When disabled, rating shortcodes fall back to the Default Place ID.
+                    </p>
                   </div>
 
                 </div>
@@ -1113,6 +1142,8 @@ document.addEventListener('click', async function(e) {
         'lng' => ( is_numeric( trim( $loc['lng'] ?? '' ) ) )
             ? (string) (float) trim( $loc['lng'] )
             : '',
+        'place_id'       => sanitize_text_field( $loc['place_id'] ?? '' ),
+        'rating_enabled' => ( isset( $loc['rating_enabled'] ) && $loc['rating_enabled'] === '1' ) ? '1' : '0',
 
         'pages'        => array_map('absint', (array)($loc['pages'] ?? [])),
         'hours'      => [],

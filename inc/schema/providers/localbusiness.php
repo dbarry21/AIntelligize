@@ -57,9 +57,7 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 
 		$awards = get_option('myls_org_awards', []);
 		if ( ! is_array($awards) ) $awards = [];
-		$awards = array_values( array_filter( array_map( function( $a ) {
-			return wp_specialchars_decode( trim( $a ), ENT_QUOTES );
-		}, $awards ) ) );
+		$awards = array_values( array_filter( array_map( 'myls_parse_award_name', $awards ) ) );
 
 		$certs = get_option('myls_org_certifications', []);
 		if ( ! is_array($certs) ) $certs = [];
@@ -119,6 +117,7 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			$d = trim( (string) ( $h['day']   ?? '' ) );
 			$o = trim( (string) ( $h['open']  ?? '' ) );
 			$c = trim( (string) ( $h['close'] ?? '' ) );
+			$c = ( $c === '23:59' ) ? '24:00' : $c; // Schema.org uses "24:00" for midnight closing
 			if ( $d && $o && $c ) {
 				$hours[] = [
 					'@type'     => 'OpeningHoursSpecification',
@@ -165,16 +164,20 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 		if ( ! empty( $sa_roots ) ) {
 			$area_served = [];
 			foreach ( $sa_roots as $sa ) {
-				$city_name = html_entity_decode(
-				get_the_title( $sa->ID ),
-				ENT_QUOTES | ENT_HTML5,
-				'UTF-8'
-			);
-				// Strip trailing state abbreviation for cleaner city name
-				// Handles "Bradenton FL", "Bradenton, FL", "Apollo Beach, FL"
-				$city_clean = preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $city_name );
+				// Use city_state meta/ACF field (city portion) when available;
+				// myls_sa_extract_city_state() falls back to post title if the field is empty.
+				if ( function_exists( 'myls_sa_extract_city_state' ) ) {
+					$loc        = myls_sa_extract_city_state( $sa->ID );
+					$city_clean = $loc['city'];
+				} else {
+					$city_clean = preg_replace(
+						'/[,\s]+[A-Z]{2}$/i', '',
+						html_entity_decode( get_the_title( $sa->ID ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
+					);
+				}
+				$area_type    = ( stripos( $city_clean, 'county' ) !== false ) ? 'AdministrativeArea' : 'City';
 				$area_served[] = [
-					'@type' => 'City',
+					'@type' => $area_type,
 					'name'  => $city_clean,
 					'url'   => get_permalink( $sa->ID ),
 				];
@@ -198,6 +201,10 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			if ( ! empty( $svc_posts ) ) {
 				$offer_items = [];
 				foreach ( $svc_posts as $svc ) {
+					// Skip pages opted out of the catalog via the per-post checkbox.
+					if ( get_post_meta( $svc->ID, '_myls_schema_exclude_from_catalog', true ) === '1' ) {
+						continue;
+					}
 					$offer_items[] = [
 						'@type'        => 'Offer',
 						'itemOffered'  => [
@@ -207,9 +214,13 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 						],
 					];
 				}
+				$catalog_name = sanitize_text_field( get_option( 'myls_org_service_name_label', '' ) );
+				if ( empty( $catalog_name ) ) {
+					$catalog_name = wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES ) . ' Services';
+				}
 				$offer_catalog = [
 					'@type'           => 'OfferCatalog',
-					'name'            => wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES ) . ' Services',
+					'name'            => $catalog_name,
 					'itemListElement' => $offer_items,
 				];
 			}
@@ -218,8 +229,95 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 		// Decode HTML entities — JSON-LD strings must be plain text, not HTML-encoded.
 		$lb_name = wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES );
 
+		// Resolve current WebPage @id for mainEntityOfPage back-reference.
+		// Null on non-singular pages; array_filter() in the return block will strip it.
+		$current_post_id     = get_queried_object_id();
+		$main_entity_of_page = null;
+		if ( $current_post_id > 0 ) {
+			$wep_permalink = get_permalink( $current_post_id );
+			if ( $wep_permalink ) {
+				$main_entity_of_page = [ '@id' => trailingslashit( $wep_permalink ) . '#webpage' ];
+			}
+		}
+
+		// sameAs: shared with Organization — social profile URLs.
+		// Both entities should carry sameAs so AI crawlers / knowledge-graph tools
+		// can resolve the brand across both the site-wide identity node and the
+		// specific business-type node.
+		$socials = get_option( 'myls_org_social_profiles', [] );
+		if ( ! is_array( $socials ) ) $socials = [];
+		$socials = array_values( array_filter( array_map( 'trim', $socials ) ) );
+		$same_as = ! empty( $socials )
+			? array_map( function( $u ) {
+				return esc_url_raw( html_entity_decode( $u, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+			}, $socials )
+			: null;
+
+		// Business type: driven by myls_org_default_service_label option.
+		// Full Schema.org LocalBusiness hierarchy — must stay in sync with
+		// the dropdown in admin/tabs/schema/subtab-organization.php.
+		$business_type = sanitize_text_field( get_option( 'myls_org_default_service_label', 'RoofingContractor' ) );
+		$valid_lb_types = [
+			'LocalBusiness',
+			// Automotive
+			'AutomotiveBusiness', 'AutoBodyShop', 'AutoDealer', 'AutoPartsStore',
+			'AutoRental', 'AutoRepair', 'AutoWash', 'GasStation',
+			'MotorcycleDealer', 'MotorcycleRepair',
+			// Emergency Services
+			'EmergencyService', 'FireStation', 'Hospital', 'PoliceStation',
+			// Entertainment
+			'EntertainmentBusiness', 'AdultEntertainment', 'AmusementPark',
+			'ArtGallery', 'Casino', 'ComedyClub', 'MovieTheater', 'NightClub',
+			// Financial
+			'FinancialService', 'AccountingService', 'AutomatedTeller',
+			'BankOrCreditUnion', 'InsuranceAgency',
+			// Food & Drink
+			'FoodEstablishment', 'Bakery', 'BarOrPub', 'Brewery',
+			'CafeOrCoffeeShop', 'Distillery', 'FastFoodRestaurant',
+			'IceCreamShop', 'Restaurant', 'Winery',
+			// Health & Beauty
+			'HealthAndBeautyBusiness', 'BeautySalon', 'DaySpa', 'HairSalon',
+			'HealthClub', 'NailSalon', 'TattooParlor',
+			// Home & Construction
+			'HomeAndConstructionBusiness', 'Electrician', 'GeneralContractor',
+			'HVACBusiness', 'HousePainter', 'Locksmith', 'MovingCompany',
+			'Plumber', 'RoofingContractor',
+			// Legal
+			'LegalService', 'Attorney', 'Notary',
+			// Lodging
+			'LodgingBusiness', 'BedAndBreakfast', 'Campground', 'Hostel',
+			'Hotel', 'Motel', 'Resort', 'VacationRental',
+			// Medical
+			'MedicalBusiness', 'Dentist', 'MedicalClinic', 'Optician',
+			'Pharmacy', 'Physician', 'PrimaryCare', 'VeterinaryCare',
+			// Real Estate
+			'RealEstateAgent',
+			// Retail
+			'Store', 'BikeStore', 'BookStore', 'ClothingStore', 'ComputerStore',
+			'ConvenienceStore', 'DepartmentStore', 'ElectronicsStore', 'Florist',
+			'FurnitureStore', 'GardenStore', 'GroceryStore', 'HardwareStore',
+			'HobbyShop', 'HomeGoodsStore', 'JewelryStore', 'LiquorStore',
+			'MobilePhoneStore', 'MovieRentalStore', 'MusicStore',
+			'OfficeEquipmentStore', 'OutletStore', 'PawnShop', 'PetStore',
+			'ShoeStore', 'SportingGoodsStore', 'TireShop', 'ToyStore',
+			'WholesaleStore',
+			// Sports & Recreation
+			'SportsActivityLocation', 'BowlingAlley', 'ExerciseGym', 'GolfCourse',
+			'PublicSwimmingPool', 'SkiResort', 'SportsClub', 'StadiumOrArena',
+			'TennisComplex',
+			// Other
+			'AnimalShelter', 'ArchiveOrganization', 'ChildCare',
+			'DryCleaningOrLaundry', 'EmploymentAgency', 'GovernmentOffice',
+			'InternetCafe', 'Library', 'ProfessionalService', 'RadioStation',
+			'RecyclingCenter', 'SelfStorage', 'ShoppingCenter',
+			'TelevisionStation', 'TouristInformationCenter', 'TravelAgency',
+		];
+		if ( ! in_array( $business_type, $valid_lb_types, true ) ) {
+			$business_type = 'LocalBusiness';
+		}
+
 		return array_filter( [
-			'@type'    => 'LocalBusiness',
+			'@type'    => $business_type,
 			'@id'      => trailingslashit( home_url( '/' ) ) . '#localbusiness',
 
 			// Only Business Image URL, else Org Logo
@@ -256,8 +354,15 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			'employee' => $employee,
 			'founder'  => $employee,  // owners are founders — same @id refs
 
+			// sameAs: mirrored from Organization social profiles.
+			'sameAs' => $same_as,
+
 			// Link to Organization entity by @id reference (not inline duplicate)
 			'parentOrganization' => [ '@id' => home_url( '/#organization' ) ],
+
+			// mainEntityOfPage: bidirectional back-reference to current WebPage node.
+			// array_filter() removes this when null (non-singular pages).
+			'mainEntityOfPage'   => $main_entity_of_page,
 
 			// ContactPoint for customer service (mirrors Organization pattern)
 			'contactPoint' => ( trim( $loc['phone'] ?? '' ) !== '' ) ? [[

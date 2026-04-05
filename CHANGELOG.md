@@ -1,4 +1,4 @@
-## 7.9.18.35 — 2026-04-05
+## 7.9.18.65 — 2026-04-05
 
 ### Fixed — FAQ accordion `heading_color` attribute
 - Added missing CSS rule to consume `--myls-faq-heading-color` variable —
@@ -14,6 +14,425 @@
 `plugin-docs/shortcodes.md`, `admin/docs/shortcode-data.php`,
 `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
 
+## 7.9.18.64 — 2026-03-31
+
+### Fixed
+- `inc/city-state.php` (plugin's canonical `myls_get_city_state()` helper) was never loaded — added `require_once` to `aintelligize.php`
+- `myls_sa_extract_city_state()` now delegates to `myls_get_city_state()` so `areaServed` city names in LocalBusiness schema and Service Areas ItemList correctly read from the `_myls_city_state` meta key written by the MYLS City, State meta box
+
+---
+
+## 7.9.18.63 — 2026-03-31
+
+### Fixed
+- `myls_sa_extract_city_state()`: removed ACF `get_field()` dependency — now reads `_myls_city_state` (plugin-native meta box key) first, falls back to bare `city_state` key (legacy ACF data), then falls back to post title; no ACF required
+
+---
+
+## 7.9.18.62 — 2026-03-31
+
+### Fixed
+- `areaServed` in LocalBusiness schema and Service Areas ItemList now sources city name from the `city_state` ACF/post meta field on each `service_area` post (city portion only), falling back to post title only when the field is empty — previously always used the post title
+
+---
+
+## 7.9.18.61 — 2026-03-31
+
+### Changed
+- Default Service Label dropdown (Schema → Organization) rebuilt with full Schema.org `LocalBusiness` hierarchy (~100 valid types) grouped into 14 `<optgroup>` categories: Automotive, Emergency Services, Entertainment, Financial, Food & Drink, Health & Beauty, Home & Construction, Legal, Lodging, Medical, Real Estate, Retail, Sports & Recreation, Other
+- Removed 3 invalid types that were never in Schema.org: `PestControl`, `CleaningService`, `ITService`
+- `$valid_lb_types` allowlist in `localbusiness.php` updated to match — unknown saved values now fall back to `LocalBusiness` (was `RoofingContractor`)
+
+---
+
+## 7.9.18.60 — 2026-03-30
+
+### Fixed
+- LocalBusiness / typed schema node (e.g. `RoofingContractor`) now includes `sameAs` — mirrored from `myls_org_social_profiles`, matching the Organization node so AI crawlers and knowledge-graph tools resolve the brand identity across both entities
+
+---
+
+## 7.9.18.59 — 2026-03-30
+
+### Added
+- Per-location rating enable/disable toggle in Schema → LocalBusiness Place ID field
+- API Integration tab: enabled/disabled status badge per location; Fetch Now button hidden and "using Default Place ID" notice shown when location is disabled
+- Fetch All Location Ratings button only shown when 2+ locations are enabled
+- `myls_get_current_page_place_id()` now respects `rating_enabled` flag — disabled location falls back to Default Place ID for all rating shortcodes
+
+---
+
+## 7.9.18.58 — 2026-03-30
+
+### Fixed
+- LocalBusiness schema: added `mainEntityOfPage` back-reference to current WebPage `@id`
+- About page schema: removed duplicate `sameAs` from inline embedded entity
+- About page + WebPage `about` property: resolved by `@id` match (`/#localbusiness`) — stable across `@type` changes (e.g. `RoofingContractor`)
+
+### Added
+- API Integration tab: per-location Place ID rows with Test / Fetch Now buttons and per-location rating display
+- `myls_fetch_places_rating` AJAX handler now writes per-location rating cache (`myls_loc_rating_{key}`)
+- Helper functions: `myls_get_assigned_location_raw()`, `myls_get_rating_data_for_place()`, `myls_get_current_page_place_id()`
+- `[google_rating_badge]`, `[google_review_count]`, `[google_aggregate_rating]` shortcodes are now location-aware (resolve rating from assigned location's Place ID)
+
+---
+
+## 7.9.18.57 — 2026-03-30
+
+### Fixed
+- `aggregateRating.ratingValue` PHP float precision bug — now output as formatted string (e.g. `"4.4"`) using `number_format` + `rtrim`
+- `acceptedAnswer.text` in FAQPage schema: pipe characters stripped, whitespace collapsed, truncated to ≤ 60 words with sentence-boundary preference
+- `areaServed` in LocalBusiness and service-areas ItemList now uses `@type: AdministrativeArea` when area name contains "County" (was always `City`)
+- Removed `location.geo` from Organization schema node — geo coordinates belong on LocalBusiness only
+- Removed duplicate services `ItemList` from `@graph` — `hasOfferCatalog` on LocalBusiness is canonical
+
+### Changed
+- LocalBusiness `@type` now driven by `myls_org_default_service_label` option; allowlisted against 14 valid Schema.org types; defaults to `RoofingContractor`
+- `myls_org_default_service_label` UI default changed from empty to `RoofingContractor`
+
+### Added
+- **Place ID field** per location row in LocalBusiness tab — stored as `place_id` in `myls_lb_locations`; per-location ID takes priority over global `myls_google_places_place_id` in rating fetch
+- **Service Label** free-text input (`myls_org_service_name_label`) in Organization tab — wired into `hasOfferCatalog.name` on the LocalBusiness schema node
+
+**Files changed:** `inc/schema/helpers.php`, `inc/schema/providers/localbusiness.php`,
+`inc/schema/providers/organization.php`, `inc/schema/providers/itemlist.php`,
+`admin/tabs/schema/subtab-organization.php`, `admin/tabs/schema/subtab-localbusiness.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.56 — 2026-03-30
+
+### Fixed — `aggregateRating` missing from Service schema
+
+- **Service node:** `aggregateRating` is now included on every `@type: Service` node.
+  Uses the same `myls_schema_build_aggregate_rating()` data already built for provider
+  nodes — no additional DB queries.
+
+**Files changed:** `inc/schema/providers/build-service-schema.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.55 — 2026-03-30
+
+### Fixed — Geo coordinate precision (real fix)
+
+- **`GeoCoordinates`:** Replaced `round($lat_f, 6)` with `number_format($lat_f, 6, '.', '')`.
+  `round()` still returns a PHP float which `json_encode` serializes at full IEEE 754
+  mantissa precision (e.g. `27.77835999999999927...`). `number_format()` outputs a string
+  with exactly 6 decimal places, bypassing `serialize_precision = -1` entirely.
+  Schema.org accepts `Text` for latitude/longitude.
+
+**Files changed:** `inc/schema/helpers.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.54 — 2026-03-30
+
+### Fixed — Schema: FAQ bullets, closing time, geo precision
+
+- **FAQ `acceptedAnswer.text`:** Bullet-list answers no longer run together as one
+  unreadable string. `myls_strip_answer_prefix()` now converts newline separators to
+  ` | ` before whitespace collapse, producing "Bullet 1 | Bullet 2 | Bullet 3".
+- **`OpeningHoursSpecification`:** `closes` value `"23:59"` is now normalised to
+  `"24:00"` per Schema.org spec (midnight closing).
+- **Geo coordinate precision:** `round($lat_f, 6)` / `round($lng_f, 6)` already
+  present in `myls_build_geo_coordinates()` — no code change needed; confirmed correct.
+
+**Files changed:** `inc/schema/helpers.php`, `inc/schema/providers/localbusiness.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.53 — 2026-03-30
+
+### Fixed/Added — Award name+URL split + Service dateModified
+- **Award admin UI:** Awards field now has separate Name and URL inputs per entry.
+  Name is output in schema `award` property (schema.org-valid plain text); URL is
+  stored for reference but not injected into the award string.
+- **Backward compat:** Old flat-string awards auto-normalise to `{name, url}` on
+  load — no data loss.
+- **Helper:** Added `myls_parse_award_name()` to `inc/schema/helpers.php`.
+  All award consumers (localbusiness, organization, build-service-schema,
+  helpers, ai-elementor-builder) updated to use it.
+- **Service `dateModified`:** Added `dateModified` (ISO 8601) to the Service
+  JSON-LD node using `get_the_modified_date('c', $post_id)`.
+
+**Files changed:** `inc/schema/helpers.php`, `admin/tabs/schema/subtab-organization.php`,
+`inc/schema/providers/localbusiness.php`, `inc/schema/providers/organization.php`,
+`inc/schema/providers/build-service-schema.php`, `inc/ajax/ai-elementor-builder.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.52 — 2026-03-30
+
+### Added — `exclude_current` attribute for `[service_grid]`
+- **New attribute:** `exclude_current="1"` excludes the current service post from
+  the grid when on a single service page. Uses `post__not_in` with `is_singular('service')`
+  guard so it only applies in the correct context.
+
+**Files changed:** `modules/shortcodes/service-grid.php`, `admin/docs/shortcode-data.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.51 — 2026-03-30
+
+### Fixed — Service grid button alignment override
+- **Button `!important`:** Bootstrap's `.mt-2` utility applies `margin-top: 0.5rem !important`,
+  overriding the `margin-top: auto` added in v7.9.18.50. Added `!important` to
+  `.myls-sg-btn` rule so it wins the specificity battle and buttons consistently
+  sit at the bottom of each card.
+
+**Files changed:** `assets/frontend.css`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.50 — 2026-03-30
+
+### Added — Shortcode documentation + service grid fix
+- **Shortcode docs:** Added 4 missing shortcodes to the Interactive Shortcodes
+  documentation tab: `myls_pricing_table`, `service_area_flip_cards`,
+  `service_area_siblings`, and `myls_tldr`.
+- **Service grid fix:** Added `margin-top: auto` to `.myls-sg-btn` so the
+  Learn More button pushes to the bottom of each card in the service grid
+  (standard flexbox alignment pattern).
+
+**Files changed:** `admin/docs/shortcode-data.php`, `assets/frontend.css`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.49 — 2026-03-29
+
+### Changed
+- **Restore URLs in `award` field:** Removed the URL-stripping regex from the
+  `award` array on both `LocalBusiness` and `Organization` nodes. The URLs were
+  being passed through as-is from the awards setting and are intentionally kept.
+
+**Files changed:** `inc/schema/providers/localbusiness.php`,
+`inc/schema/providers/organization.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.48 — 2026-03-29
+
+### Fixed
+- **WordPress Update deletes AJAX-saved HowTo steps:** Removed HowTo name and
+  steps processing from the `save_post` handler entirely. `save_post` is now a
+  read-only bystander for HowTo data — only `myls_save_howto_steps` (the
+  "💾 Save Steps" button) and `myls_generate_howto_steps` (the AI generate button)
+  can write to `_myls_howto_name` and `_myls_howto_steps`. This eliminates the
+  entire class of bugs where any WP Update, Gutenberg metabox iframe submission,
+  or other `save_post` caller could overwrite or delete steps saved via AJAX.
+
+**Files changed:** `inc/metaboxes/myls-faq-citystate.php`, `aintelligize.php`,
+`readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.47 — 2026-03-29
+
+### Fixed
+- **HowTo "Generate Steps" fails on Elementor pages:** The AJAX generate handler
+  was reading content from `apply_filters('the_content', $post->post_content)` directly.
+  On Elementor-built pages `post_content` is empty (content lives in `_elementor_data`
+  meta) so the handler immediately returned "Not enough page content to analyze" without
+  ever generating or saving steps. The handler now calls `myls_get_post_plain_text()`
+  which already handles Elementor, Beaver Builder, DIVI, WPBakery, Classic, and
+  Gutenberg via dedicated extractors.
+
+**Files changed:** `inc/ajax/ai-howto.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.46 — 2026-03-29
+
+### Fixed
+- **HowTo steps not persisting:** Two-part fix for the metabox "💾 Save Steps" button
+  and the AI generate auto-save both failing to persist steps after page reload.
+  1. `saveHowTo()` JS now sends steps as `steps_json` (a JSON string) instead of using
+     `URLSearchParams.append('steps[N][name]', ...)`. `URLSearchParams` percent-encodes
+     `[` and `]` as `%5B`/`%5D`; PHP's POST parser may not decode those as array notation,
+     causing `$_POST['steps']` to arrive empty and the handler to silently delete the meta.
+  2. The `save_post` metabox handler no longer deletes `_myls_howto_steps` when the field
+     is absent from `$_POST`. Previously an `else { delete_post_meta }` branch ran whenever
+     the FAQ nonce was valid but no step inputs were submitted — this wiped AJAX-saved steps
+     whenever the user clicked WordPress Update (e.g. Gutenberg or classic editor) before
+     the page had been reloaded with the saved steps rendered as form fields.
+  The AJAX save handler (`myls_save_howto_steps`) now reads from `$_POST['steps_json']`
+  and remains the authoritative write path for HowTo steps.
+
+**Files changed:** `inc/ajax/ai-howto.php`, `inc/metaboxes/myls-faq-citystate.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.45 — 2026-03-29
+
+### Added
+- **Per-service schema catalog exclusion:** A new **"Exclude from schema service catalog"**
+  checkbox on the Service Tagline metabox (service CPT only) lets editors hide individual
+  pages from the `hasOfferCatalog` list in LocalBusiness schema. Stored in
+  `_myls_schema_exclude_from_catalog`. Ideal for CTA pages, booking pages, or duplicates
+  that should not appear as offered services. Saves via the existing tagline nonce —
+  no new form submissions needed.
+
+**Files changed:** `inc/metaboxes/service-tagline.php`,
+`inc/schema/providers/localbusiness.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.44 — 2026-03-29
+
+### Fixed
+- **FAQPage answer list items as run-on text:** `wp_strip_all_tags()` was dropping
+  `</li>`, `</p>`, and `<br>` tags without any separator, concatenating WYSIWYG bullet
+  lists into unreadable walls of text in Google rich results. New helper
+  `myls_html_answer_to_plain()` inserts a newline at every block-closing tag before
+  stripping, preserving list structure as separate lines.
+- **Person `telephone` format:** Normalized to E.164 (`+18133352869`) to match
+  LocalBusiness and Organization nodes. Handles 10-digit and 11-digit US/CA numbers.
+- **`geo` coordinate float precision artifact:** `(float)` cast on stored coordinate
+  strings produced 42-decimal-place values. Rounded to 6 decimal places (~11 cm
+  accuracy) via `round()`.
+- **`award` field embedded URLs:** Award strings stored as "Award Name https://..."
+  were output verbatim. URLs are now stripped via regex before output on both
+  LocalBusiness and Organization nodes.
+
+**Files changed:** `inc/schema/providers/faq.php`, `inc/schema/providers/person.php`,
+`inc/schema/helpers.php`, `inc/schema/providers/localbusiness.php`,
+`inc/schema/providers/organization.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.43 — 2026-03-29
+
+### Fixed
+- **HowTo steps not saving on Elementor pages:** Elementor saves pages via AJAX and
+  does not submit metabox form fields, so `save_post` never received HowTo step data.
+  `myls_ajax_generate_howto_steps()` now saves directly to post meta immediately after
+  generation — no page save required. New AJAX action `myls_save_howto_steps` added for
+  manual edits, with a **💾 Save Steps** button in the metabox UI.
+- **WebPage `description` missing:** WebPage schema node now includes `description`
+  populated from post excerpt → Yoast meta description → RankMath description.
+- **VideoObject thumbnail resolution:** YouTube API `snippet.thumbnails.maxres` (1280×720)
+  is now cached alongside duration/title/publishedAt. Google requires ≥ 1200px wide;
+  `hqdefault` (480×360) no longer used when API data is available.
+- **VideoObject unique descriptions:** Added `snippet.description` from YouTube API to
+  the metadata cache. Description priority: widget description → YouTube API description
+  → page excerpt → video name. Eliminates duplicate descriptions on multi-video pages.
+
+**Files changed:** `inc/ajax/ai-howto.php`, `inc/metaboxes/myls-faq-citystate.php`,
+`inc/schema/providers/webpage.php`, `inc/schema/providers/video-object-detector.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.42 — 2026-03-28
+
+### Fixed
+- **VideoObject `name` from YouTube API:** `myls_build_video_object_node()` now uses
+  the actual YouTube video title (`snippet.title`) as the name, with priority:
+  admin entry → YouTube API title → widget caption → page title. Eliminates generic
+  names like "Paver Sealing Services — Video 2".
+- **VideoObject `uploadDate` from YouTube API:** `uploadDate` now uses YouTube's
+  `snippet.publishedAt` timestamp instead of the WordPress page publish date.
+- **VideoObject `isFamilyFriendly`:** Added `true` (boolean) to every detector-built
+  VideoObject node in the `@graph`.
+- **YouTube API efficiency:** New `myls_fetch_youtube_meta()` fetches
+  `snippet,contentDetails` in a single API call (previously only `contentDetails`),
+  caching title, publishedAt, and duration together in `myls_yt_meta_{id}` transient.
+  `myls_fetch_youtube_duration()` now delegates to it — no extra quota consumed.
+
+**Files changed:** `inc/schema/providers/video-object-detector.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.41 — 2026-03-28
+
+### Fixed
+- **Duplicate VideoObject eliminated:** `[myls_youtube_embed]` was outputting
+  a standalone `<script type="application/ld+json">` block on every page,
+  producing a bare VideoObject outside `@graph` alongside the one the
+  video-object-detector adds to `@graph`. On singular pages the inline block
+  is now suppressed entirely — the `@graph` version is the single source.
+- **Inline VideoObject fixes (non-singular fallback):** `isFamilyFriendly`
+  changed from string `"true"` to boolean `true`; `description` now uses
+  post excerpt instead of copying the video title.
+
+**Files changed:** `modules/shortcodes/youtube-embed.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.40 — 2026-03-28
+
+### Fixed
+- **VideoObject from Elementor Shortcode widget:** The previous fix scanned
+  raw `post_content` which is empty on Elementor pages. The actual shortcode
+  lives in `_elementor_data` JSON inside a `widgetType: "shortcode"` element
+  (`settings.shortcode`). The Elementor extractor now scans shortcode widgets
+  for `[myls_youtube_embed video_id="..."]` and emits a VideoObject node.
+
+**Files changed:** `inc/schema/providers/video-object-detector.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.39 — 2026-03-28
+
+### Fixed
+- **AggregateRating numeric types:** `ratingValue`, `reviewCount`, `bestRating`,
+  and `worstRating` were output as JSON strings — now cast to `(float)` /
+  `(int)` so `wp_json_encode` emits proper JSON numbers (e.g. `5` not `"5"`).
+- **VideoObject from `[myls_youtube_embed]` shortcode:** The video object
+  detector now parses `[myls_youtube_embed video_id="..."]` from raw
+  `post_content` and emits a `VideoObject` @graph node for any page using
+  this shortcode — matching the same auto-duration, thumbnail, and de-dup
+  logic as all other video sources.
+
+**Files changed:** `inc/schema/helpers.php`,
+`inc/schema/providers/video-object-detector.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.38 — 2026-03-28
+
+### Fixed
+- **VideoObject `isFamilyFriendly`:** Was output as JSON string `"true"` — now
+  correctly output as boolean `true` via PHP bare `true`.
+- **Service schema `name` priority:** Added per-page `_myls_service_name` post
+  meta as highest-priority override. Fallback chain: per-page meta → global
+  `myls_service_subtype` option → page title.
+
+### Added
+- **HowTo schema provider** (`inc/schema/providers/howto.php`): Appends a
+  `HowTo` @graph node to singular pages when `_myls_howto_steps` meta is set.
+  Hooks at priority 55 (after FAQPage).
+- **HowTo metabox repeater** (`inc/metaboxes/myls-faq-citystate.php`):
+  Section below FAQ rows — title field, step repeater (name + description),
+  remove/reindex, saved to `_myls_howto_name` and `_myls_howto_steps` (JSON).
+- **AI HowTo generator** (`inc/ajax/ai-howto.php`): "✨ Generate Steps from
+  Page Content" button calls Claude Haiku to extract 3-6 HowToStep objects
+  from post content and pre-fills the repeater fields.
+
+**Files changed:** `inc/schema/providers/video-schema.php`,
+`inc/schema/providers/build-service-schema.php`,
+`inc/schema/providers/howto.php` *(new)*,
+`inc/ajax/ai-howto.php` *(new)*,
+`inc/metaboxes/myls-faq-citystate.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.37 — 2026-03-28
+
+### Fixed — Aggregate rating decimal formatting
+- `[google_aggregate_rating]` shortcode now formats the rating to one decimal
+  place via `number_format()` (e.g. `5` → `5.0`, `4.8` → `4.8`).
+
+**Files changed:** `modules/shortcodes/google-rating-values.php`,
+`aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.36 — 2026-03-28
+
+### Added — TL;DR text saved as post excerpt
+- During page build, `myls_elb_parse_and_build()` now returns the TL;DR plain
+  text via a new `tldr_text` key in its result array.
+- Before the existing AI excerpt generator fires, the builder checks for TL;DR
+  text and saves it as `post_excerpt` using direct `$wpdb->update()` (same
+  pattern as the existing excerpt block — avoids `save_post` / Elementor
+  breakage).
+- If TL;DR provides the excerpt, the separate AI excerpt call is skipped
+  naturally (the `$existing_excerpt === ''` guard is already satisfied).
+- Existing pages with a manual excerpt are never overwritten.
+
+**Files changed:** `inc/ajax/ai-elementor-builder.php`, `aintelligize.php`,
+`readme.txt`, `CHANGELOG.md`
+
+## 7.9.18.35 — 2026-03-28
+
+### Added — Widget type choice & Page Setup persistence
+- **Icon Box / Image Box toggle:** Feature Cards and How It Works sections now
+  show a widget-type dropdown (Icon Box vs Image Box). The choice is saved in
+  `sections_order` as `widget_type` and drives builder output — "image" uses
+  `myls_elb_image_placeholder_box_widget()` instead of icon boxes.
+- **Business variables in Page Setup:** `biz_name`, `biz_city`, `biz_phone`,
+  `biz_email` are now captured in the setup snapshot and persisted via
+  `myls_elb_save_setup`.
+- **AI Prompt Template in Page Setup:** `prompt_template` is saved/restored
+  with the snapshot so the user's custom prompt survives page reloads.
+
+**Files changed:** `admin/tabs/utilities/subtab-elementor.php`,
+`inc/ajax/ai-elementor-builder.php`, `aintelligize.php`, `readme.txt`,
+`CHANGELOG.md`
+
+>>>>>>> origin/main
 ## 7.9.18.34 — 2026-03-28
 
 ### Fixed — PHP 7.x compatibility (all PHP 8.0+ syntax removed)

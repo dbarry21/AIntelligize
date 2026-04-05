@@ -255,7 +255,7 @@ if ( ! function_exists('myls_build_primary_localbusiness_node_fallback') ) {
 		// Awards and certifications
 		$awards = get_option('myls_org_awards', []);
 		if ( ! is_array($awards) ) $awards = [];
-		$awards = array_values( array_filter( array_map('sanitize_text_field', $awards) ) );
+		$awards = array_values( array_filter( array_map( 'myls_parse_award_name', $awards ) ) );
 
 		$certs = get_option('myls_org_certifications', []);
 		if ( ! is_array($certs) ) $certs = [];
@@ -486,7 +486,7 @@ add_filter('myls_schema_graph', function(array $graph) {
 	// a location and therefore get the inline org_provider instead of an @id ref.
 	$fb_awards = get_option('myls_org_awards', []);
 	if ( ! is_array($fb_awards) ) $fb_awards = [];
-	$fb_awards = array_values( array_filter( array_map('sanitize_text_field', $fb_awards) ) );
+	$fb_awards = array_values( array_filter( array_map( 'myls_parse_award_name', $fb_awards ) ) );
 	if ( $fb_awards ) $org_provider['award'] = $fb_awards;
 
 	$fb_certs = get_option('myls_org_certifications', []);
@@ -557,10 +557,12 @@ add_filter('myls_schema_graph', function(array $graph) {
 	// ✅ serviceType MUST be present: ALWAYS page title (string)
 	$service_type = wp_strip_all_tags($page_title);
 
-	// ✅ Service "name": subtype option -> fallback to page title
-	$service_subtype = trim((string) get_option('myls_service_subtype', ''));
-	$service_subtype = trim(wp_strip_all_tags($service_subtype));
-	$service_name    = ($service_subtype !== '') ? $service_subtype : $service_type;
+	// ✅ Service "name": per-page meta → global subtype option → page title
+	// Per-page meta (_myls_service_name) takes highest priority so individual
+	// pages can override the global setting without affecting all service pages.
+	$per_page_name   = trim( wp_strip_all_tags( (string) get_post_meta( $post_id, '_myls_service_name', true ) ) );
+	$service_subtype = trim( wp_strip_all_tags( (string) get_option( 'myls_service_subtype', '' ) ) );
+	$service_name    = $per_page_name !== '' ? $per_page_name : ( $service_subtype !== '' ? $service_subtype : $service_type );
 
 	// serviceOutput: noun-phrase describing the tangible deliverable.
 	// Priority: 1) explicit admin field  2) smart default derived from service type
@@ -660,15 +662,17 @@ add_filter('myls_schema_graph', function(array $graph) {
 		'serviceType' => $service_type,   // ✅ ALWAYS present
 	];
 
+	// dateModified: helps search engines understand content freshness
+	$date_modified = get_the_modified_date( 'c', $post_id );
+	if ( $date_modified ) {
+		$service['dateModified'] = $date_modified;
+	}
+
 	if ( $image_url ) $service['image'] = esc_url_raw($image_url);
 	if ( ! empty($area_served) ) $service['areaServed'] = $area_served;
 	$service['serviceOutput'] = $service_output; // always present — noun-phrase deliverable
 
-	// NOTE: aggregateRating is intentionally omitted from Service schema.
-	// Google's Rich Results spec does not support aggregateRating on @type Service —
-	// only on LocalBusiness, Product, Recipe, Book, etc. Attaching it here causes
-	// "Invalid object type for field <parent_node>" in the Rich Results Test.
-	// aggregateRating belongs on the LocalBusiness node (localbusiness.php) only.
+	if ( is_array( $agg_rating ) ) $service['aggregateRating'] = $agg_rating;
 
 	// ── Price Ranges (hasOfferCatalog → OfferCatalog → Offer) ────────────
 	// Look up myls_service_price_ranges for any entry whose post_ids contains

@@ -138,6 +138,23 @@ function myls_service_tagline_render($post) {
                 <li>Energy Efficient • Zone Control • Save 30%</li>
             </ul>
         </div>
+
+        <?php if ( $post->post_type === 'service' ) :
+            $exclude_catalog = get_post_meta( $post->ID, '_myls_schema_exclude_from_catalog', true );
+        ?>
+        <!-- Schema catalog exclusion -->
+        <div style="margin-top:15px;padding:12px 0 0;border-top:1px solid #ddd;">
+            <label style="display:flex;align-items:flex-start;gap:7px;cursor:pointer;">
+                <input type="checkbox" name="_myls_schema_exclude_from_catalog" value="1" style="margin-top:2px;flex-shrink:0;"
+                    <?php checked( $exclude_catalog, '1' ); ?> />
+                <span>
+                    <strong style="font-size:12px;">Exclude from schema service catalog</strong><br>
+                    <span style="font-size:11px;color:#666;">Hides this page from the <code>hasOfferCatalog</code> list in
+                    LocalBusiness schema. Use for CTA pages, booking pages, or duplicates.</span>
+                </span>
+            </label>
+        </div>
+        <?php endif; ?>
     </div>
     
     <?php if ($has_api_key): ?>
@@ -231,6 +248,12 @@ add_action('save_post', function($post_id, $post) {
     if (isset($_POST['myls_service_tagline'])) {
         $tagline = sanitize_text_field($_POST['myls_service_tagline']);
         update_post_meta($post_id, '_myls_service_tagline', $tagline);
+    }
+
+    // Save schema catalog exclusion flag (service CPT only)
+    if ( $post->post_type === 'service' ) {
+        $exclude = isset( $_POST['_myls_schema_exclude_from_catalog'] ) ? '1' : '0';
+        update_post_meta( $post_id, '_myls_schema_exclude_from_catalog', $exclude );
     }
 }, 10, 2);
 

@@ -33,14 +33,32 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 	$permalink = get_permalink( $post_id );
 	$site_url  = home_url( '/' );
 
+	// Description: post excerpt → page meta description (Yoast/RankMath) → omit
+	$page_desc = '';
+	if ( has_excerpt( $post_id ) ) {
+		$page_desc = wp_strip_all_tags( get_the_excerpt( $post_id ) );
+	}
+	if ( $page_desc === '' ) {
+		// Try Yoast meta description
+		$page_desc = trim( (string) get_post_meta( $post_id, '_yoast_wpseo_metadesc', true ) );
+	}
+	if ( $page_desc === '' ) {
+		// Try RankMath meta description
+		$page_desc = trim( (string) get_post_meta( $post_id, 'rank_math_description', true ) );
+	}
+
 	$node = [
-		'@type'        => 'WebPage',
-		'@id'          => trailingslashit( $permalink ) . '#webpage',
-		'name'         => get_the_title( $post_id ),
-		'url'          => $permalink,
+		'@type'         => 'WebPage',
+		'@id'           => trailingslashit( $permalink ) . '#webpage',
+		'name'          => get_the_title( $post_id ),
+		'url'           => $permalink,
 		'datePublished' => get_the_date( 'c', $post_id ),
 		'dateModified'  => get_the_modified_date( 'c', $post_id ),
 	];
+
+	if ( $page_desc !== '' ) {
+		$node['description'] = $page_desc;
+	}
 
 	// isPartOf — link to WebSite (correct range for CreativeWork property)
 	$node['isPartOf'] = [ '@id' => home_url( '/#website' ) ];
@@ -56,15 +74,26 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 		}
 	}
 
-	// Fallback: link to LocalBusiness
+	// Fallback: link to LocalBusiness by @id (not @type string match).
+	// This correctly handles RoofingContractor and all other LocalBusiness subtypes
+	// since @id is always /#localbusiness regardless of @type value.
 	if ( ! $about_id ) {
+		$lb_id = home_url( '/#localbusiness' );
 		foreach ( $graph as $gn ) {
-			if ( is_array( $gn ) && ! empty( $gn['@id'] ) ) {
-				$t = is_array( $gn['@type'] ?? '' ) ? ( $gn['@type'][0] ?? '' ) : ( $gn['@type'] ?? '' );
-				if ( stripos( $t, 'LocalBusiness' ) !== false || stripos( $t, 'Business' ) !== false ) {
-					$about_id = $gn['@id'];
-					break;
-				}
+			if ( is_array( $gn ) && isset( $gn['@id'] ) && $gn['@id'] === $lb_id ) {
+				$about_id = $lb_id;
+				break;
+			}
+		}
+	}
+
+	// Final fallback to Organization if LocalBusiness not in graph
+	if ( ! $about_id ) {
+		$org_id = home_url( '/#organization' );
+		foreach ( $graph as $gn ) {
+			if ( is_array( $gn ) && isset( $gn['@id'] ) && $gn['@id'] === $org_id ) {
+				$about_id = $org_id;
+				break;
 			}
 		}
 	}

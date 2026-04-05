@@ -39,12 +39,168 @@ $spec = [
 		}
 		wp_enqueue_script('jquery-ui-sortable');
 
-		// Service Type options (from ssseo-tools)
+		// Service Type options — grouped by Schema.org LocalBusiness hierarchy.
+		// Keys are optgroup labels ('' = no group); values are [ schema_type => display_label ].
 		$service_types = [
-			'',
-			'LocalBusiness','Plumber','Electrician','HVACBusiness','RoofingContractor',
-			'PestControl','LegalService','CleaningService','AutoRepair','MedicalBusiness',
-			'Locksmith','MovingCompany','RealEstateAgent','ITService',
+			'' => [
+				''              => '— Select —',
+				'LocalBusiness' => 'LocalBusiness (Generic)',
+			],
+			'Automotive' => [
+				'AutomotiveBusiness' => 'AutomotiveBusiness',
+				'AutoBodyShop'       => 'AutoBodyShop',
+				'AutoDealer'         => 'AutoDealer',
+				'AutoPartsStore'     => 'AutoPartsStore',
+				'AutoRental'         => 'AutoRental',
+				'AutoRepair'         => 'AutoRepair',
+				'AutoWash'           => 'AutoWash',
+				'GasStation'         => 'GasStation',
+				'MotorcycleDealer'   => 'MotorcycleDealer',
+				'MotorcycleRepair'   => 'MotorcycleRepair',
+			],
+			'Emergency Services' => [
+				'EmergencyService' => 'EmergencyService',
+				'FireStation'      => 'FireStation',
+				'Hospital'         => 'Hospital',
+				'PoliceStation'    => 'PoliceStation',
+			],
+			'Entertainment' => [
+				'EntertainmentBusiness' => 'EntertainmentBusiness',
+				'AdultEntertainment'    => 'AdultEntertainment',
+				'AmusementPark'         => 'AmusementPark',
+				'ArtGallery'            => 'ArtGallery',
+				'Casino'                => 'Casino',
+				'ComedyClub'            => 'ComedyClub',
+				'MovieTheater'          => 'MovieTheater',
+				'NightClub'             => 'NightClub',
+			],
+			'Financial' => [
+				'FinancialService'  => 'FinancialService',
+				'AccountingService' => 'AccountingService',
+				'AutomatedTeller'   => 'AutomatedTeller',
+				'BankOrCreditUnion' => 'BankOrCreditUnion',
+				'InsuranceAgency'   => 'InsuranceAgency',
+			],
+			'Food & Drink' => [
+				'FoodEstablishment'  => 'FoodEstablishment',
+				'Bakery'             => 'Bakery',
+				'BarOrPub'           => 'BarOrPub',
+				'Brewery'            => 'Brewery',
+				'CafeOrCoffeeShop'   => 'CafeOrCoffeeShop',
+				'Distillery'         => 'Distillery',
+				'FastFoodRestaurant' => 'FastFoodRestaurant',
+				'IceCreamShop'       => 'IceCreamShop',
+				'Restaurant'         => 'Restaurant',
+				'Winery'             => 'Winery',
+			],
+			'Health & Beauty' => [
+				'HealthAndBeautyBusiness' => 'HealthAndBeautyBusiness',
+				'BeautySalon'             => 'BeautySalon',
+				'DaySpa'                  => 'DaySpa',
+				'HairSalon'               => 'HairSalon',
+				'HealthClub'              => 'HealthClub',
+				'NailSalon'               => 'NailSalon',
+				'TattooParlor'            => 'TattooParlor',
+			],
+			'Home & Construction' => [
+				'HomeAndConstructionBusiness' => 'HomeAndConstructionBusiness',
+				'Electrician'                 => 'Electrician',
+				'GeneralContractor'           => 'GeneralContractor',
+				'HVACBusiness'                => 'HVACBusiness',
+				'HousePainter'                => 'HousePainter',
+				'Locksmith'                   => 'Locksmith',
+				'MovingCompany'               => 'MovingCompany',
+				'Plumber'                     => 'Plumber',
+				'RoofingContractor'           => 'RoofingContractor',
+			],
+			'Legal' => [
+				'LegalService' => 'LegalService',
+				'Attorney'     => 'Attorney',
+				'Notary'       => 'Notary',
+			],
+			'Lodging' => [
+				'LodgingBusiness' => 'LodgingBusiness',
+				'BedAndBreakfast' => 'BedAndBreakfast',
+				'Campground'      => 'Campground',
+				'Hostel'          => 'Hostel',
+				'Hotel'           => 'Hotel',
+				'Motel'           => 'Motel',
+				'Resort'          => 'Resort',
+				'VacationRental'  => 'VacationRental',
+			],
+			'Medical' => [
+				'MedicalBusiness' => 'MedicalBusiness',
+				'Dentist'         => 'Dentist',
+				'MedicalClinic'   => 'MedicalClinic',
+				'Optician'        => 'Optician',
+				'Pharmacy'        => 'Pharmacy',
+				'Physician'       => 'Physician',
+				'PrimaryCare'     => 'PrimaryCare',
+				'VeterinaryCare'  => 'VeterinaryCare',
+			],
+			'Real Estate' => [
+				'RealEstateAgent' => 'RealEstateAgent',
+			],
+			'Retail' => [
+				'Store'                => 'Store',
+				'BikeStore'            => 'BikeStore',
+				'BookStore'            => 'BookStore',
+				'ClothingStore'        => 'ClothingStore',
+				'ComputerStore'        => 'ComputerStore',
+				'ConvenienceStore'     => 'ConvenienceStore',
+				'DepartmentStore'      => 'DepartmentStore',
+				'ElectronicsStore'     => 'ElectronicsStore',
+				'Florist'              => 'Florist',
+				'FurnitureStore'       => 'FurnitureStore',
+				'GardenStore'          => 'GardenStore',
+				'GroceryStore'         => 'GroceryStore',
+				'HardwareStore'        => 'HardwareStore',
+				'HobbyShop'            => 'HobbyShop',
+				'HomeGoodsStore'       => 'HomeGoodsStore',
+				'JewelryStore'         => 'JewelryStore',
+				'LiquorStore'          => 'LiquorStore',
+				'MobilePhoneStore'     => 'MobilePhoneStore',
+				'MovieRentalStore'     => 'MovieRentalStore',
+				'MusicStore'           => 'MusicStore',
+				'OfficeEquipmentStore' => 'OfficeEquipmentStore',
+				'OutletStore'          => 'OutletStore',
+				'PawnShop'             => 'PawnShop',
+				'PetStore'             => 'PetStore',
+				'ShoeStore'            => 'ShoeStore',
+				'SportingGoodsStore'   => 'SportingGoodsStore',
+				'TireShop'             => 'TireShop',
+				'ToyStore'             => 'ToyStore',
+				'WholesaleStore'       => 'WholesaleStore',
+			],
+			'Sports & Recreation' => [
+				'SportsActivityLocation' => 'SportsActivityLocation',
+				'BowlingAlley'           => 'BowlingAlley',
+				'ExerciseGym'            => 'ExerciseGym',
+				'GolfCourse'             => 'GolfCourse',
+				'PublicSwimmingPool'     => 'PublicSwimmingPool',
+				'SkiResort'              => 'SkiResort',
+				'SportsClub'             => 'SportsClub',
+				'StadiumOrArena'         => 'StadiumOrArena',
+				'TennisComplex'          => 'TennisComplex',
+			],
+			'Other' => [
+				'AnimalShelter'            => 'AnimalShelter',
+				'ArchiveOrganization'      => 'ArchiveOrganization',
+				'ChildCare'                => 'ChildCare',
+				'DryCleaningOrLaundry'     => 'DryCleaningOrLaundry',
+				'EmploymentAgency'         => 'EmploymentAgency',
+				'GovernmentOffice'         => 'GovernmentOffice',
+				'InternetCafe'             => 'InternetCafe',
+				'Library'                  => 'Library',
+				'ProfessionalService'      => 'ProfessionalService',
+				'RadioStation'             => 'RadioStation',
+				'RecyclingCenter'          => 'RecyclingCenter',
+				'SelfStorage'              => 'SelfStorage',
+				'ShoppingCenter'           => 'ShoppingCenter',
+				'TelevisionStation'        => 'TelevisionStation',
+				'TouristInformationCenter' => 'TouristInformationCenter',
+				'TravelAgency'             => 'TravelAgency',
+			],
 		];
 
 		// Values (fallback to older ssseo_* options if migrating)
@@ -61,7 +217,7 @@ $spec = [
 			'country'     => get_option('myls_org_country',     get_option('ssseo_organization_country','')),
 			'lat'         => get_option('myls_org_lat',         get_option('ssseo_organization_latitude','')),
 			'lng'         => get_option('myls_org_lng',         get_option('ssseo_organization_longitude','')),
-			'default_service_label' => get_option('myls_org_default_service_label', get_option('ssseo_default_service_label','')),
+			'default_service_label' => get_option('myls_org_default_service_label', get_option('ssseo_default_service_label','RoofingContractor')),
 			'areas'       => get_option('myls_org_areas',       get_option('ssseo_organization_areas_served','')),
 		];
 
@@ -72,8 +228,13 @@ $spec = [
 		if ( empty($socials) ) { $socials = ['']; }
 
 		// Values are sanitized at save time — do NOT re-sanitize on read or entities will double-encode.
-		$awards  = array_values(array_filter((array) get_option('myls_org_awards', [])));
-		if ( empty($awards) ) { $awards = ['']; }
+		// Normalize: old entries saved as plain strings are converted to {name, url} for display.
+		$awards_raw = array_values( array_filter( (array) get_option('myls_org_awards', []) ) );
+		$awards = array_map( function( $a ) {
+			if ( is_string($a) ) return [ 'name' => $a, 'url' => '' ];
+			return [ 'name' => (string) ( $a['name'] ?? '' ), 'url' => (string) ( $a['url'] ?? '' ) ];
+		}, $awards_raw );
+		if ( empty($awards) ) { $awards = [ [ 'name' => '', 'url' => '' ] ]; }
 
 		$certs  = array_values(array_filter((array) get_option('myls_org_certifications', [])));
 		if ( empty($certs) ) { $certs = ['']; }
@@ -188,13 +349,33 @@ $spec = [
 						<div class="col-md-3">
 							<label class="form-label">Default Service Label</label>
 							<select name="myls_org_default_service_label">
-								<?php foreach ( $service_types as $opt ): ?>
-									<option value="<?php echo esc_attr($opt); ?>" <?php selected($v['default_service_label'], $opt); ?>>
-										<?php echo $opt === '' ? '— Select —' : esc_html($opt); ?>
-									</option>
+								<?php foreach ( $service_types as $group => $opts ) : ?>
+									<?php if ( $group !== '' ) : ?>
+										<optgroup label="<?php echo esc_attr( $group ); ?>">
+									<?php endif; ?>
+									<?php foreach ( $opts as $val => $label ) : ?>
+										<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $v['default_service_label'], $val ); ?>>
+											<?php echo esc_html( $label ); ?>
+										</option>
+									<?php endforeach; ?>
+									<?php if ( $group !== '' ) : ?>
+										</optgroup>
+									<?php endif; ?>
 								<?php endforeach; ?>
 							</select>
-							<div class="form-text">Used by Service/LocalBusiness schema when a label is not provided.</div>
+							<div class="form-text">Schema.org <code>@type</code> for the LocalBusiness node. <a href="https://schema.org/LocalBusiness" target="_blank" rel="noopener">View hierarchy ↗</a></div>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label" for="myls_org_service_name_label">Service Label</label>
+							<input type="text"
+							       id="myls_org_service_name_label"
+							       name="myls_org_service_name_label"
+							       value="<?php echo esc_attr( get_option( 'myls_org_service_name_label', '' ) ); ?>"
+							       placeholder="e.g. Roofing Services">
+							<div class="form-text">
+								Human-readable label for your primary service offering.
+								Used as <code>hasOfferCatalog.name</code> on the LocalBusiness schema node.
+							</div>
 						</div>
 						<div class="col-md-6">
 							<label class="form-label">Description</label>
@@ -309,15 +490,24 @@ $spec = [
 				
 					<div class="row" style="margin-top:16px;">
 						<div class="col-12">
-							<label class="form-label">Awards (one per line)</label>
+							<label class="form-label">Awards</label>
 							<div class="text-muted" style="margin:-6px 0 10px 0; font-size: 12px;">
-								These are output on Organization / LocalBusiness schema as <code>award</code> strings (Schema.org-valid).
+								Output as <code>award</code> strings on Organization / LocalBusiness schema. The URL is stored for reference but not injected into the award text.
 							</div>
 
 							<div id="myls-org-awards">
-								<?php foreach ( $awards as $i => $a_txt ) : ?>
-									<div class="d-flex" style="gap:.5rem; margin-bottom:.5rem;">
-										<input type="text" name="myls_org_awards[]" value="<?php echo esc_attr($a_txt); ?>" placeholder="e.g. Best of Tampa Bay 2024">
+								<?php foreach ( $awards as $i => $award ) : ?>
+									<div class="myls-award-row d-flex align-items-center" style="gap:.5rem; margin-bottom:.5rem;">
+										<input type="text"
+											name="myls_org_awards[<?php echo $i; ?>][name]"
+											value="<?php echo esc_attr( $award['name'] ); ?>"
+											placeholder="e.g. Best of Tampa Bay 2024"
+											style="flex:2;">
+										<input type="url"
+											name="myls_org_awards[<?php echo $i; ?>][url]"
+											value="<?php echo esc_attr( $award['url'] ); ?>"
+											placeholder="Award URL (optional)"
+											style="flex:3;">
 										<button class="myls-btn myls-btn-outline myls-remove-award" type="button">Remove</button>
 									</div>
 								<?php endforeach; ?>
@@ -563,17 +753,20 @@ $spec = [
 		(function(){
 		  const wrap = document.getElementById('myls-org-awards');
 		  document.getElementById('myls-org-add-award')?.addEventListener('click', function(){
+			const idx = wrap.querySelectorAll('.myls-award-row').length;
 			const row = document.createElement('div');
-			row.className = 'd-flex';
+			row.className = 'myls-award-row d-flex align-items-center';
 			row.style.gap = '.5rem';
 			row.style.marginBottom = '.5rem';
-			row.innerHTML = '<input type="text" name="myls_org_awards[]" placeholder="e.g. Best of Tampa Bay 2024">'
-						  + '<button class="myls-btn myls-btn-outline myls-remove-award" type="button">Remove</button>';
+			row.innerHTML =
+				'<input type="text" name="myls_org_awards['+idx+'][name]" placeholder="e.g. Best of Tampa Bay 2024" style="flex:2;">'
+				+ '<input type="url" name="myls_org_awards['+idx+'][url]" placeholder="Award URL (optional)" style="flex:3;">'
+				+ '<button class="myls-btn myls-btn-outline myls-remove-award" type="button">Remove</button>';
 			wrap.appendChild(row);
 		  });
 		  wrap?.addEventListener('click', function(e){
 			const btn = e.target.closest('.myls-remove-award');
-			if (btn) { btn.parentElement.remove(); }
+			if (btn) { btn.closest('.myls-award-row').remove(); }
 		  });
 		
 
@@ -779,6 +972,7 @@ $spec = [
 		update_option('myls_org_email', sanitize_email($_POST['myls_org_email'] ?? ''));
 		update_option('myls_org_description', sanitize_textarea_field($_POST['myls_org_description'] ?? ''));
 		update_option('myls_org_default_service_label', sanitize_text_field($_POST['myls_org_default_service_label'] ?? ''));
+		update_option('myls_org_service_name_label',    sanitize_text_field($_POST['myls_org_service_name_label']    ?? ''));
 
 		// Logo
 		update_option('myls_org_logo_id', absint($_POST['myls_org_logo_id'] ?? 0));
@@ -806,13 +1000,23 @@ $spec = [
 		update_option('myls_org_social_profiles', $raw_socials);
 
 
-		// Awards — wp_unslash first: WordPress slashes $_POST values and sanitize_text_field
+		// Awards — stored as [{name, url}] objects since v7.9.18.53.
+		// wp_unslash before sanitizing: WP slashes $_POST values and sanitize_text_field
 		// does NOT strip slashes, causing stored values to contain literal backslashes.
-		$raw_awards = isset($_POST['myls_org_awards']) && is_array($_POST['myls_org_awards'])
-			? array_map('sanitize_text_field', array_map('wp_unslash', $_POST['myls_org_awards']))
-			: [];
-		$raw_awards = array_values(array_filter($raw_awards));
-		update_option('myls_org_awards', $raw_awards);
+		$raw_awards   = ( isset($_POST['myls_org_awards']) && is_array($_POST['myls_org_awards']) ) ? $_POST['myls_org_awards'] : [];
+		$clean_awards = [];
+		foreach ( $raw_awards as $a ) {
+			if ( ! is_array($a) ) {
+				// Back-compat: plain string submitted (shouldn't happen from new UI)
+				$name = sanitize_text_field( wp_unslash( (string) $a ) );
+				if ( $name !== '' ) $clean_awards[] = [ 'name' => $name, 'url' => '' ];
+				continue;
+			}
+			$name = sanitize_text_field( wp_unslash( (string) ( $a['name'] ?? '' ) ) );
+			$url  = esc_url_raw( wp_unslash( (string) ( $a['url']  ?? '' ) ) );
+			if ( $name !== '' ) $clean_awards[] = [ 'name' => $name, 'url' => $url ];
+		}
+		update_option('myls_org_awards', $clean_awards);
 
 		// Certifications — same wp_unslash pattern.
 		$raw_certs = isset($_POST['myls_org_certifications']) && is_array($_POST['myls_org_certifications'])
