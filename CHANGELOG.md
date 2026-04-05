@@ -1,8 +1,10 @@
-## 7.9.18.66 — 2026-04-05
+## 7.9.18.67 — 2026-04-05
 
 ### Fixed — FAQ accordion `heading_color` attribute
 - Added missing CSS rule to consume `--myls-faq-heading-color` variable —
-  `.myls-faq-heading` and `.myls-service-faq-heading` now respect the attribute.
+  `h2.myls-faq-heading` and `h3.myls-service-faq-heading` now respect the attribute.
+- Added `!important` and element-qualified selectors (`h2.`, `h3.`) to beat
+  theme-level heading colour rules that were overriding the CSS variable.
 - Added **Heading Color** picker to admin settings (Schema > FAQ) so it works
   as a site-wide default — both `[faq_schema_accordion]` and `[service_faq_page]`
   now fall back to the saved `myls_faq_heading_color` option.
