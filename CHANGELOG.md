@@ -1,3 +1,11 @@
+## 7.9.18.69 — 2026-04-05
+
+### Added — Service Grid button color admin settings
+- New **Button Background** and **Button Text** color pickers in Schema > Service admin page
+  for site-wide `[service_grid]` button colour defaults.
+- Shortcode `btn_bg` / `btn_color` attributes override the admin setting when provided.
+- Leave blank to use default Bootstrap `.btn-primary` styling.
+
 ## 7.9.18.68 — 2026-04-05
 
 ### Fixed — FAQ accordion `heading_color` attribute
