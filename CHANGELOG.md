@@ -1,3 +1,20 @@
+## 7.9.18.71 — 2026-04-07
+
+### Fixed — AI tagline generation including instructions in output
+- Added `myls_clean_tagline_text()` helper to strip numbered prefixes, pattern labels (`A)`, `Pattern A:`), and AI preambles from generated taglines.
+- Pre-list instructional text before `<ul>`/`<li>` tags and post-list text after `</ul>` are now stripped before parsing.
+- Plain-text fallback now splits by newlines and parses each line individually instead of treating the entire response as one tagline.
+- Duplicate guard rewrite prompt now explicitly requests HTML `<li>` format to prevent unformatted responses.
+- Instructional lines (`Note:`, `These taglines...`, `I've created...`) are detected and discarded.
+
+### Updated — Shortcode interactive documentation
+- Added `service_tagline` documentation entry with attributes, examples, and tips.
+- Fixed stale attributes in `service_posts` (was listing `posts_per_page`, `show_excerpt`; now shows actual: `post_type`, `parent_id`, `limit`, `heading`, `show_tagline`, `show_icon`, etc.).
+- Fixed stale attributes in `custom_blog_cards` (was listing `category`, `columns`, `show_date`; now shows actual: `search`, `placeholder`, `min_chars`, `debounce_ms`).
+- Fixed stale attributes in `divi_service_posts` (was listing `posts_per_page`, `button_text`, `show_image`; now shows actual: `post_type`, `parent_id`, `limit`, `heading`, `orderby`).
+
+**Files changed:** `inc/ajax/ai-taglines.php`, `admin/docs/shortcode-data.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.70 — 2026-04-07
 
 ### Added — Standalone `[service_tagline]` shortcode

@@ -11,6 +11,44 @@
 if (!defined('ABSPATH')) exit;
 
 /**
+ * Clean a single tagline string: strip HTML, pattern labels, numbering,
+ * instructional preambles, and normalise pipe separators.
+ *
+ * @param  string $raw  Raw tagline text (may contain HTML).
+ * @return string       Cleaned tagline or empty string.
+ */
+function myls_clean_tagline_text( $raw ) {
+    $t = wp_strip_all_tags( $raw );
+    $t = trim( $t );
+    $t = trim( $t, '"\'' );
+
+    // Strip numbered prefixes:  "1.", "1)", "1:"
+    $t = preg_replace( '/^\d+[.):\-]\s*/', '', $t );
+
+    // Strip structural pattern labels: "A)", "B.", "Pattern A:", "Option 1:", etc.
+    $t = preg_replace( '/^(?:Pattern|Option|Tagline|Version)\s*[A-Da-d0-9]+[.):\-]?\s*/i', '', $t );
+    $t = preg_replace( '/^[A-Da-d][.):\-]\s*/', '', $t );
+
+    // Strip common AI preambles / instructional lines
+    $t = preg_replace( '/^(tagline:?|here\'s?|here is|here are|sure,?|okay,?|certainly[,:]?)\s*/i', '', $t );
+
+    // Skip lines that are clearly instructional (not taglines)
+    if ( preg_match( '/^(note:|explanation:|these taglines|below are|i\'ve created|the following|as requested)/i', $t ) ) {
+        return '';
+    }
+
+    $t = trim( $t );
+
+    // Replace bullet characters (•, -, ▸) used as separators with pipe
+    $t = str_replace( [ '•', '▸' ], '|', $t );
+
+    // Normalise pipe spacing
+    $t = preg_replace( '/\s*\|\s*/', ' | ', $t );
+
+    return trim( $t );
+}
+
+/**
  * AJAX: Get posts for tagline generation
  */
 add_action('wp_ajax_myls_ai_taglines_get_posts', function() {
@@ -175,7 +213,7 @@ add_action('wp_ajax_myls_ai_taglines_generate_single', function() {
             'taglines',
             $response,
             function( $original ) use ( $tokens, $temperature, $post_id ) {
-                $rewrite = "Generate completely different taglines. Avoid these patterns:\n" . $original . "\n\nCreate fresh, unique taglines with different sentence structures.";
+                $rewrite = "Generate completely different taglines as a clean HTML <ul><li> list. No preamble, no explanations, no labels — ONLY <li> items.\n\nAvoid these patterns:\n" . $original . "\n\nCreate fresh, unique taglines with different sentence structures. Use pipe ( | ) separators. Output ONLY the HTML list.";
                 return trim( myls_ai_generate_text( $rewrite, [
                     'max_tokens' => $tokens,
                     'temperature' => min(1.0, $temperature + 0.1),
@@ -188,47 +226,37 @@ add_action('wp_ajax_myls_ai_taglines_generate_single', function() {
     // Remove markdown code fences if present
     $response = preg_replace('/```html?\s*/', '', $response);
     $response = preg_replace('/```\s*$/', '', $response);
-    
+
+    // Strip any text before the first <ul> or <li> tag (AI preamble before the list)
+    if (preg_match('/<(?:ul|li)\b/i', $response)) {
+        $response = preg_replace('/\A.*?(?=<(?:ul|li)\b)/is', '', $response);
+        // Strip any text after the closing </ul> tag
+        $response = preg_replace('/<\/ul>\s*.*\z/is', '</ul>', $response);
+    }
+
     // Extract taglines from HTML list
     $taglines = [];
-    
+
     // Try to parse as HTML list
     if (preg_match_all('/<li[^>]*>(.*?)<\/li>/is', $response, $matches)) {
         foreach ($matches[1] as $tagline_html) {
-            $tagline = wp_strip_all_tags($tagline_html);
-            $tagline = trim($tagline);
-            $tagline = trim($tagline, '"\'');
-            
-            // Remove common AI preambles
-            $tagline = preg_replace('/^(tagline:|here\'s|here is|sure,?|okay,?)/i', '', $tagline);
-            $tagline = trim($tagline);
-            
-            // Remove bullet characters (•) and replace with pipe
-            $tagline = str_replace('•', '|', $tagline);
-            
-            // Clean up multiple spaces around pipes
-            $tagline = preg_replace('/\s*\|\s*/', ' | ', $tagline);
-            
+            $tagline = myls_clean_tagline_text($tagline_html);
             if (!empty($tagline) && strlen($tagline) > 10) {
                 $taglines[] = $tagline;
             }
         }
     }
-    
-    // Fallback: if no HTML list found, treat as plain text
+
+    // Fallback: split by newlines and parse numbered/bulleted lines
     if (empty($taglines)) {
-        $tagline = wp_strip_all_tags($response);
-        $tagline = trim($tagline);
-        $tagline = trim($tagline, '"\'');
-        $tagline = preg_replace('/^(tagline:|here\'s|here is|sure,?|okay,?)/i', '', $tagline);
-        $tagline = trim($tagline);
-        
-        // Remove bullet characters and replace with pipe
-        $tagline = str_replace('•', '|', $tagline);
-        $tagline = preg_replace('/\s*\|\s*/', ' | ', $tagline);
-        
-        if (!empty($tagline)) {
-            $taglines[] = $tagline;
+        $plain = wp_strip_all_tags($response);
+        $lines = preg_split('/[\r\n]+/', $plain);
+
+        foreach ($lines as $line) {
+            $tagline = myls_clean_tagline_text($line);
+            if (!empty($tagline) && strlen($tagline) > 10) {
+                $taglines[] = $tagline;
+            }
         }
     }
     
