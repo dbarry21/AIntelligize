@@ -7,6 +7,7 @@
  * @since 5.0.0 — full rewrite covering all 30+ shortcodes
  * @updated 7.0.2 — added google_reviews_slider, social_links; updated service_grid with aspect_ratio
  * @updated 7.9.18.50 — added myls_pricing_table, service_area_flip_cards, service_area_siblings, myls_tldr
+ * @updated 7.9.18.70 — added service_tagline; fixed stale attrs in service_posts, custom_blog_cards, divi_service_posts
  */
 
 if (!defined('ABSPATH')) exit;
@@ -335,23 +336,32 @@ function mlseo_compile_shortcode_documentation() {
         [
             'name' => 'service_posts',
             'category' => 'services',
-            'description' => 'Displays service posts in a configurable card/list layout with featured images and excerpts.',
+            'description' => 'Displays service posts in a bordered card grid with centered images/icons, taglines, and CTA buttons. Supports 2–6 column responsive layouts.',
             'basic_usage' => '[service_posts]',
             'attributes' => [
-                'posts_per_page' => ['default' => '-1',        'description' => 'Number of posts'],
-                'columns'        => ['default' => '3',         'description' => 'Grid columns'],
-                'orderby'        => ['default' => 'menu_order','description' => 'Sort field'],
-                'order'          => ['default' => 'ASC',       'description' => 'Sort direction'],
-                'show_image'     => ['default' => '1',         'description' => 'Show featured image'],
-                'show_excerpt'   => ['default' => '1',         'description' => 'Show excerpt text'],
-                'button_text'    => ['default' => 'Learn More','description' => 'Button label'],
+                'post_type'    => ['default' => 'service',              'description' => 'Post type to query'],
+                'parent_id'    => ['default' => '0',                    'description' => 'Parent post ID (0 = all top-level)'],
+                'columns'      => ['default' => '3',                    'description' => 'Grid columns (2–6)'],
+                'limit'        => ['default' => '6',                    'description' => 'Max posts to show'],
+                'heading'      => ['default' => '',                     'description' => 'Section heading text (blank = no heading)'],
+                'show_tagline' => ['default' => '1',                    'description' => '1 = show tagline between image and title'],
+                'orderby'      => ['default' => 'menu_order',           'description' => 'Sort field'],
+                'order'        => ['default' => 'ASC',                  'description' => 'Sort direction'],
+                'show_icon'    => ['default' => '1',                    'description' => '1 = show icon if available'],
+                'show_image'   => ['default' => '1',                    'description' => '1 = show featured image'],
+                'button_text'  => ['default' => 'Request Service NOW!', 'description' => 'Button label'],
             ],
             'examples' => [
-                ['label' => 'Default grid', 'code' => '[service_posts]'],
-                ['label' => '2 columns, no images', 'code' => '[service_posts columns="2" show_image="0"]'],
+                ['label' => 'Default grid',          'code' => '[service_posts]'],
+                ['label' => '4 columns, 8 posts',    'code' => '[service_posts columns="4" limit="8"]'],
+                ['label' => 'Custom heading',        'code' => '[service_posts heading="Our Services"]'],
+                ['label' => 'Hide taglines',         'code' => '[service_posts show_tagline="0"]'],
+                ['label' => 'Custom button text',    'code' => '[service_posts button_text="Learn More"]'],
             ],
             'tips' => [
                 'Use menu_order to control display sequence in WP admin',
+                'Tagline is pulled from the Service Tagline metabox — use [service_tagline] for standalone output',
+                'Icons come from the service icon meta field — falls back to featured image',
             ],
         ],
 
@@ -514,26 +524,24 @@ function mlseo_compile_shortcode_documentation() {
         [
             'name' => 'custom_blog_cards',
             'category' => 'content',
-            'description' => 'Displays blog posts as styled cards with featured images, excerpts, and read more buttons. Supports filtering by category and live search.',
+            'description' => 'Displays blog posts as styled cards with featured images, excerpts, and read more buttons. Includes built-in AJAX live search with debounce.',
             'basic_usage' => '[custom_blog_cards]',
             'attributes' => [
-                'posts_per_page' => ['default' => '9',         'description' => 'Number of posts to display'],
-                'category'       => ['default' => '',          'description' => 'Filter by category slug'],
-                'columns'        => ['default' => '3',         'description' => 'Grid columns'],
-                'show_excerpt'   => ['default' => '1',         'description' => 'Show excerpt text'],
-                'show_date'      => ['default' => '1',         'description' => 'Show post date'],
-                'show_author'    => ['default' => '1',         'description' => 'Show author name'],
-                'show_search'    => ['default' => '0',         'description' => '1 = show live search input'],
-                'button_text'    => ['default' => 'Read More', 'description' => 'Button label'],
+                'posts_per_page' => ['default' => '12',                     'description' => 'Number of posts to display'],
+                'search'         => ['default' => '1',                      'description' => '1 = show live search input, 0 = hide'],
+                'placeholder'    => ['default' => 'Search blog posts...', 'description' => 'Search input placeholder text'],
+                'min_chars'      => ['default' => '2',                      'description' => 'Minimum characters before search fires'],
+                'debounce_ms'    => ['default' => '200',                    'description' => 'Debounce delay in ms between keystrokes'],
             ],
             'examples' => [
-                ['label' => 'Default blog cards', 'code' => '[custom_blog_cards]'],
-                ['label' => 'Specific category', 'code' => '[custom_blog_cards category="news" columns="2"]'],
-                ['label' => 'With live search', 'code' => '[custom_blog_cards show_search="1"]'],
+                ['label' => 'Default blog cards',      'code' => '[custom_blog_cards]'],
+                ['label' => 'More posts, no search',   'code' => '[custom_blog_cards posts_per_page="24" search="0"]'],
+                ['label' => 'Custom placeholder',      'code' => '[custom_blog_cards placeholder="Find an article..."]'],
             ],
             'tips' => [
-                'Live search filters cards instantly as user types',
+                'Live search filters cards instantly via AJAX as user types',
                 'Responsive: 3 cols → 2 cols → 1 col on smaller screens',
+                'Search is enabled by default — set search="0" to hide the input',
             ],
         ],
 
@@ -570,23 +578,24 @@ function mlseo_compile_shortcode_documentation() {
         [
             'name' => 'divi_service_posts',
             'category' => 'content',
-            'description' => 'Displays service posts in a Divi-compatible card layout with images, taglines, and CTAs.',
+            'description' => 'Displays service posts in a Divi-compatible card layout with images, taglines, and CTAs. Sorted by menu order then title by default.',
             'basic_usage' => '[divi_service_posts]',
             'attributes' => [
-                'posts_per_page' => ['default' => '-1',         'description' => 'Number of posts'],
-                'columns'        => ['default' => '3',          'description' => 'Grid columns'],
-                'button_text'    => ['default' => 'Learn More', 'description' => 'Button label'],
-                'show_image'     => ['default' => '1',          'description' => 'Show featured image'],
-                'show_excerpt'   => ['default' => '1',          'description' => 'Show excerpt'],
-                'orderby'        => ['default' => 'menu_order', 'description' => 'Sort field'],
-                'order'          => ['default' => 'ASC',        'description' => 'Sort direction'],
+                'post_type'  => ['default' => 'service',                        'description' => 'Post type to query'],
+                'parent_id'  => ['default' => '0',                              'description' => 'Parent post ID (0 = all top-level)'],
+                'columns'    => ['default' => '3',                              'description' => 'Grid columns (1–6)'],
+                'limit'      => ['default' => '6',                              'description' => 'Max posts to show'],
+                'heading'    => ['default' => 'Your AC and Heating Services',  'description' => 'Section heading text'],
+                'orderby'    => ['default' => 'menu_order, title',              'description' => 'Sort fields (menu_order ASC, title ASC)'],
             ],
             'examples' => [
-                ['label' => 'Default', 'code' => '[divi_service_posts]'],
-                ['label' => 'Top 6, 2 cols', 'code' => '[divi_service_posts posts_per_page="6" columns="2"]'],
+                ['label' => 'Default',            'code' => '[divi_service_posts]'],
+                ['label' => 'Custom heading',     'code' => '[divi_service_posts heading="Our Services"]'],
+                ['label' => '4 cols, 8 posts',    'code' => '[divi_service_posts columns="4" limit="8"]'],
             ],
             'tips' => [
-                'Similar to service_grid but optimized for Divi themes',
+                'Similar to [service_posts] but uses Divi column classes',
+                'For non-Divi themes, use [service_posts] or [service_grid] instead',
             ],
         ],
 
@@ -662,6 +671,30 @@ function mlseo_compile_shortcode_documentation() {
                 'Set the "Alternate Page Title" field in the MYLS City, State metabox in the post editor',
                 'If the alternate title is blank, falls back to the standard WordPress page title',
                 'Output is plain text (esc_html) — safe for use inside heading widgets',
+            ],
+        ],
+
+        [
+            'name' => 'service_tagline',
+            'category' => 'schema',
+            'description' => 'Returns the service tagline (stored in _myls_service_tagline meta) for the current or specified post as plain text.',
+            'basic_usage' => '[service_tagline]',
+            'attributes' => [
+                'id'     => ['default' => '',  'description' => 'Optional explicit post ID'],
+                'prefix' => ['default' => '',  'description' => 'Text prepended to the tagline'],
+                'suffix' => ['default' => '',  'description' => 'Text appended to the tagline'],
+            ],
+            'examples' => [
+                ['label' => 'Default',            'code' => '[service_tagline]'],
+                ['label' => 'With prefix',        'code' => '[service_tagline prefix="– "]'],
+                ['label' => 'Specific post',      'code' => '[service_tagline id="123"]'],
+                ['label' => 'Wrapped in dashes',  'code' => '[service_tagline prefix="– " suffix=" –"]'],
+            ],
+            'tips' => [
+                'Taglines are managed via the Service Tagline metabox in the post editor or the AI Taglines batch tool',
+                'Returns empty string if no tagline is set — safe to use anywhere',
+                'Output is plain text (esc_html) — safe for use inside heading widgets and attributes',
+                'For taglines inside grid cards, use [service_grid subtext="tagline"] instead',
             ],
         ],
 
