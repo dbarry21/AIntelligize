@@ -1,3 +1,12 @@
+## 7.9.18.70 — 2026-04-07
+
+### Added — Standalone `[service_tagline]` shortcode
+- New shortcode outputs the service tagline (`_myls_service_tagline` meta) for the current or a specified post.
+- Supports `id`, `prefix`, and `suffix` attributes, matching the `[page_title]` / `[heading_title]` pattern.
+- Returns empty string when no tagline is set.
+
+**Files changed:** `modules/shortcodes/service-tagline.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.69 — 2026-04-05
 
 ### Added — Service Grid button color admin settings
