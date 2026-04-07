@@ -1,3 +1,13 @@
+## 7.9.18.72 — 2026-04-07
+
+### Added — Bulk Import / Export subtab with FAQ CSV export/import
+- New **Import / Export** subtab under Bulk tab for data management.
+- **Export All FAQs to CSV** — one-click download of every FAQ across all posts. Columns: `post_id`, `post_title`, `faq_index`, `question`, `answer`. UTF-8 BOM for Excel compatibility.
+- **Import FAQs from CSV** — upload an edited CSV to bulk-update FAQ content. Two-step workflow: parse & preview (shows added/modified/removed/unchanged counts per post), then confirm to apply.
+- Import uses transient storage (5-min TTL) between preview and confirm steps. Sanitizes through existing `myls_faq_editor_sanitize_items()`.
+
+**Files changed:** `admin/tabs/bulk/subtab-import-export.php`, `admin/tabs/bulk/_import-export-ajax.php`, `assets/js/myls-import-export.js`, `admin/tabs/tab-bulk.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.71 — 2026-04-07
 
 ### Fixed — AI tagline generation including instructions in output

@@ -201,6 +201,15 @@ add_action('admin_enqueue_scripts', function( $hook ){
 		true
 	);
 
+	// Import / Export subtab JS
+	wp_register_script(
+		'myls-import-export',
+		MYLS_PLUGIN_URL . 'assets/js/myls-import-export.js',
+		array('jquery','myls-bulk'),
+		$ver,
+		true
+	);
+
 	// Base MYLS globals (ajaxurl + nonce + basic screen context), non-destructive
 	$base = array(
 		'ajaxurl'   => admin_url('admin-ajax.php'),
@@ -257,6 +266,10 @@ add_action('admin_enqueue_scripts', function( $hook ){
 		);
 
 		wp_enqueue_script('myls-google-maps');
+	}
+
+	if ( $subtab === 'import-export' ) {
+		wp_enqueue_script('myls-import-export');
 	}
 });
 
@@ -322,6 +335,12 @@ require_once MYLS_PLUGIN_DIR . 'admin/tabs/bulk/_clone-service-areas-ajax.php';
 $yoast_ajax = MYLS_PLUGIN_DIR . 'admin/tabs/bulk/_yoast-ajax.php';
 if ( file_exists( $yoast_ajax ) ) {
 	require_once $yoast_ajax;
+}
+
+// Import / Export AJAX
+$ie_ajax = MYLS_PLUGIN_DIR . 'admin/tabs/bulk/_import-export-ajax.php';
+if ( file_exists( $ie_ajax ) ) {
+	require_once $ie_ajax;
 }
 
 /* -------------------------------------------------------------------------
