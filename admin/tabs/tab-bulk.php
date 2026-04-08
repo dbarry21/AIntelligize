@@ -210,6 +210,15 @@ add_action('admin_enqueue_scripts', function( $hook ){
 		true
 	);
 
+	// Search & Replace subtab JS
+	wp_register_script(
+		'myls-search-replace',
+		MYLS_PLUGIN_URL . 'assets/js/myls-search-replace.js',
+		array('jquery','myls-bulk'),
+		$ver,
+		true
+	);
+
 	// Base MYLS globals (ajaxurl + nonce + basic screen context), non-destructive
 	$base = array(
 		'ajaxurl'   => admin_url('admin-ajax.php'),
@@ -270,6 +279,10 @@ add_action('admin_enqueue_scripts', function( $hook ){
 
 	if ( $subtab === 'import-export' ) {
 		wp_enqueue_script('myls-import-export');
+	}
+
+	if ( $subtab === 'search-replace' ) {
+		wp_enqueue_script('myls-search-replace');
 	}
 });
 
@@ -341,6 +354,12 @@ if ( file_exists( $yoast_ajax ) ) {
 $ie_ajax = MYLS_PLUGIN_DIR . 'admin/tabs/bulk/_import-export-ajax.php';
 if ( file_exists( $ie_ajax ) ) {
 	require_once $ie_ajax;
+}
+
+// Search & Replace AJAX
+$sr_ajax = MYLS_PLUGIN_DIR . 'admin/tabs/bulk/_search-replace-ajax.php';
+if ( file_exists( $sr_ajax ) ) {
+	require_once $sr_ajax;
 }
 
 /* -------------------------------------------------------------------------

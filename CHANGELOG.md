@@ -1,3 +1,15 @@
+## 7.9.18.73 — 2026-04-07
+
+### Added — Bulk Search & Replace subtab with Elementor JSON support
+- New **Search & Replace** subtab under Bulk tab for database-wide text replacement.
+- **Dry Run (Preview)** counts matches across `wp_posts` (content + titles), `wp_postmeta`, and `wp_options` before any changes.
+- **Execute Replace** applies replacements with per-table logging. Elementor `_elementor_data` is handled via JSON decode, recursive PHP-level string replace, re-encode with `wp_slash()`, and automatic cache clearing (`_elementor_css`, `_elementor_element_cache`, `_elementor_page_assets`).
+- Scope checkboxes for Post Content, Post Titles, Post Meta, and Options (all enabled by default). Transients are excluded.
+- Case-sensitive by default with optional case-insensitive toggle.
+- Non-Elementor postmeta uses efficient SQL `REPLACE()`. Serialized PHP data in meta is handled safely via SQL for plain string matches.
+
+**Files changed:** `admin/tabs/bulk/subtab-search-replace.php`, `admin/tabs/bulk/_search-replace-ajax.php`, `assets/js/myls-search-replace.js`, `admin/tabs/tab-bulk.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.72 — 2026-04-07
 
 ### Added — Bulk Import / Export subtab with FAQ CSV export/import
