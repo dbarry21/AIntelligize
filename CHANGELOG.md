@@ -1,3 +1,12 @@
+## 7.9.18.74 — 2026-04-08
+
+### Enhanced — Add permalink column to Bulk FAQ CSV export
+- FAQ CSV export now includes a `permalink` column between `post_title` and `faq_index`.
+- Import parser supports both the new 6-column format (with permalink) and the old 5-column format for backward compatibility.
+- Updated CSV columns display in the Export FAQs UI.
+
+**Files changed:** `admin/tabs/bulk/_import-export-ajax.php`, `admin/tabs/bulk/subtab-import-export.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.73 — 2026-04-07
 
 ### Added — Bulk Search & Replace subtab with Elementor JSON support
