@@ -52,7 +52,7 @@ add_action( 'wp_ajax_myls_ie_export_csv', function () {
 	fwrite( $out, "\xEF\xBB\xBF" );
 
 	// Header row.
-	fputcsv( $out, [ 'post_id', 'post_title', 'faq_index', 'question', 'answer' ] );
+	fputcsv( $out, [ 'post_id', 'post_title', 'permalink', 'faq_index', 'question', 'answer' ] );
 
 	foreach ( $post_ids as $pid ) {
 		$pid   = (int) $pid;
@@ -62,13 +62,15 @@ add_action( 'wp_ajax_myls_ie_export_csv', function () {
 
 		if ( ! is_array( $items ) || empty( $items ) ) continue;
 
-		$title = get_the_title( $pid ) ?: ( 'Post #' . $pid );
+		$title     = get_the_title( $pid ) ?: ( 'Post #' . $pid );
+		$permalink = get_permalink( $pid ) ?: '';
 
 		foreach ( $items as $idx => $item ) {
 			if ( empty( $item['q'] ) && empty( $item['a'] ) ) continue;
 			fputcsv( $out, [
 				$pid,
 				$title,
+				$permalink,
 				(int) $idx,
 				$item['q'] ?? '',
 				$item['a'] ?? '',
@@ -118,7 +120,7 @@ add_action( 'wp_ajax_myls_ie_import_preview', function () {
 	$header = fgetcsv( $handle );
 	if ( ! $header || count( $header ) < 5 ) {
 		fclose( $handle );
-		wp_send_json_error( [ 'message' => 'Invalid CSV header. Expected: post_id, post_title, faq_index, question, answer' ] );
+		wp_send_json_error( [ 'message' => 'Invalid CSV header. Expected: post_id, post_title, permalink, faq_index, question, answer' ] );
 	}
 
 	// Normalise header (trim whitespace, lowercase).
@@ -126,18 +128,30 @@ add_action( 'wp_ajax_myls_ie_import_preview', function () {
 		return strtolower( trim( $h ) );
 	}, $header );
 
-	$expected = [ 'post_id', 'post_title', 'faq_index', 'question', 'answer' ];
-	if ( array_slice( $header, 0, 5 ) !== $expected ) {
+	// Support both old 5-column format and new 6-column format with permalink.
+	$expected_new = [ 'post_id', 'post_title', 'permalink', 'faq_index', 'question', 'answer' ];
+	$expected_old = [ 'post_id', 'post_title', 'faq_index', 'question', 'answer' ];
+
+	if ( array_slice( $header, 0, 6 ) === $expected_new ) {
+		$has_permalink = true;
+	} elseif ( array_slice( $header, 0, 5 ) === $expected_old ) {
+		$has_permalink = false;
+	} else {
 		fclose( $handle );
-		wp_send_json_error( [ 'message' => 'CSV header mismatch. Expected columns: ' . implode( ', ', $expected ) ] );
+		wp_send_json_error( [ 'message' => 'CSV header mismatch. Expected columns: ' . implode( ', ', $expected_new ) ] );
 	}
+
+	// Column offsets: permalink column shifts question/answer indices.
+	$col_q = $has_permalink ? 4 : 3;
+	$col_a = $has_permalink ? 5 : 4;
+	$min_cols = $has_permalink ? 6 : 5;
 
 	// Parse rows, group by post_id.
 	$by_post   = [];
 	$row_count = 0;
 
 	while ( ( $row = fgetcsv( $handle ) ) !== false ) {
-		if ( count( $row ) < 5 ) continue;
+		if ( count( $row ) < $min_cols ) continue;
 		$row_count++;
 
 		$pid = absint( $row[0] );
@@ -151,8 +165,8 @@ add_action( 'wp_ajax_myls_ie_import_preview', function () {
 		}
 
 		$by_post[ $pid ]['items'][] = [
-			'q' => sanitize_text_field( $row[3] ),
-			'a' => wp_kses_post( $row[4] ),
+			'q' => sanitize_text_field( $row[ $col_q ] ),
+			'a' => wp_kses_post( $row[ $col_a ] ),
 		];
 	}
 	fclose( $handle );
