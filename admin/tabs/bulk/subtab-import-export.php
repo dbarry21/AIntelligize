@@ -92,7 +92,7 @@ $spec = [
 
 						<div class="mb-3">
 							<p class="mb-2" style="font-size:.875rem;color:var(--myls-gray-600,#6b7280);">
-								<strong>CSV columns:</strong> <code>post_id</code>, <code>post_title</code>, <code>faq_index</code>, <code>question</code>, <code>answer</code>
+								<strong>CSV columns:</strong> <code>post_id</code>, <code>post_title</code>, <code>permalink</code>, <code>faq_index</code>, <code>question</code>, <code>answer</code>
 							</p>
 						</div>
 
