@@ -147,6 +147,25 @@ $spec = [
 					</div>
 				</div>
 			</div>
+
+			<!-- ── Bottom: Recent Operations (Undo History) ──── -->
+			<div class="row mt-4">
+				<div class="col-12">
+					<div class="myls-card">
+						<div class="myls-card-header">
+							<h2 class="myls-card-title">
+								<i class="bi bi-arrow-counterclockwise"></i> Recent Operations (Undo)
+							</h2>
+						</div>
+						<p class="text-muted mb-3">
+							The last 5 search &amp; replace operations are kept as snapshots. Click <strong>Undo</strong> to restore the original values for that operation. Large Elementor snapshots can take several seconds to restore.
+						</p>
+						<div id="myls_sr_history_wrap">
+							<p class="text-muted" style="margin:0;">Loading…</p>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 	<?php }
 ];
