@@ -205,6 +205,8 @@ Subtabs are auto-discovered from `admin/tabs/utilities/subtab-*.php`.
     on-demand (button-triggered, not on page load) and results are cached for 30 minutes. A ↺ Refresh Cache
     button is available. If quota errors occur, a GCP Quotas link is shown with fix instructions.
 - **llms.txt** — Controls the `/llms.txt` and `/llms-full.txt` AI discovery endpoints.
+- **Media Info** — Inspect media attachments from three angles: (1) Post Lookup — pick a post type, search posts, then view all media attached to the selected post; (2) Post Type Report — load every attachment whose parent is a post of the selected post type (capped at 500); (3) Full Site Library Report — every attachment in the media library (capped at 1000). Displays Attachment ID, File Name, Title, MIME type, Uploaded By, Upload Date, Last Modified, Assigned To, Assigned Post Type, and File URL. Tables are client-side sortable with a Copy as CSV button. *(Added in v7.9.18.75.)*
+  - AJAX actions: `myls_media_get_post_types`, `myls_media_search_posts`, `myls_media_get_post_attachments`, `myls_media_get_posttype_attachments`, `myls_media_get_full_library`. Nonce: `myls_media_info_nonce`.
 - **Paste a Post** — Paste content from Google Docs or Word into a WYSIWYG editor to create a blog post.
   - Strips `<span>`, `<font>`, and inline style/class attributes; keeps semantic HTML (h1–h3, p, ul, ol, li, a, strong, em, blockquote).
   - AI generates title (if blank) and excerpt. Creates a standard WP post — compatible with Elementor, Divi, and Classic editor.

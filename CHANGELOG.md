@@ -1,3 +1,17 @@
+## 7.9.18.75 — 2026-04-09
+
+### Added — Media Info subtab under Utilities
+- New **Media Info** subtab (`admin/tabs/utilities/subtab-media-info.php`) for auditing media attachments from three angles:
+  - **Post Lookup**: pick a post type, search posts by title (debounced, min 2 chars), then view all media attached to the selected post.
+  - **Post Type Report**: load every attachment whose parent is a post of the selected post type (capped at 500, with capped/total indicator).
+  - **Full Site Library Report**: generate a report of every attachment in the media library (capped at 1000, with total count via `wp_count_posts`).
+- Each report displays 10 columns pulled from native WordPress data: Attachment ID, File Name, Title, MIME type, Uploaded By (display name), Upload Date, Last Modified, Assigned To (parent title), Assigned Post Type, File URL (opens in new tab).
+- Results tables are client-side sortable (click any header) and include a **Copy as CSV** button that writes tab-separated values to the clipboard.
+- Fully self-contained: all 5 AJAX handlers (`myls_media_get_post_types`, `myls_media_search_posts`, `myls_media_get_post_attachments`, `myls_media_get_posttype_attachments`, `myls_media_get_full_library`), HTML, inline CSS, and vanilla JS live in the single subtab file. No external dependencies, no custom DB tables.
+- All handlers enforce `manage_options` capability and `myls_media_info_nonce` verification. PHP 7.4+ compatible.
+
+**Files changed:** `admin/tabs/utilities/subtab-media-info.php` (new), `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.74 — 2026-04-08
 
 ### Enhanced — Add permalink column to Bulk FAQ CSV export
