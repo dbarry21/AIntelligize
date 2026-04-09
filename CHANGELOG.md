@@ -1,3 +1,16 @@
+## 7.9.18.76 — 2026-04-09
+
+### Added — Undo for Bulk Search & Replace
+- Every execute operation now captures a **snapshot** of the original values for every row it touches (post content, post titles, non-Elementor postmeta, Elementor `_elementor_data`, and options). Snapshots are persisted in a new custom table `{prefix}myls_sr_snapshots`.
+- New **Recent Operations (Undo)** card below the execution log in *Bulk → Search & Replace* showing the last 5 snapshots per user with **Undo** and **Delete** buttons. Undone snapshots are marked and cannot be undone twice.
+- New AJAX endpoints: `myls_sr_list_snapshots`, `myls_sr_undo`, `myls_sr_delete_snapshot`. Existing `myls_sr_execute` now returns a `snapshot_id`.
+- Elementor restore stores the **raw pre-decoded JSON string**, so undo is byte-identical to the original. Elementor CSS/element cache/page assets meta are cleared on both execute and undo so changes re-render cleanly.
+- Auto-prune keeps only the 5 most recent snapshots per user after each execute.
+- Size guard aborts execute with a warning if the snapshot payload would exceed 32 MB.
+- Schema is created on plugin activation and also lazily from every search-and-replace AJAX handler, so existing installs don't need a reactivation.
+
+**Files changed:** `admin/tabs/bulk/_search-replace-ajax.php`, `admin/tabs/bulk/subtab-search-replace.php`, `assets/js/myls-search-replace.js`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`, `plugin-docs/tabs.md`
+
 ## 7.9.18.75 — 2026-04-09
 
 ### Added — Media Info subtab under Utilities
