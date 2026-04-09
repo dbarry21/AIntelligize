@@ -258,6 +258,7 @@ if ( ! has_action( 'wp_ajax_myls_media_get_posttype_attachments' ) ) {
 /* ---- 5. Full library report ---- */
 if ( ! has_action( 'wp_ajax_myls_media_get_full_library' ) ) {
 	add_action( 'wp_ajax_myls_media_get_full_library', function () {
+		global $wpdb;
 		myls_media_info_guard();
 
 		$cap = 1000;
@@ -270,7 +271,12 @@ if ( ! has_action( 'wp_ajax_myls_media_get_full_library' ) ) {
 			}
 		}
 
-		$att_query = new WP_Query( array(
+		// Read filters.
+		$uploader_id = isset( $_POST['uploader_id'] ) ? (int) $_POST['uploader_id'] : 0;
+		$parent_id   = isset( $_POST['parent_id'] ) ? (int) $_POST['parent_id'] : 0;
+		$file_name   = isset( $_POST['file_name'] ) ? sanitize_text_field( wp_unslash( $_POST['file_name'] ) ) : '';
+
+		$args = array(
 			'post_type'              => 'attachment',
 			'post_status'            => 'inherit',
 			'posts_per_page'         => $cap,
@@ -279,8 +285,37 @@ if ( ! has_action( 'wp_ajax_myls_media_get_full_library' ) ) {
 			'no_found_rows'          => true,
 			'update_post_meta_cache' => false,
 			'update_post_term_cache' => false,
-			'suppress_filters'       => true,
-		) );
+		);
+
+		if ( $uploader_id > 0 ) {
+			$args['author'] = $uploader_id;
+		}
+		if ( $parent_id > 0 ) {
+			$args['post_parent'] = $parent_id;
+		}
+
+		// Filename LIKE filter: match against post_title OR the _wp_attached_file meta value.
+		$where_cb = null;
+		if ( $file_name !== '' ) {
+			$like        = '%' . $wpdb->esc_like( $file_name ) . '%';
+			$like_sql    = $wpdb->prepare( '%s', $like );
+			$meta_exists = $wpdb->prepare(
+				"EXISTS (SELECT 1 FROM {$wpdb->postmeta} pm WHERE pm.post_id = {$wpdb->posts}.ID AND pm.meta_key = %s AND pm.meta_value LIKE %s)",
+				'_wp_attached_file',
+				$like
+			);
+			$where_cb = function ( $where ) use ( $like_sql, $meta_exists, $wpdb ) {
+				$where .= " AND ( {$wpdb->posts}.post_title LIKE {$like_sql} OR {$meta_exists} )";
+				return $where;
+			};
+			add_filter( 'posts_where', $where_cb );
+		}
+
+		$att_query = new WP_Query( $args );
+
+		if ( $where_cb ) {
+			remove_filter( 'posts_where', $where_cb );
+		}
 
 		$rows = array();
 		foreach ( $att_query->posts as $att ) {
@@ -291,8 +326,33 @@ if ( ! has_action( 'wp_ajax_myls_media_get_full_library' ) ) {
 			'rows'   => $rows,
 			'count'  => count( $rows ),
 			'total'  => $total,
-			'capped' => $total > $cap,
+			'capped' => count( $rows ) >= $cap,
 		) );
+	} );
+}
+
+/* ---- 6. List users who can upload media ---- */
+if ( ! has_action( 'wp_ajax_myls_media_get_upload_users' ) ) {
+	add_action( 'wp_ajax_myls_media_get_upload_users', function () {
+		myls_media_info_guard();
+
+		$users = get_users( array(
+			'capability' => 'upload_files',
+			'fields'     => array( 'ID', 'display_name', 'user_login' ),
+			'orderby'    => 'display_name',
+			'order'      => 'ASC',
+		) );
+
+		$out = array();
+		foreach ( $users as $u ) {
+			$name = ! empty( $u->display_name ) ? $u->display_name : $u->user_login;
+			$out[] = array(
+				'id'   => (int) $u->ID,
+				'name' => (string) $name,
+			);
+		}
+
+		wp_send_json_success( array( 'users' => $out ) );
 	} );
 }
 
@@ -383,9 +443,45 @@ return array(
 			<!-- ── Section C: Full Site Library Report ────────────── -->
 			<div class="cardish">
 				<div class="mi-section-title">Full Site Library Report</div>
-				<p class="muted" style="margin-top:0;">Generate a report of every attachment in the media library (max 1000).</p>
+				<p class="muted" style="margin-top:0;">Generate a report of every attachment in the media library (max 1000). Use filters below to narrow the results before the cap is applied.</p>
 
-				<button type="button" id="myls-mi-load-full" class="btn btn-primary">Generate Full Library Report</button>
+				<div class="mi-row mt-2">
+					<div>
+						<label class="form-label" for="myls-mi-full-uploader">Uploaded By</label>
+						<select id="myls-mi-full-uploader" class="form-select form-control">
+							<option value="">— Any user —</option>
+						</select>
+					</div>
+					<div>
+						<label class="form-label" for="myls-mi-full-filename">File name contains</label>
+						<input type="text" id="myls-mi-full-filename" class="form-control" placeholder="e.g. hero, logo, .pdf">
+					</div>
+				</div>
+
+				<div class="mi-row mt-2">
+					<div>
+						<label class="form-label" for="myls-mi-full-parent-type">Assigned To — Post Type</label>
+						<select id="myls-mi-full-parent-type" class="form-select form-control">
+							<option value="">— Any / select type —</option>
+						</select>
+					</div>
+					<div>
+						<label class="form-label" for="myls-mi-full-parent-search">Search posts</label>
+						<input type="text" id="myls-mi-full-parent-search" class="form-control" placeholder="Type 2+ characters…" disabled>
+					</div>
+					<div>
+						<label class="form-label" for="myls-mi-full-parent-results">Matching posts</label>
+						<select id="myls-mi-full-parent-results" class="form-select form-control" disabled>
+							<option value="">—</option>
+						</select>
+					</div>
+				</div>
+
+				<div class="mt-2" style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+					<button type="button" id="myls-mi-load-full" class="btn btn-primary">Generate Full Library Report</button>
+					<button type="button" id="myls-mi-full-clear-filters" class="btn">Clear Filters</button>
+					<span id="myls-mi-full-active-filters" class="muted"></span>
+				</div>
 
 				<div id="myls-mi-full-table-wrap" class="mt-3"></div>
 			</div>
@@ -758,9 +854,138 @@ return array(
 				});
 			}
 
+			/* ---- Section C: Full library filters ---- */
+
+			function loadUploaders(){
+				var sel = $id('myls-mi-full-uploader');
+				if (!sel) return;
+				postAjax('myls_media_get_upload_users', {}).then(function(data){
+					var users = (data && data.users) || [];
+					var html = '<option value="">— Any user —</option>';
+					for (var i = 0; i < users.length; i++) {
+						html += '<option value="' + escapeHtml(users[i].id) + '">' + escapeHtml(users[i].name) + '</option>';
+					}
+					sel.innerHTML = html;
+				}).catch(function(){
+					sel.innerHTML = '<option value="">(error loading users)</option>';
+				});
+			}
+
+			function loadFullParentTypes(){
+				var sel = $id('myls-mi-full-parent-type');
+				if (!sel) return;
+				postAjax('myls_media_get_post_types', {}).then(function(data){
+					var types = (data && data.types) || [];
+					var html = '<option value="">— Any / select type —</option>';
+					for (var i = 0; i < types.length; i++) {
+						html += '<option value="' + escapeHtml(types[i].value) + '">' + escapeHtml(types[i].label) + '</option>';
+					}
+					sel.innerHTML = html;
+				}).catch(function(){
+					sel.innerHTML = '<option value="">(error)</option>';
+				});
+			}
+
+			function onFullParentTypeChange(){
+				var ptSel   = $id('myls-mi-full-parent-type');
+				var search  = $id('myls-mi-full-parent-search');
+				var results = $id('myls-mi-full-parent-results');
+
+				var pt = ptSel ? ptSel.value : '';
+				var enabled = !!pt;
+
+				if (search) {
+					search.disabled = !enabled;
+					search.value = '';
+				}
+				if (results) {
+					results.disabled = true;
+					results.innerHTML = '<option value="">—</option>';
+				}
+			}
+
+			var doFullParentSearch = debounce(function(){
+				var ptSel   = $id('myls-mi-full-parent-type');
+				var search  = $id('myls-mi-full-parent-search');
+				var results = $id('myls-mi-full-parent-results');
+				if (!ptSel || !search || !results) return;
+
+				var pt = ptSel.value;
+				var q  = search.value.trim();
+				if (!pt || q.length < 2) {
+					results.innerHTML = '<option value="">—</option>';
+					results.disabled = true;
+					return;
+				}
+
+				results.innerHTML = '<option value="">Searching…</option>';
+				results.disabled = true;
+
+				postAjax('myls_media_search_posts', { post_type: pt, search: q }).then(function(data){
+					var posts = (data && data.posts) || [];
+					if (!posts.length) {
+						results.innerHTML = '<option value="">No matches</option>';
+						results.disabled = true;
+						return;
+					}
+					var html = '<option value="">— Select a post —</option>';
+					for (var i = 0; i < posts.length; i++) {
+						html += '<option value="' + escapeHtml(posts[i].id) + '">' + escapeHtml(posts[i].title) + ' (#' + escapeHtml(posts[i].id) + ')</option>';
+					}
+					results.innerHTML = html;
+					results.disabled = false;
+				}).catch(function(){
+					results.innerHTML = '<option value="">(error)</option>';
+				});
+			}, 300);
+
+			function clearFullFilters(){
+				var u  = $id('myls-mi-full-uploader');
+				var fn = $id('myls-mi-full-filename');
+				var pt = $id('myls-mi-full-parent-type');
+				var ps = $id('myls-mi-full-parent-search');
+				var pr = $id('myls-mi-full-parent-results');
+				if (u)  u.value = '';
+				if (fn) fn.value = '';
+				if (pt) pt.value = '';
+				if (ps) { ps.value = ''; ps.disabled = true; }
+				if (pr) { pr.innerHTML = '<option value="">—</option>'; pr.disabled = true; }
+				var active = $id('myls-mi-full-active-filters');
+				if (active) active.textContent = '';
+			}
+
+			function describeActiveFilters(params){
+				var parts = [];
+				if (params.uploader_id) {
+					var uSel = $id('myls-mi-full-uploader');
+					var uTxt = uSel && uSel.options[uSel.selectedIndex] ? uSel.options[uSel.selectedIndex].text : ('user #' + params.uploader_id);
+					parts.push('Uploaded By: ' + uTxt);
+				}
+				if (params.file_name) parts.push('Filename contains: "' + params.file_name + '"');
+				if (params.parent_id) {
+					var pSel = $id('myls-mi-full-parent-results');
+					var pTxt = pSel && pSel.options[pSel.selectedIndex] ? pSel.options[pSel.selectedIndex].text : ('post #' + params.parent_id);
+					parts.push('Assigned To: ' + pTxt);
+				}
+				return parts.length ? ('Filters — ' + parts.join(' · ')) : '';
+			}
+
 			function onLoadFull(){
+				var uSel = $id('myls-mi-full-uploader');
+				var fn   = $id('myls-mi-full-filename');
+				var pr   = $id('myls-mi-full-parent-results');
+
+				var params = {
+					uploader_id: (uSel && uSel.value) ? uSel.value : '0',
+					file_name:   (fn && fn.value) ? fn.value.trim() : '',
+					parent_id:   (pr && pr.value) ? pr.value : '0'
+				};
+
+				var active = $id('myls-mi-full-active-filters');
+				if (active) active.textContent = describeActiveFilters(params);
+
 				showLoading('myls-mi-full-table-wrap');
-				postAjax('myls_media_get_full_library', {}).then(function(data){
+				postAjax('myls_media_get_full_library', params).then(function(data){
 					renderTable('myls-mi-full-table-wrap', (data && data.rows) || [], {
 						total:  data && data.total,
 						capped: data && data.capped
@@ -784,7 +1009,17 @@ return array(
 				if (loadPT)  loadPT.addEventListener('click', onLoadPostType);
 				if (loadAll) loadAll.addEventListener('click', onLoadFull);
 
+				// Section C filter wiring
+				var fullParentType   = $id('myls-mi-full-parent-type');
+				var fullParentSearch = $id('myls-mi-full-parent-search');
+				var fullClear        = $id('myls-mi-full-clear-filters');
+				if (fullParentType)   fullParentType.addEventListener('change', onFullParentTypeChange);
+				if (fullParentSearch) fullParentSearch.addEventListener('input', doFullParentSearch);
+				if (fullClear)        fullClear.addEventListener('click', clearFullFilters);
+
 				loadPostTypes();
+				loadUploaders();
+				loadFullParentTypes();
 			}
 
 			if (document.readyState === 'loading') {

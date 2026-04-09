@@ -1,3 +1,16 @@
+## 7.9.18.78 — 2026-04-09
+
+### Added — Filters for Full Library Report (Utilities → Media Info)
+- New filter row in Section C ("Full Site Library Report") with three server-side filters applied before the 1000-row cap:
+  - **Uploaded By** dropdown populated from users with `upload_files` capability.
+  - **File name contains** text input matching against `post_title` or `_wp_attached_file` meta.
+  - **Assigned To** post-type → search → select chain (reuses `myls_media_get_post_types` and `myls_media_search_posts`).
+- New AJAX action `myls_media_get_upload_users` returning eligible uploaders.
+- `myls_media_get_full_library` handler now reads `uploader_id`, `file_name`, and `parent_id` POST params and applies them via `WP_Query` args plus a scoped `posts_where` filter for the filename LIKE.
+- "Clear Filters" button and an active-filters summary line next to the Generate button.
+
+**Files changed:** `admin/tabs/utilities/subtab-media-info.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.77 — 2026-04-09
 
 ### Added — Post Excerpt scope in Bulk Search & Replace
