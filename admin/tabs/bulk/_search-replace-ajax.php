@@ -121,6 +121,7 @@ function myls_sr_parse_params() {
 	$scope = [
 		'post_content' => ! empty( $_POST['scope_post_content'] ),
 		'post_title'   => ! empty( $_POST['scope_post_title'] ),
+		'post_excerpt' => ! empty( $_POST['scope_post_excerpt'] ),
 		'meta_value'   => ! empty( $_POST['scope_meta_value'] ),
 		'options'      => ! empty( $_POST['scope_options'] ),
 	];
@@ -170,6 +171,16 @@ add_action( 'wp_ajax_myls_sr_preview', function () {
 		$counts['post_title'] = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_title LIKE %s",
+				$search_esc
+			)
+		);
+	}
+
+	// ── wp_posts.post_excerpt ──
+	if ( $p['scope']['post_excerpt'] ) {
+		$counts['post_excerpt'] = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_excerpt LIKE %s",
 				$search_esc
 			)
 		);
@@ -298,6 +309,40 @@ add_action( 'wp_ajax_myls_sr_execute', function () {
 
 		$affected['post_title'] = $rows;
 		$log[] = "post_title: {$rows} row(s) updated";
+	}
+
+	// ── wp_posts.post_excerpt ──
+	if ( $p['scope']['post_excerpt'] ) {
+		$orig_rows = $wpdb->get_results(
+			$wpdb->prepare(
+				$p['case_sensitive']
+					? "SELECT ID, post_excerpt FROM {$wpdb->posts} WHERE post_excerpt LIKE %s"
+					: "SELECT ID, post_excerpt FROM {$wpdb->posts} WHERE LOWER(post_excerpt) LIKE LOWER(%s)",
+				$search_esc
+			)
+		);
+
+		$rows = 0;
+		foreach ( $orig_rows as $r ) {
+			$old = (string) $r->post_excerpt;
+			$new = $p['case_sensitive']
+				? str_replace( $p['search'], $p['replace'], $old )
+				: str_ireplace( $p['search'], $p['replace'], $old );
+			if ( $new === $old ) continue;
+
+			$snapshot[] = [
+				'type'  => 'post',
+				'id'    => (int) $r->ID,
+				'field' => 'post_excerpt',
+				'before'=> $old,
+			];
+
+			$wpdb->update( $wpdb->posts, [ 'post_excerpt' => $new ], [ 'ID' => (int) $r->ID ] );
+			$rows++;
+		}
+
+		$affected['post_excerpt'] = $rows;
+		$log[] = "post_excerpt: {$rows} row(s) updated";
 	}
 
 	// ── wp_postmeta (non-Elementor) ──
@@ -608,7 +653,7 @@ add_action( 'wp_ajax_myls_sr_undo', function () {
 		if ( $type === 'post' ) {
 			$id    = isset( $entry['id'] ) ? (int) $entry['id'] : 0;
 			$field = isset( $entry['field'] ) ? (string) $entry['field'] : '';
-			if ( $id <= 0 || ! in_array( $field, [ 'post_content', 'post_title' ], true ) ) continue;
+			if ( $id <= 0 || ! in_array( $field, [ 'post_content', 'post_title', 'post_excerpt' ], true ) ) continue;
 
 			$wpdb->update(
 				$wpdb->posts,

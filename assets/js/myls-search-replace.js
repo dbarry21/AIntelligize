@@ -23,6 +23,7 @@
   var $caseInsensitive = $("#myls_sr_case_insensitive");
   var $scopeContent = $("#myls_sr_scope_content");
   var $scopeTitle = $("#myls_sr_scope_title");
+  var $scopeExcerpt = $("#myls_sr_scope_excerpt");
   var $scopeMeta = $("#myls_sr_scope_meta");
   var $scopeOptions = $("#myls_sr_scope_options");
   var $previewBtn = $("#myls_sr_preview_btn");
@@ -57,13 +58,14 @@
       case_insensitive: $caseInsensitive.is(":checked") ? "1" : "",
       scope_post_content: $scopeContent.is(":checked") ? "1" : "",
       scope_post_title: $scopeTitle.is(":checked") ? "1" : "",
+      scope_post_excerpt: $scopeExcerpt.is(":checked") ? "1" : "",
       scope_meta_value: $scopeMeta.is(":checked") ? "1" : "",
       scope_options: $scopeOptions.is(":checked") ? "1" : "",
     };
   }
 
   /* ── Reset execute button when inputs change ──────────────────── */
-  $search.add($replace).add($caseInsensitive).add($scopeContent).add($scopeTitle).add($scopeMeta).add($scopeOptions).on("change input", function () {
+  $search.add($replace).add($caseInsensitive).add($scopeContent).add($scopeTitle).add($scopeExcerpt).add($scopeMeta).add($scopeOptions).on("change input", function () {
     $executeBtn.prop("disabled", true);
     $previewArea.hide();
     lastPreviewTotal = 0;
@@ -98,6 +100,7 @@
 
         if (d.post_content !== undefined && d.post_content > 0) html += badge("Post Content: " + d.post_content, "#0ea5e9");
         if (d.post_title !== undefined && d.post_title > 0) html += badge("Post Titles: " + d.post_title, "#8b5cf6");
+        if (d.post_excerpt !== undefined && d.post_excerpt > 0) html += badge("Post Excerpts: " + d.post_excerpt, "#ec4899");
         if (d.meta_value !== undefined && d.meta_value > 0) html += badge("Post Meta: " + d.meta_value, "#059669");
         if (d.elementor !== undefined && d.elementor > 0) html += badge("Elementor: " + d.elementor, "#f59e0b");
         if (d.options !== undefined && d.options > 0) html += badge("Options: " + d.options, "#6366f1");

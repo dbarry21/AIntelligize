@@ -151,7 +151,7 @@ Bulk operations for managing content across many posts at once.
 - **Bulk Maps** — Generate Google Maps embeds for multiple locations.
 - **Bulk Taglines** — Batch tagline generation for services.
 - **Import / Export** — Export all FAQs to CSV and re-import edited CSVs. Columns: `post_id`, `post_title`, `permalink`, `faq_index`, `question`, `answer`.
-- **Search & Replace** — Database-wide find-and-replace across `wp_posts.post_content`, `wp_posts.post_title`, `wp_postmeta` (including Elementor JSON via recursive decode/replace/re-encode), and `wp_options` (transients excluded). Supports case-insensitive matching, scope checkboxes, and a dry-run preview. **Undo**: every execute is snapshotted to `{prefix}myls_sr_snapshots` and the last 5 operations per user are available in the Recent Operations card with one-click restore. *(Undo added in v7.9.18.76.)*
+- **Search & Replace** — Database-wide find-and-replace across `wp_posts.post_content`, `wp_posts.post_title`, `wp_posts.post_excerpt`, `wp_postmeta` (including Elementor JSON via recursive decode/replace/re-encode), and `wp_options` (transients excluded). Supports case-insensitive matching, scope checkboxes, and a dry-run preview. **Undo**: every execute is snapshotted to `{prefix}myls_sr_snapshots` and the last 5 operations per user are available in the Recent Operations card with one-click restore. *(Undo added in v7.9.18.76; post_excerpt scope added in v7.9.18.77.)*
   - AJAX actions: `myls_sr_preview`, `myls_sr_execute`, `myls_sr_list_snapshots`, `myls_sr_undo`, `myls_sr_delete_snapshot`. Nonce: `myls_bulk_ops`.
 
 ---

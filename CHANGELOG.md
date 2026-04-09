@@ -1,3 +1,12 @@
+## 7.9.18.77 — 2026-04-09
+
+### Added — Post Excerpt scope in Bulk Search & Replace
+- New **Post Excerpts** checkbox in the Scope panel (checked by default) targets `wp_posts.post_excerpt`.
+- Preview counts and execute updates now include excerpts, with the same snapshot-capture pattern as `post_content` and `post_title` — excerpt changes are fully undoable.
+- Undo restore handler whitelists `post_excerpt` alongside the existing post fields.
+
+**Files changed:** `admin/tabs/bulk/_search-replace-ajax.php`, `admin/tabs/bulk/subtab-search-replace.php`, `assets/js/myls-search-replace.js`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`, `plugin-docs/tabs.md`
+
 ## 7.9.18.76 — 2026-04-09
 
 ### Added — Undo for Bulk Search & Replace

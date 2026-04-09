@@ -107,6 +107,13 @@ $spec = [
 								</label>
 							</div>
 							<div class="form-check mb-2">
+								<input class="form-check-input" type="checkbox" id="myls_sr_scope_excerpt" value="1" checked>
+								<label class="form-check-label" for="myls_sr_scope_excerpt">
+									<strong>Post Excerpts</strong>
+									<span class="text-muted" style="font-size:.85rem;">— <code>wp_posts.post_excerpt</code></span>
+								</label>
+							</div>
+							<div class="form-check mb-2">
 								<input class="form-check-input" type="checkbox" id="myls_sr_scope_meta" value="1" checked>
 								<label class="form-check-label" for="myls_sr_scope_meta">
 									<strong>Post Meta</strong>
