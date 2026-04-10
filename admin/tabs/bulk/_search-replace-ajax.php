@@ -28,6 +28,35 @@ if ( ! defined('MYLS_SR_SNAPSHOT_KEEP') ) {
 }
 
 /**
+ * Build an alternative LIKE pattern for Elementor JSON data.
+ *
+ * Elementor may store non-ASCII characters as JSON unicode escapes
+ * (e.g. an em dash — is stored as the six ASCII chars \u2014).
+ * This function converts any non-ASCII characters in the search term
+ * to their \uXXXX equivalents so the SQL LIKE can match either form.
+ *
+ * Returns null if the search term contains no non-ASCII characters
+ * (no alternative pattern needed).
+ *
+ * @param string $search Raw search string.
+ * @return string|null   JSON-escaped LIKE value with % wildcards, or null.
+ */
+function myls_sr_json_escaped_like( $search ) {
+	global $wpdb;
+
+	$json_inner = wp_json_encode( $search );
+	// wp_json_encode wraps in quotes — strip them.
+	$json_inner = substr( $json_inner, 1, -1 );
+
+	// If identical to original, no non-ASCII chars were escaped.
+	if ( $json_inner === $search ) {
+		return null;
+	}
+
+	return '%' . $wpdb->esc_like( $json_inner ) . '%';
+}
+
+/**
  * Recursively replace strings inside an array/object structure (for JSON data).
  * Only touches string values — leaves keys, booleans, numbers untouched.
  */
@@ -283,17 +312,32 @@ add_action( 'wp_ajax_myls_sr_preview', function () {
 			)
 		);
 
-		// Elementor JSON separately.
-		$counts['elementor'] = (int) $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->postmeta} pm
-				  INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-				  WHERE pm.meta_key = '_elementor_data'
-				    AND pm.meta_value LIKE %s
-				    {$where_meta}", // phpcs:ignore WordPress.DB.PreparedSQL
-				$search_esc
-			)
-		);
+		// Elementor JSON separately — also match JSON unicode escapes (e.g. \u2014 for —).
+		$el_json_esc = myls_sr_json_escaped_like( $p['search'] );
+		if ( $el_json_esc !== null ) {
+			$counts['elementor'] = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM {$wpdb->postmeta} pm
+					  INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					  WHERE pm.meta_key = '_elementor_data'
+					    AND ( pm.meta_value LIKE %s OR pm.meta_value LIKE %s )
+					    {$where_meta}", // phpcs:ignore WordPress.DB.PreparedSQL
+					$search_esc,
+					$el_json_esc
+				)
+			);
+		} else {
+			$counts['elementor'] = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM {$wpdb->postmeta} pm
+					  INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					  WHERE pm.meta_key = '_elementor_data'
+					    AND pm.meta_value LIKE %s
+					    {$where_meta}", // phpcs:ignore WordPress.DB.PreparedSQL
+					$search_esc
+				)
+			);
+		}
 	}
 
 	// ── wp_options.option_value ──
@@ -486,17 +530,34 @@ add_action( 'wp_ajax_myls_sr_execute', function () {
 		$log[] = "postmeta (non-Elementor): {$rows} row(s) updated";
 
 		// ── Elementor _elementor_data (PHP-level JSON handling) ──
-		$elementor_rows = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT pm.meta_id, pm.post_id, pm.meta_value
-				   FROM {$wpdb->postmeta} pm
-				   INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-				  WHERE pm.meta_key = '_elementor_data'
-				    AND pm.meta_value LIKE %s
-				    {$where_meta}", // phpcs:ignore WordPress.DB.PreparedSQL
-				$search_esc
-			)
-		);
+		// Also match JSON unicode escapes (e.g. \u2014 for —).
+		$el_json_esc = myls_sr_json_escaped_like( $p['search'] );
+		if ( $el_json_esc !== null ) {
+			$elementor_rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT pm.meta_id, pm.post_id, pm.meta_value
+					   FROM {$wpdb->postmeta} pm
+					   INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					  WHERE pm.meta_key = '_elementor_data'
+					    AND ( pm.meta_value LIKE %s OR pm.meta_value LIKE %s )
+					    {$where_meta}", // phpcs:ignore WordPress.DB.PreparedSQL
+					$search_esc,
+					$el_json_esc
+				)
+			);
+		} else {
+			$elementor_rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT pm.meta_id, pm.post_id, pm.meta_value
+					   FROM {$wpdb->postmeta} pm
+					   INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					  WHERE pm.meta_key = '_elementor_data'
+					    AND pm.meta_value LIKE %s
+					    {$where_meta}", // phpcs:ignore WordPress.DB.PreparedSQL
+					$search_esc
+				)
+			);
+		}
 
 		$el_count = 0;
 		foreach ( $elementor_rows as $row ) {
