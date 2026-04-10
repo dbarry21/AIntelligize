@@ -1,3 +1,10 @@
+## 7.9.18.81 — 2026-04-10
+
+### Fixed — Elementor JSON unicode escape matching in Search & Replace
+- Elementor stores non-ASCII characters as JSON unicode escapes in `_elementor_data` (e.g. an em dash `—` is stored as the six ASCII characters `\u2014`). The SQL `LIKE` query was searching for the literal UTF-8 character which never matched the escaped form. New helper `myls_sr_json_escaped_like()` converts the search term to its JSON-escaped equivalent; the Elementor queries now use `OR` to match either the literal or escaped form. The `json_decode` / `myls_sr_deep_replace` / `wp_json_encode` pipeline already handled decoded strings correctly — only the initial row-finding LIKE was affected.
+
+**Files changed:** `admin/tabs/bulk/_search-replace-ajax.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.80 — 2026-04-10
 
 ### Fixed — Include Elementor templates in Search & Replace post types
