@@ -151,8 +151,9 @@ Bulk operations for managing content across many posts at once.
 - **Bulk Maps** — Generate Google Maps embeds for multiple locations.
 - **Bulk Taglines** — Batch tagline generation for services.
 - **Import / Export** — Export all FAQs to CSV and re-import edited CSVs. Columns: `post_id`, `post_title`, `permalink`, `faq_index`, `question`, `answer`.
-- **Search & Replace** — Database-wide find-and-replace across `wp_posts.post_content`, `wp_posts.post_title`, `wp_posts.post_excerpt`, `wp_postmeta` (including Elementor JSON via recursive decode/replace/re-encode), and `wp_options` (transients excluded). Supports case-insensitive matching, scope checkboxes, and a dry-run preview. **Undo**: every execute is snapshotted to `{prefix}myls_sr_snapshots` and the last 5 operations per user are available in the Recent Operations card with one-click restore. *(Undo added in v7.9.18.76; post_excerpt scope added in v7.9.18.77.)*
+- **Search & Replace** — Database-wide find-and-replace across `wp_posts.post_content`, `wp_posts.post_title`, `wp_posts.post_excerpt`, `wp_postmeta` (including Elementor JSON via recursive decode/replace/re-encode), and `wp_options` (transients excluded). Supports case-insensitive matching, scope checkboxes, and a dry-run preview with per-post-type breakdown. **Safety guards** (v7.9.18.79): revisions, autosaves, nav menu items, and attachments are always excluded. Post-type and post-status filters are available in the Scope panel; all `wp_postmeta` queries JOIN to `wp_posts` to enforce the same restrictions. **Undo**: every execute is snapshotted to `{prefix}myls_sr_snapshots` and the last 5 operations per user are available in the Recent Operations card with one-click restore. *(Undo added in v7.9.18.76; post_excerpt scope added in v7.9.18.77; safety guards added in v7.9.18.79.)*
   - AJAX actions: `myls_sr_preview`, `myls_sr_execute`, `myls_sr_list_snapshots`, `myls_sr_undo`, `myls_sr_delete_snapshot`. Nonce: `myls_bulk_ops`.
+  - Backend helpers: `myls_sr_post_where_clause( $alias )` builds the SQL fragment; `myls_sr_post_breakdown( $column, $search_esc )` returns per-type counts.
 
 ---
 

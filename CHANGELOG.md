@@ -1,3 +1,17 @@
+## 7.9.18.79 — 2026-04-10
+
+### Fixed — Safety guards for Bulk Search & Replace
+- **Critical fix:** All `wp_posts` queries (preview + execute) now exclude `revision`, `nav_menu_item`, and `attachment` post types by default. Revisions and autosaves are **never** included, preventing unintended modifications to old content versions.
+- **Critical fix:** All `wp_postmeta` queries (regular + Elementor `_elementor_data`) now `INNER JOIN` to `wp_posts` and apply the same post-type/status filters, so revision metadata is never touched.
+- New **Post Types** scope section with per-type checkboxes (dynamically rendered from registered public post types). "All post types" master toggle included.
+- New **Post Statuses** scope section with checkboxes for Published, Draft, Pending, Scheduled, and Private. `auto-draft`, `inherit`, and `trash` are always excluded.
+- Info banner: "Revisions, autosaves, nav menu items, and attachments are always excluded."
+- Preview dry-run now returns a **per-post-type breakdown** for each wp_posts scope (e.g. "Post Content: 12 (post: 8, page: 4)"), shown inline next to the count badges.
+- New backend helpers: `myls_sr_post_where_clause( $alias )` builds the reusable SQL fragment; `myls_sr_post_breakdown( $column, $search_esc )` returns the GROUP BY counts.
+- JS payload extended with `post_types` and `post_statuses` comma-separated params; backward-compatible — absent params default to safe behavior.
+
+**Files changed:** `admin/tabs/bulk/_search-replace-ajax.php`, `admin/tabs/bulk/subtab-search-replace.php`, `assets/js/myls-search-replace.js`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`, `plugin-docs/tabs.md`
+
 ## 7.9.18.78 — 2026-04-09
 
 ### Added — Filters for Full Library Report (Utilities → Media Info)

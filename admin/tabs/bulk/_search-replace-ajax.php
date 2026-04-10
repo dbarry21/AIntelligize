@@ -100,6 +100,85 @@ function myls_sr_ensure_snapshots_table() {
 }
 
 /**
+ * Build a reusable SQL WHERE fragment that restricts wp_posts queries to
+ * safe post types and statuses. Always excludes revisions, nav_menu_items,
+ * and attachments. Reads post_types / post_statuses from $_POST.
+ *
+ * @param string $alias Optional table alias prefix (e.g. 'p') for JOINed queries.
+ * @return string SQL fragment starting with ' AND …'.
+ */
+function myls_sr_post_where_clause( $alias = '' ) {
+	global $wpdb;
+
+	$pfx = $alias !== '' ? $alias . '.' : '';
+
+	// ── Post types ──
+	$always_excluded = array( 'revision', 'nav_menu_item', 'attachment' );
+	$raw_types       = isset( $_POST['post_types'] ) ? sanitize_text_field( wp_unslash( $_POST['post_types'] ) ) : '';
+
+	if ( $raw_types !== '' ) {
+		$types = array_filter( array_map( 'sanitize_key', explode( ',', $raw_types ) ) );
+		$types = array_values( array_diff( $types, $always_excluded ) );
+		if ( empty( $types ) ) {
+			$types = array( 'post', 'page' );
+		}
+		$ph         = implode( ',', array_fill( 0, count( $types ), '%s' ) );
+		$type_sql   = $wpdb->prepare( "{$pfx}post_type IN ({$ph})", $types ); // phpcs:ignore WordPress.DB.PreparedSQL
+	} else {
+		$ph       = implode( ',', array_fill( 0, count( $always_excluded ), '%s' ) );
+		$type_sql = $wpdb->prepare( "{$pfx}post_type NOT IN ({$ph})", $always_excluded ); // phpcs:ignore WordPress.DB.PreparedSQL
+	}
+
+	// ── Post statuses ──
+	$allowed_statuses = array( 'publish', 'draft', 'pending', 'future', 'private' );
+	$raw_statuses     = isset( $_POST['post_statuses'] ) ? sanitize_text_field( wp_unslash( $_POST['post_statuses'] ) ) : '';
+	$statuses         = array();
+
+	if ( $raw_statuses !== '' ) {
+		$statuses = array_values( array_intersect(
+			array_filter( array_map( 'sanitize_key', explode( ',', $raw_statuses ) ) ),
+			$allowed_statuses
+		) );
+	}
+	if ( empty( $statuses ) ) {
+		$statuses = $allowed_statuses;
+	}
+
+	$sph        = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+	$status_sql = $wpdb->prepare( "{$pfx}post_status IN ({$sph})", $statuses ); // phpcs:ignore WordPress.DB.PreparedSQL
+
+	return " AND {$type_sql} AND {$status_sql}";
+}
+
+/**
+ * Return per-post-type match counts for a given wp_posts column + LIKE term.
+ *
+ * @param string $column     Column name (post_content, post_title, post_excerpt).
+ * @param string $search_esc Already-escaped LIKE value (with % wildcards).
+ * @return array  Associative array: post_type slug => int count.
+ */
+function myls_sr_post_breakdown( $column, $search_esc ) {
+	global $wpdb;
+	$where_extra = myls_sr_post_where_clause();
+
+	// phpcs:ignore WordPress.DB.PreparedSQL
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT post_type, COUNT(*) AS cnt FROM {$wpdb->posts}
+			 WHERE {$column} LIKE %s {$where_extra}
+			 GROUP BY post_type",
+			$search_esc
+		)
+	);
+
+	$out = array();
+	foreach ( (array) $rows as $r ) {
+		$out[ $r->post_type ] = (int) $r->cnt;
+	}
+	return $out;
+}
+
+/**
  * Parse and validate the common request parameters.
  */
 function myls_sr_parse_params() {
@@ -153,46 +232,53 @@ add_action( 'wp_ajax_myls_sr_preview', function () {
 	$p = myls_sr_parse_params();
 	global $wpdb;
 
-	$search_esc = '%' . $wpdb->esc_like( $p['search'] ) . '%';
-	$counts     = [];
+	$search_esc  = '%' . $wpdb->esc_like( $p['search'] ) . '%';
+	$counts      = [];
+	$where_posts = myls_sr_post_where_clause();
+	$where_meta  = myls_sr_post_where_clause( 'p' );
 
 	// ── wp_posts.post_content ──
 	if ( $p['scope']['post_content'] ) {
 		$counts['post_content'] = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_content LIKE %s",
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_content LIKE %s {$where_posts}", // phpcs:ignore WordPress.DB.PreparedSQL
 				$search_esc
 			)
 		);
+		$counts['post_content_breakdown'] = myls_sr_post_breakdown( 'post_content', $search_esc );
 	}
 
 	// ── wp_posts.post_title ──
 	if ( $p['scope']['post_title'] ) {
 		$counts['post_title'] = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_title LIKE %s",
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_title LIKE %s {$where_posts}", // phpcs:ignore WordPress.DB.PreparedSQL
 				$search_esc
 			)
 		);
+		$counts['post_title_breakdown'] = myls_sr_post_breakdown( 'post_title', $search_esc );
 	}
 
 	// ── wp_posts.post_excerpt ──
 	if ( $p['scope']['post_excerpt'] ) {
 		$counts['post_excerpt'] = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_excerpt LIKE %s",
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_excerpt LIKE %s {$where_posts}", // phpcs:ignore WordPress.DB.PreparedSQL
 				$search_esc
 			)
 		);
+		$counts['post_excerpt_breakdown'] = myls_sr_post_breakdown( 'post_excerpt', $search_esc );
 	}
 
 	// ── wp_postmeta.meta_value (non-Elementor) ──
 	if ( $p['scope']['meta_value'] ) {
 		$counts['meta_value'] = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->postmeta}
-				  WHERE meta_value LIKE %s
-				    AND meta_key != '_elementor_data'",
+				"SELECT COUNT(*) FROM {$wpdb->postmeta} pm
+				  INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+				  WHERE pm.meta_value LIKE %s
+				    AND pm.meta_key != '_elementor_data'
+				    {$where_meta}", // phpcs:ignore WordPress.DB.PreparedSQL
 				$search_esc
 			)
 		);
@@ -200,9 +286,11 @@ add_action( 'wp_ajax_myls_sr_preview', function () {
 		// Elementor JSON separately.
 		$counts['elementor'] = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->postmeta}
-				  WHERE meta_key = '_elementor_data'
-				    AND meta_value LIKE %s",
+				"SELECT COUNT(*) FROM {$wpdb->postmeta} pm
+				  INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+				  WHERE pm.meta_key = '_elementor_data'
+				    AND pm.meta_value LIKE %s
+				    {$where_meta}", // phpcs:ignore WordPress.DB.PreparedSQL
 				$search_esc
 			)
 		);
@@ -223,7 +311,13 @@ add_action( 'wp_ajax_myls_sr_preview', function () {
 		);
 	}
 
-	$total = array_sum( $counts );
+	// Total counts only (exclude breakdown arrays from sum).
+	$total = 0;
+	foreach ( $counts as $k => $v ) {
+		if ( is_int( $v ) ) {
+			$total += $v;
+		}
+	}
 
 	wp_send_json_success( array_merge( $counts, [ 'total' => $total ] ) );
 } );
@@ -237,10 +331,12 @@ add_action( 'wp_ajax_myls_sr_execute', function () {
 	myls_sr_ensure_snapshots_table();
 	global $wpdb;
 
-	$search_esc = '%' . $wpdb->esc_like( $p['search'] ) . '%';
-	$log        = [];
-	$affected   = [];
-	$snapshot   = [];
+	$search_esc  = '%' . $wpdb->esc_like( $p['search'] ) . '%';
+	$where_posts = myls_sr_post_where_clause();
+	$where_meta  = myls_sr_post_where_clause( 'p' );
+	$log         = [];
+	$affected    = [];
+	$snapshot    = [];
 
 	// ── wp_posts.post_content ──
 	if ( $p['scope']['post_content'] ) {
@@ -248,8 +344,8 @@ add_action( 'wp_ajax_myls_sr_execute', function () {
 		$orig_rows = $wpdb->get_results(
 			$wpdb->prepare(
 				$p['case_sensitive']
-					? "SELECT ID, post_content FROM {$wpdb->posts} WHERE post_content LIKE %s"
-					: "SELECT ID, post_content FROM {$wpdb->posts} WHERE LOWER(post_content) LIKE LOWER(%s)",
+					? "SELECT ID, post_content FROM {$wpdb->posts} WHERE post_content LIKE %s {$where_posts}" // phpcs:ignore WordPress.DB.PreparedSQL
+					: "SELECT ID, post_content FROM {$wpdb->posts} WHERE LOWER(post_content) LIKE LOWER(%s) {$where_posts}", // phpcs:ignore WordPress.DB.PreparedSQL
 				$search_esc
 			)
 		);
@@ -282,8 +378,8 @@ add_action( 'wp_ajax_myls_sr_execute', function () {
 		$orig_rows = $wpdb->get_results(
 			$wpdb->prepare(
 				$p['case_sensitive']
-					? "SELECT ID, post_title FROM {$wpdb->posts} WHERE post_title LIKE %s"
-					: "SELECT ID, post_title FROM {$wpdb->posts} WHERE LOWER(post_title) LIKE LOWER(%s)",
+					? "SELECT ID, post_title FROM {$wpdb->posts} WHERE post_title LIKE %s {$where_posts}" // phpcs:ignore WordPress.DB.PreparedSQL
+					: "SELECT ID, post_title FROM {$wpdb->posts} WHERE LOWER(post_title) LIKE LOWER(%s) {$where_posts}", // phpcs:ignore WordPress.DB.PreparedSQL
 				$search_esc
 			)
 		);
@@ -316,8 +412,8 @@ add_action( 'wp_ajax_myls_sr_execute', function () {
 		$orig_rows = $wpdb->get_results(
 			$wpdb->prepare(
 				$p['case_sensitive']
-					? "SELECT ID, post_excerpt FROM {$wpdb->posts} WHERE post_excerpt LIKE %s"
-					: "SELECT ID, post_excerpt FROM {$wpdb->posts} WHERE LOWER(post_excerpt) LIKE LOWER(%s)",
+					? "SELECT ID, post_excerpt FROM {$wpdb->posts} WHERE post_excerpt LIKE %s {$where_posts}" // phpcs:ignore WordPress.DB.PreparedSQL
+					: "SELECT ID, post_excerpt FROM {$wpdb->posts} WHERE LOWER(post_excerpt) LIKE LOWER(%s) {$where_posts}", // phpcs:ignore WordPress.DB.PreparedSQL
 				$search_esc
 			)
 		);
@@ -350,12 +446,18 @@ add_action( 'wp_ajax_myls_sr_execute', function () {
 		$orig_meta = $wpdb->get_results(
 			$wpdb->prepare(
 				$p['case_sensitive']
-					? "SELECT meta_id, post_id, meta_key, meta_value FROM {$wpdb->postmeta}
-					      WHERE meta_value LIKE %s
-					        AND meta_key != '_elementor_data'"
-					: "SELECT meta_id, post_id, meta_key, meta_value FROM {$wpdb->postmeta}
-					      WHERE LOWER(meta_value) LIKE LOWER(%s)
-					        AND meta_key != '_elementor_data'",
+					? "SELECT pm.meta_id, pm.post_id, pm.meta_key, pm.meta_value
+					     FROM {$wpdb->postmeta} pm
+					     INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					     WHERE pm.meta_value LIKE %s
+					       AND pm.meta_key != '_elementor_data'
+					       {$where_meta}" // phpcs:ignore WordPress.DB.PreparedSQL
+					: "SELECT pm.meta_id, pm.post_id, pm.meta_key, pm.meta_value
+					     FROM {$wpdb->postmeta} pm
+					     INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+					     WHERE LOWER(pm.meta_value) LIKE LOWER(%s)
+					       AND pm.meta_key != '_elementor_data'
+					       {$where_meta}", // phpcs:ignore WordPress.DB.PreparedSQL
 				$search_esc
 			)
 		);
@@ -388,8 +490,10 @@ add_action( 'wp_ajax_myls_sr_execute', function () {
 			$wpdb->prepare(
 				"SELECT pm.meta_id, pm.post_id, pm.meta_value
 				   FROM {$wpdb->postmeta} pm
+				   INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
 				  WHERE pm.meta_key = '_elementor_data'
-				    AND pm.meta_value LIKE %s",
+				    AND pm.meta_value LIKE %s
+				    {$where_meta}", // phpcs:ignore WordPress.DB.PreparedSQL
 				$search_esc
 			)
 		);

@@ -16,6 +16,7 @@
 
   var ajaxurl = CFG.ajaxurl || (window.MYLS && window.MYLS.ajaxurl) || window.ajaxurl || "/wp-admin/admin-ajax.php";
   var nonce = CFG.nonce || (window.MYLS && window.MYLS.bulkNonce) || "";
+  var postTypes = CFG.postTypes || [];
 
   /* ── DOM refs ─────────────────────────────────────────────────── */
   var $search = $("#myls_sr_search");
@@ -34,8 +35,44 @@
   var $logWrap = $("#myls_sr_log_wrap");
   var $log = $("#myls_sr_log");
   var $historyWrap = $("#myls_sr_history_wrap");
+  var $ptAll = $("#myls_sr_pt_all");
+  var $ptList = $("#myls_sr_pt_list");
 
   var lastPreviewTotal = 0;
+
+  /* ── Render post-type checkboxes from bootstrap data ──────────── */
+  (function () {
+    if (!$ptList.length || !postTypes.length) return;
+    var html = "";
+    postTypes.forEach(function (pt) {
+      html += '<div class="form-check mb-1">';
+      html += '<input class="form-check-input myls-sr-pt-cb" type="checkbox" '
+            + 'id="myls_sr_pt_' + pt.slug + '" value="' + pt.slug + '" checked>';
+      html += '<label class="form-check-label" for="myls_sr_pt_' + pt.slug + '">'
+            + escapeHtml(pt.label) + ' <code style="font-size:.75rem;">' + pt.slug + '</code></label>';
+      html += '</div>';
+    });
+    $ptList.html(html);
+  })();
+
+  /* ── Master "All post types" toggle ──────────────────────────── */
+  $ptAll.on("change", function () {
+    var checked = $(this).is(":checked");
+    $ptList.find(".myls-sr-pt-cb").prop("checked", checked);
+    resetExecute();
+  });
+
+  $ptList.on("change", ".myls-sr-pt-cb", function () {
+    var total = $ptList.find(".myls-sr-pt-cb").length;
+    var checkedCount = $ptList.find(".myls-sr-pt-cb:checked").length;
+    $ptAll.prop("checked", checkedCount === total);
+    resetExecute();
+  });
+
+  /* ── Status checkbox change handler ──────────────────────────── */
+  $(document).on("change", ".myls-sr-status-cb", function () {
+    resetExecute();
+  });
 
   /* ── Helpers ──────────────────────────────────────────────────── */
   function badge(text, color) {
@@ -49,7 +86,37 @@
     $log[0].scrollTop = $log[0].scrollHeight;
   }
 
+  function resetExecute() {
+    $executeBtn.prop("disabled", true);
+    $previewArea.hide();
+    lastPreviewTotal = 0;
+  }
+
+  function renderBreakdown(breakdownObj) {
+    if (!breakdownObj || typeof breakdownObj !== "object") return "";
+    var parts = [];
+    for (var type in breakdownObj) {
+      if (breakdownObj.hasOwnProperty(type) && breakdownObj[type] > 0) {
+        parts.push(type + ": " + breakdownObj[type]);
+      }
+    }
+    if (!parts.length) return "";
+    return ' <span style="font-size:.75rem;color:#6b7280;">(' + parts.join(", ") + ')</span>';
+  }
+
   function buildPayload() {
+    // Collect checked post types.
+    var checkedTypes = [];
+    $ptList.find(".myls-sr-pt-cb:checked").each(function () {
+      checkedTypes.push($(this).val());
+    });
+
+    // Collect checked post statuses.
+    var checkedStatuses = [];
+    $(".myls-sr-status-cb:checked").each(function () {
+      checkedStatuses.push($(this).val());
+    });
+
     return {
       action: "",
       nonce: nonce,
@@ -61,14 +128,14 @@
       scope_post_excerpt: $scopeExcerpt.is(":checked") ? "1" : "",
       scope_meta_value: $scopeMeta.is(":checked") ? "1" : "",
       scope_options: $scopeOptions.is(":checked") ? "1" : "",
+      post_types: checkedTypes.join(","),
+      post_statuses: checkedStatuses.join(","),
     };
   }
 
   /* ── Reset execute button when inputs change ──────────────────── */
   $search.add($replace).add($caseInsensitive).add($scopeContent).add($scopeTitle).add($scopeExcerpt).add($scopeMeta).add($scopeOptions).on("change input", function () {
-    $executeBtn.prop("disabled", true);
-    $previewArea.hide();
-    lastPreviewTotal = 0;
+    resetExecute();
   });
 
   /* ── Dry Run (Preview) ────────────────────────────────────────── */
@@ -98,9 +165,18 @@
         var d = resp.data;
         var html = "";
 
-        if (d.post_content !== undefined && d.post_content > 0) html += badge("Post Content: " + d.post_content, "#0ea5e9");
-        if (d.post_title !== undefined && d.post_title > 0) html += badge("Post Titles: " + d.post_title, "#8b5cf6");
-        if (d.post_excerpt !== undefined && d.post_excerpt > 0) html += badge("Post Excerpts: " + d.post_excerpt, "#ec4899");
+        if (d.post_content !== undefined && d.post_content > 0) {
+          html += badge("Post Content: " + d.post_content, "#0ea5e9");
+          html += renderBreakdown(d.post_content_breakdown);
+        }
+        if (d.post_title !== undefined && d.post_title > 0) {
+          html += badge("Post Titles: " + d.post_title, "#8b5cf6");
+          html += renderBreakdown(d.post_title_breakdown);
+        }
+        if (d.post_excerpt !== undefined && d.post_excerpt > 0) {
+          html += badge("Post Excerpts: " + d.post_excerpt, "#ec4899");
+          html += renderBreakdown(d.post_excerpt_breakdown);
+        }
         if (d.meta_value !== undefined && d.meta_value > 0) html += badge("Post Meta: " + d.meta_value, "#059669");
         if (d.elementor !== undefined && d.elementor > 0) html += badge("Elementor: " + d.elementor, "#f59e0b");
         if (d.options !== undefined && d.options > 0) html += badge("Options: " + d.options, "#6366f1");
