@@ -30,6 +30,11 @@ $spec = [
 					: $obj->label;
 				$sr_post_types[] = array( 'slug' => (string) $slug, 'label' => (string) $label );
 			}
+			// Include Elementor templates — they use a non-public CPT but
+			// store real content in _elementor_data that users need to search.
+			if ( post_type_exists( 'elementor_library' ) ) {
+				$sr_post_types[] = array( 'slug' => 'elementor_library', 'label' => 'Elementor Template' );
+			}
 			usort( $sr_post_types, function ( $a, $b ) {
 				return strcasecmp( $a['label'], $b['label'] );
 			} );
