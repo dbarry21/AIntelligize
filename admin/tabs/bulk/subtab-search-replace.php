@@ -22,9 +22,21 @@ $spec = [
 
 		<!-- Bootstrap data for JS -->
 		<script type="application/json" id="mylsSRBootstrap"><?php
+			$sr_post_types = array();
+			foreach ( get_post_types( array( 'public' => true ), 'objects' ) as $slug => $obj ) {
+				if ( $slug === 'attachment' ) continue;
+				$label = isset( $obj->labels->singular_name ) && $obj->labels->singular_name
+					? $obj->labels->singular_name
+					: $obj->label;
+				$sr_post_types[] = array( 'slug' => (string) $slug, 'label' => (string) $label );
+			}
+			usort( $sr_post_types, function ( $a, $b ) {
+				return strcasecmp( $a['label'], $b['label'] );
+			} );
 			echo wp_json_encode([
-				'nonce'   => $nonce,
-				'ajaxurl' => admin_url('admin-ajax.php'),
+				'nonce'     => $nonce,
+				'ajaxurl'   => admin_url('admin-ajax.php'),
+				'postTypes' => $sr_post_types,
 			]);
 		?></script>
 
@@ -127,6 +139,52 @@ $spec = [
 									<span class="text-muted" style="font-size:.85rem;">— <code>wp_options</code> (excludes transients)</span>
 								</label>
 							</div>
+						</div>
+
+						<!-- Post Types -->
+						<hr class="my-3">
+						<h3 style="font-size:.9rem;font-weight:600;margin-bottom:.5rem;">
+							<i class="bi bi-file-earmark-text"></i> Post Types
+						</h3>
+						<div class="form-check mb-2">
+							<input class="form-check-input" type="checkbox" id="myls_sr_pt_all" checked>
+							<label class="form-check-label" for="myls_sr_pt_all"><strong>All post types</strong></label>
+						</div>
+						<div id="myls_sr_pt_list" class="ms-4 mb-2">
+							<!-- Populated dynamically by JS from bootstrap postTypes -->
+						</div>
+
+						<!-- Post Statuses -->
+						<hr class="my-3">
+						<h3 style="font-size:.9rem;font-weight:600;margin-bottom:.5rem;">
+							<i class="bi bi-flag"></i> Post Statuses
+						</h3>
+						<div class="mb-2">
+							<div class="form-check mb-1">
+								<input class="form-check-input myls-sr-status-cb" type="checkbox" id="myls_sr_ps_publish" value="publish" checked>
+								<label class="form-check-label" for="myls_sr_ps_publish">Published</label>
+							</div>
+							<div class="form-check mb-1">
+								<input class="form-check-input myls-sr-status-cb" type="checkbox" id="myls_sr_ps_draft" value="draft" checked>
+								<label class="form-check-label" for="myls_sr_ps_draft">Draft</label>
+							</div>
+							<div class="form-check mb-1">
+								<input class="form-check-input myls-sr-status-cb" type="checkbox" id="myls_sr_ps_pending" value="pending" checked>
+								<label class="form-check-label" for="myls_sr_ps_pending">Pending</label>
+							</div>
+							<div class="form-check mb-1">
+								<input class="form-check-input myls-sr-status-cb" type="checkbox" id="myls_sr_ps_future" value="future" checked>
+								<label class="form-check-label" for="myls_sr_ps_future">Scheduled</label>
+							</div>
+							<div class="form-check mb-1">
+								<input class="form-check-input myls-sr-status-cb" type="checkbox" id="myls_sr_ps_private" value="private" checked>
+								<label class="form-check-label" for="myls_sr_ps_private">Private</label>
+							</div>
+						</div>
+
+						<div class="alert alert-info py-2 px-3 mb-0" style="font-size:.8rem;">
+							<i class="bi bi-shield-check"></i>
+							Revisions, autosaves, nav menu items, and attachments are always excluded.
 						</div>
 
 						<!-- Preview summary (populated by JS) -->
