@@ -1,3 +1,10 @@
+## 7.9.18.80 — 2026-04-10
+
+### Fixed — Include Elementor templates in Search & Replace post types
+- Elementor templates (`elementor_library` CPT) are now included in the Post Types scope when Elementor is active. This non-public CPT stores real page content in `_elementor_data` that was being excluded by the v7.9.18.79 safety guards, causing heading widgets and other template content to be skipped during search & replace operations.
+
+**Files changed:** `admin/tabs/bulk/subtab-search-replace.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.79 — 2026-04-10
 
 ### Fixed — Safety guards for Bulk Search & Replace
