@@ -200,21 +200,6 @@ if ( ! function_exists('myls_find_primary_localbusiness_id') ) {
 			if ( $id && stripos($id, '#localbusiness') !== false ) return $id;
 		}
 
-		// Third pass: match merged single-location node.
-		// In single-location mode @id=/#organization and @type is an array
-		// containing a known LocalBusiness subtype.
-		foreach ( $graph as $node ) {
-			if ( ! is_array($node) ) continue;
-			$id = (string) ($node['@id'] ?? '');
-			if ( $id === '' ) continue;
-			if ( str_ends_with( $id, '#organization' ) ) {
-				$types = is_array($node['@type']) ? $node['@type'] : [(string)$node['@type']];
-				foreach ( $types as $t ) {
-					if ( in_array( (string)$t, $known, true ) ) return $id;
-				}
-			}
-		}
-
 		return '';
 	}
 }

@@ -24,10 +24,9 @@ Manages all structured data output for the site.
 - **Organization** — Business name, logo, address, phone, social profiles, awards, certifications, founding date.
   - **Org Image URL field** *(v7.8.70)*: Direct image URL input with Media Library picker (Select Image / ✕ / thumbnail preview). Used as tertiary fallback in LocalBusiness image chain.
   - Awards and certifications: double-escaping fixed in v7.8.72 — `wp_unslash()` applied at save, no re-sanitize on read.
-  - **Founding Date** *(v7.9.18.85)*: Date input (`myls_org_founding_date`, legacy `ssseo_org_founding_date`). Outputs as `foundingDate` on Organization node (multi-location) and merged LB+Org node (single-location).
-  - Outputs Organization and LocalBusiness schema.
-  - **Single-location merge** *(v7.9.18.85)*: When `myls_lb_locations` has ≤1 row, localbusiness.php emits a single merged node with `@type: [BusinessType, "Organization"]` and `@id: /#organization`. The separate Organization node is suppressed via `myls_allow_org_node_emit` filter. Eliminates the self-referential `parentOrganization` loop.
-  - **Merged node description** *(v7.9.18.87)*: `myls_org_description` (with `ssseo_organization_description` legacy fallback) is now included on the merged single-location node. Previously only emitted by the suppressed Organization node.
+  - **Founding Date** *(v7.9.18.85)*: Date input (`myls_org_founding_date`, legacy `ssseo_org_founding_date`). Outputs as `foundingDate` on the Organization node.
+  - Outputs Organization and LocalBusiness schema as separate nodes on all installs.
+  - **Dual-node architecture** *(v7.9.18.92)*: Organization (`/#organization`) and LocalBusiness (`/#localbusiness`) always emit as separate nodes. `description` and `foundingDate` belong on Organization only; LocalBusiness carries `parentOrganization → /#organization`.
 
 - **Person** — Multi-person E-E-A-T schema with Wikidata/Wikipedia expertise linking, LinkedIn import, PDF export. Supports multiple person profiles.
 
@@ -72,7 +71,7 @@ Manages all structured data output for the site.
     accordion. All FAQ schema paths updated via single function change in
     `inc/schema/helpers.php`.
 
-- **HowTo** — HowTo schema for pages with `_myls_howto_steps` post meta. Provider resolves dynamically: `/#organization` (single-location) or `/#localbusiness` (multi-location) via `myls_howto_resolve_provider_id()` *(v7.9.18.86)*.
+- **HowTo** — HowTo schema for pages with `_myls_howto_steps` post meta. Provider: `/#localbusiness`.
 
 - **About Page** — AboutPage schema for company/about pages.
 

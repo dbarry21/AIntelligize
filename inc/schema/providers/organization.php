@@ -23,13 +23,6 @@ add_filter('myls_schema_graph', function(array $graph) {
 	if ( is_admin() || is_feed() || is_preview() ) return $graph;
 	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) return $graph;
 
-	// In single-location mode, localbusiness.php emits a merged node with
-	// @id=/#organization. Suppress this separate Organization node to avoid
-	// duplicate entity signals.
-	if ( false === apply_filters( 'myls_allow_org_node_emit', true ) ) {
-		return $graph;
-	}
-
 	// --- Collect fields ---
 	$name  = trim( (string) get_option('myls_org_name', '') );
 	if ( $name === '' ) return $graph; // Org requires a name

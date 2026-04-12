@@ -1,3 +1,44 @@
+## v7.9.18.92 — Restore Dual-Node LocalBusiness + Organization Architecture
+
+### Changed
+- **Restored dual-node schema architecture**: LocalBusiness (`@id: /#localbusiness`)
+  and Organization (`@id: /#organization`) are now emitted as separate nodes
+  on all installs regardless of location count. Research confirms this is
+  required for maximum SEO + AEO + GEO strength — Google AI Overviews,
+  ChatGPT, and Perplexity distinguish between these entity types for
+  different query signals.
+- **`parentOrganization` restored on LocalBusiness**: Now valid and
+  semantically correct — points from the location entity to the brand
+  entity (two distinct nodes, no self-reference).
+- **`LocalBusiness.@type`** restored to single string (business subtype
+  only). `Organization` type removed from LocalBusiness — it belongs
+  exclusively on the Organization node.
+- **`LocalBusiness.@id`** restored to `/#localbusiness`. All
+  cross-references (Service.provider, HowTo.provider, WebPage.about
+  fallback) updated accordingly.
+- **Organization node suppression removed**: `myls_allow_org_node_emit`
+  filter and guard removed from `organization.php`. Organization always
+  emits on all singular front-end pages.
+- **`myls_howto_resolve_provider_id()` removed**: Single/multi-location
+  conditional logic no longer needed. HowTo.provider hardcoded back to
+  `/#localbusiness`.
+- **Third-pass merged-node matcher removed** from
+  `myls_find_primary_localbusiness_id()` in `build-service-schema.php`.
+- **Preserved from v7.9.18.85–v7.9.18.90**:
+  - `mainEntityOfPage` on Service node
+  - `FAQPage.isPartOf` → `#website`
+  - `Service.areaServed` CPT permalinks
+  - `foundingDate` on Organization node
+  - GeoShape circle in LocalBusiness `areaServed`
+  - `mentions` → `#service-areas-list` on LocalBusiness (front page)
+  - VideoObject description stripping
+  - BreadcrumbList on homepage
+  - WebPage.name/description org overrides on homepage
+  - Service Radius admin field
+  - Person removed from Service.provider
+
+**Files changed:** `inc/schema/providers/localbusiness.php`, `inc/schema/providers/organization.php`, `inc/schema/providers/build-service-schema.php`, `inc/schema/providers/howto.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.90 — GeoShape Coverage Radius in areaServed
 
 ### Added

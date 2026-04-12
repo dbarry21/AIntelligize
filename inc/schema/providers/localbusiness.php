@@ -52,14 +52,8 @@ if ( ! function_exists('myls_lb_build_member_of') ) {
 }
 
 if ( ! function_exists('myls_lb_build_schema_from_location') ) {
-	function myls_lb_build_schema_from_location( array $loc, WP_Post $post, bool $is_single = false ) : array {
+	function myls_lb_build_schema_from_location( array $loc, WP_Post $post ) : array {
 		$org_name = get_option( 'myls_org_name', get_bloginfo( 'name' ) );
-
-		$org_desc = trim( wp_specialchars_decode(
-			(string) get_option( 'myls_org_description',
-				get_option( 'ssseo_organization_description', '' ) ),
-			ENT_QUOTES
-		) );
 
 		$awards = get_option('myls_org_awards', []);
 		if ( ! is_array($awards) ) $awards = [];
@@ -364,16 +358,9 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			$business_type = 'LocalBusiness';
 		}
 
-		// foundingDate: only on merged single-location node.
-		$founding_date_val = '';
-		if ( $is_single ) {
-			$founding_date_val = trim( (string) get_option( 'myls_org_founding_date',
-				get_option( 'ssseo_org_founding_date', '' ) ) );
-		}
-
 		return array_filter( [
-			'@type'    => $is_single ? [ $business_type, 'Organization' ] : $business_type,
-			'@id'      => $is_single ? home_url( '/#organization' ) : trailingslashit( home_url( '/' ) ) . '#localbusiness',
+			'@type'    => $business_type,
+			'@id'      => trailingslashit( home_url( '/' ) ) . '#localbusiness',
 
 			// Only Business Image URL, else Org Logo
 			'image'    => $image_prop,
@@ -381,9 +368,6 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 
 			'name'       => $lb_name,
 			'url'        => esc_url( $org_url ),
-			// description: only on merged single-location node.
-			// In multi-location mode Organization.php handles this separately.
-			'description' => ( $is_single && $org_desc !== '' ) ? $org_desc : null,
 			'telephone'  => function_exists('myls_normalize_phone_e164')
 				? myls_normalize_phone_e164( $lb_phone )
 				: $lb_phone,
@@ -415,12 +399,8 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			// sameAs: mirrored from Organization social profiles.
 			'sameAs' => $same_as,
 
-			// Link to Organization entity by @id reference (not inline duplicate).
-			// Single-location: suppress — the merged node IS the organization.
-			'parentOrganization' => $is_single ? null : [ '@id' => home_url( '/#organization' ) ],
-
-			// foundingDate: only on merged single-location node.
-			'foundingDate' => ( $founding_date_val !== '' ) ? sanitize_text_field( $founding_date_val ) : null,
+			// Link to Organization entity by @id reference (not inline duplicate)
+			'parentOrganization' => [ '@id' => home_url( '/#organization' ) ],
 
 			// mainEntityOfPage: bidirectional back-reference to current WebPage node.
 			// array_filter() removes this when null (non-singular pages).
@@ -475,13 +455,11 @@ function myls_schema_localbusiness_for_post( WP_Post $post ) : ?array {
 	$locs = myls_lb_get_locations_cached();
 	if ( empty( $locs ) ) return null;
 
-	$is_single_loc = count( $locs ) <= 1;
-
 	// If meta states assigned and index looks valid, build from that location
 	if ( $is_assigned === '1' && $loc_index !== '' ) {
 		$i = (int) $loc_index;
 		if ( isset( $locs[ $i ] ) && is_array( $locs[ $i ] ) ) {
-			return myls_lb_build_schema_from_location( $locs[ $i ], $post, $is_single_loc );
+			return myls_lb_build_schema_from_location( $locs[ $i ], $post );
 		}
 		// If index is stale (locations re-ordered), fall through to scan.
 	}
@@ -491,7 +469,7 @@ function myls_schema_localbusiness_for_post( WP_Post $post ) : ?array {
 	foreach ( $locs as $loc ) {
 		$pages = array_map( 'absint', (array) ( $loc['pages'] ?? [] ) );
 		if ( $pages && in_array( $post_id, $pages, true ) ) {
-			return myls_lb_build_schema_from_location( $loc, $post, $is_single_loc );
+			return myls_lb_build_schema_from_location( $loc, $post );
 		}
 	}
 
@@ -499,7 +477,7 @@ function myls_schema_localbusiness_for_post( WP_Post $post ) : ?array {
 	// If only one location exists, it's the obvious choice.
 	// Multi-location: fall back to first; override via filter returning false.
 	if ( apply_filters( 'myls_localbusiness_fallback_to_first', true ) && isset( $locs[0] ) ) {
-		return myls_lb_build_schema_from_location( $locs[0], $post, $is_single_loc );
+		return myls_lb_build_schema_from_location( $locs[0], $post );
 	}
 
 	return null;
@@ -570,14 +548,6 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 
 	$post = get_queried_object();
 	if ( ! ( $post instanceof WP_Post ) ) return $graph;
-
-	// Single-location detection: suppress separate Organization node.
-	$lb_locs       = myls_lb_get_locations_cached();
-	$is_single_loc = count( $lb_locs ) <= 1;
-
-	if ( $is_single_loc ) {
-		add_filter( 'myls_allow_org_node_emit', '__return_false' );
-	}
 
 	$data = myls_schema_localbusiness_for_post( $post );
 	if ( empty( $data ) || ! is_array( $data ) ) return $graph;
