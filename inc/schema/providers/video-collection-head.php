@@ -143,6 +143,7 @@ function myls_ycl_itemlists_into_head() {
 					'description'      => sanitize_text_field($v['title']), // fallback
 					'thumbnailUrl'     => !empty($v['thumb']) ? [ esc_url_raw($v['thumb']) ] : null,
 					'uploadDate'       => !empty($v['uploadDate']) ? $v['uploadDate'] : null,
+					'contentUrl'       => esc_url_raw($v['url']),
 					'embedUrl'         => !empty($v['embedUrl']) ? esc_url_raw($v['embedUrl']) : null,
 					'isFamilyFriendly' => 'true',
 				]),

@@ -1,3 +1,12 @@
+## 7.9.18.84 — 2026-04-12
+
+### Added — VideoObject `contentUrl` property
+- Added `contentUrl` to all five VideoObject schema builders (video-schema, video-archive,
+  video-collection-head, video-object-detector) — required by Google for video indexing
+  eligibility. For YouTube-hosted videos this is the watch URL.
+
+**Files changed:** `inc/schema/providers/video-schema.php`, `inc/schema/providers/video-archive.php`, `inc/schema/providers/video-collection-head.php`, `inc/schema/providers/video-object-detector.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.83 — 2026-04-12
 
 ### Fixed — LocalBusiness schema display-time org fallbacks

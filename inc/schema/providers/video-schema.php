@@ -221,6 +221,9 @@ if ( ! function_exists('myls_video_schema_single') ) {
 			$video['image']        = $thumbs; // recommended by Google
 		}
 
+		// contentUrl: required by Google for video indexing eligibility.
+		// For YouTube-hosted videos this is the watch URL.
+		$video['contentUrl'] = esc_url_raw($watch_url);
 		if ( $embed_url )   $video['embedUrl']      = esc_url_raw($embed_url);
 		if ( $duration )    $video['duration']      = $duration;
 		if ( $views > 0 )   $video['interactionStatistic'] = array(

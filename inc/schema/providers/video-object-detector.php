@@ -979,6 +979,7 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 			$node['image']        = $item['thumbnail']; // Google recommends mirroring
 		}
 
+		$node['contentUrl'] = $item['url'];
 		if ( $item['embed_url'] !== '' ) $node['embedUrl']  = $item['embed_url'];
 		if ( $item['duration']  !== '' ) $node['duration']  = $item['duration'];
 
