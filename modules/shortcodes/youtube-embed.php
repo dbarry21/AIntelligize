@@ -16,7 +16,7 @@
  * Attributes:
  * - video_id       YouTube video ID (11 chars). Required if url/use_page_video not provided.
  * - url            Full YouTube URL (watch, embed, shorts, youtu.be). Extracts ID automatically.
- * - use_page_video 1 = read video URL from current page meta. Fallback chain: _myls_page_video_url → video_url (ACF) → fallback_id → site default.
+ * - use_page_video 1 = read video URL from current page meta. Fallback chain: _myls_page_video_url → fallback_id → site default.
  * - fallback_id    (optional) Fallback video ID when use_page_video finds no URL.
  * - title          (optional) Video title for schema/alt text. Defaults to post title.
  * - autoplay       (optional) 1 = autoplay + mute on click. Default: 1.
@@ -57,12 +57,10 @@ function myls_youtube_embed_shortcode( $atts = [] ) {
 	if ( $video_id === '' && $atts['use_page_video'] === '1' ) {
 		$page_id = (int) get_the_ID();
 		if ( $page_id > 0 ) {
-			// 1. Plugin-native meta key
+			// Plugin-native meta key (_myls_page_video_url)
+			// ACF video_url fallback removed — migration runs on plugin init
+			// to copy any legacy values. See inc/metaboxes/page-video-url.php.
 			$page_url = get_post_meta( $page_id, '_myls_page_video_url', true );
-			// 2. Legacy ACF field
-			if ( ! is_string( $page_url ) || trim( $page_url ) === '' ) {
-				$page_url = get_post_meta( $page_id, 'video_url', true );
-			}
 			// Extract video ID from URL
 			if ( is_string( $page_url ) && trim( $page_url ) !== '' ) {
 				if ( preg_match( $yt_url_regex, $page_url, $m ) ) {
