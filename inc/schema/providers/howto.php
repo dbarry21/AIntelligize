@@ -16,6 +16,22 @@
 
 if ( ! defined('ABSPATH') ) exit;
 
+if ( ! function_exists('myls_howto_resolve_provider_id') ) {
+	/**
+	 * Resolve the correct provider @id for HowTo nodes.
+	 *
+	 * Single-location: merged node uses #organization.
+	 * Multi-location:  separate LocalBusiness node uses #localbusiness.
+	 *
+	 * Mirrors the detection logic in localbusiness.php.
+	 */
+	function myls_howto_resolve_provider_id() : string {
+		$locs = (array) get_option( 'myls_lb_locations', [] );
+		$is_single = count( $locs ) <= 1;
+		return home_url( $is_single ? '/#organization' : '/#localbusiness' );
+	}
+}
+
 if ( ! function_exists('myls_build_howto_node') ) {
 	/**
 	 * Build the HowTo @graph node for the current post.
@@ -59,7 +75,7 @@ if ( ! function_exists('myls_build_howto_node') ) {
 			'name'     => $name,
 			'step'     => $step_nodes,
 			'isPartOf' => [ '@id' => $permalink . '#webpage' ],
-			'provider' => [ '@id' => home_url( '/#localbusiness' ) ],
+			'provider' => [ '@id' => myls_howto_resolve_provider_id() ],
 		];
 	}
 }

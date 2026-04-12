@@ -1,3 +1,13 @@
+## v7.9.18.86 — Fix HowTo.provider dangling reference
+
+### Fixed
+- **HowTo.provider**: Updated to resolve `/#organization` in single-location
+  mode and `/#localbusiness` in multi-location mode. Previously hardcoded to
+  `/#localbusiness` which no longer exists in the graph after the v7.9.18.85
+  single-location merge, creating a dangling @id reference.
+
+**Files changed:** `inc/schema/providers/howto.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.85 — Schema Architecture: Single-Location Merge + Service Fixes
 
 ### Changed
