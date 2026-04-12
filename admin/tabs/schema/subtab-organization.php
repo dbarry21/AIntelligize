@@ -219,6 +219,8 @@ $spec = [
 			'lng'         => get_option('myls_org_lng',         get_option('ssseo_organization_longitude','')),
 			'default_service_label' => get_option('myls_org_default_service_label', get_option('ssseo_default_service_label','RoofingContractor')),
 			'areas'       => get_option('myls_org_areas',       get_option('ssseo_organization_areas_served','')),
+			'founding_date' => get_option( 'myls_org_founding_date',
+				get_option( 'ssseo_org_founding_date', '' ) ),
 		];
 
 		$logo_id  = (int) get_option('myls_org_logo_id', (int) get_option('ssseo_organization_logo', 0));
@@ -345,6 +347,17 @@ $spec = [
 						<div class="col-md-3">
 							<label class="form-label">Phone</label>
 							<input type="text" name="myls_org_tel" value="<?php echo esc_attr($v['tel']); ?>">
+						</div>
+						<div class="col-md-3">
+							<label class="form-label" for="myls_org_founding_date">Founding Date</label>
+							<input type="date"
+								   id="myls_org_founding_date"
+								   name="myls_org_founding_date"
+								   value="<?php echo esc_attr( $v['founding_date'] ); ?>">
+							<div class="form-text">
+								Year the business was founded. Outputs as
+								<code>foundingDate</code> on the Organization schema node.
+							</div>
 						</div>
 						<div class="col-md-3">
 							<label class="form-label">Default Service Label</label>
@@ -973,6 +986,7 @@ $spec = [
 		update_option('myls_org_description', sanitize_textarea_field($_POST['myls_org_description'] ?? ''));
 		update_option('myls_org_default_service_label', sanitize_text_field($_POST['myls_org_default_service_label'] ?? ''));
 		update_option('myls_org_service_name_label',    sanitize_text_field($_POST['myls_org_service_name_label']    ?? ''));
+		update_option('myls_org_founding_date',         sanitize_text_field($_POST['myls_org_founding_date']         ?? ''));
 
 		// Logo
 		update_option('myls_org_logo_id', absint($_POST['myls_org_logo_id'] ?? 0));

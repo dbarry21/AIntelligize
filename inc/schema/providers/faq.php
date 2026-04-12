@@ -169,15 +169,9 @@ add_filter('myls_schema_graph', function( array $graph ) {
 		'@id'          => trailingslashit( $permalink ) . '#faq',
 		'dateModified' => get_the_modified_date( DATE_W3C, $post_id ),
 		'mainEntity'   => $main,
+		'isPartOf'     => [ '@id' => home_url( '/#website' ) ],
+		'publisher'    => [ '@id' => home_url( '/#organization' ) ],
 	];
-
-	// publisher: link FAQPage to the Organization (content publisher identity).
-	// Organization is the correct publisher for content nodes like FAQPage.
-	// LocalBusiness is a physical location entity, not a content publisher.
-	// Use a direct @id reference rather than scanning the graph — the Organization
-	// node is always present when schema is enabled.
-	$org_node_id = home_url( '/#organization' );
-	$node['publisher'] = [ '@id' => $org_node_id ];
 
 	$graph[] = apply_filters( 'myls_faq_schema_node', $node, $post_id );
 	return $graph;

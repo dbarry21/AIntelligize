@@ -200,6 +200,21 @@ if ( ! function_exists('myls_find_primary_localbusiness_id') ) {
 			if ( $id && stripos($id, '#localbusiness') !== false ) return $id;
 		}
 
+		// Third pass: match merged single-location node.
+		// In single-location mode @id=/#organization and @type is an array
+		// containing a known LocalBusiness subtype.
+		foreach ( $graph as $node ) {
+			if ( ! is_array($node) ) continue;
+			$id = (string) ($node['@id'] ?? '');
+			if ( $id === '' ) continue;
+			if ( str_ends_with( $id, '#organization' ) ) {
+				$types = is_array($node['@type']) ? $node['@type'] : [(string)$node['@type']];
+				foreach ( $types as $t ) {
+					if ( in_array( (string)$t, $known, true ) ) return $id;
+				}
+			}
+		}
+
 		return '';
 	}
 }
@@ -521,18 +536,6 @@ add_filter('myls_schema_graph', function(array $graph) {
 
 	$provider = $localbiz_id ? [ '@id' => $localbiz_id ] : $org_provider;
 
-	// Wrap provider as array and append first enabled Person @id if any
-	$person_profiles_svc = get_option( 'myls_person_profiles', [] );
-	if ( is_array( $person_profiles_svc ) && ! empty( $person_profiles_svc ) ) {
-		foreach ( $person_profiles_svc as $fp ) {
-			if ( empty( $fp['name'] ) || ( $fp['enabled'] ?? '1' ) !== '1' ) continue;
-			$person_provider_ref = [ '@id' => home_url( '/#person-' . sanitize_title( $fp['name'] ) ) ];
-			// Make provider an array of [business, person] for maximum entity coverage
-			$provider = [ $provider, $person_provider_ref ];
-			break; // first enabled person only
-		}
-	}
-
 	/* ----------------------------
 	 * Service basics
 	 * ---------------------------- */
@@ -642,9 +645,57 @@ add_filter('myls_schema_graph', function(array $graph) {
 			$area_served = myls_wrap_areas_as_admin_area($org_areas_served);
 		}
 	} else {
-		// Service CPT or unassigned: use org-wide areas served.
-		if ( ! empty($org_areas_served) ) {
-			$area_served = myls_wrap_areas_as_admin_area($org_areas_served);
+		// Service CPT or unassigned: prefer service_area CPT permalinks.
+		// This mirrors the pattern in localbusiness.php areaServed block.
+		$sa_posts = get_posts( [
+			'post_type'        => 'service_area',
+			'post_status'      => 'publish',
+			'post_parent'      => 0,
+			'posts_per_page'   => 100,
+			'orderby'          => 'title',
+			'order'            => 'ASC',
+			'no_found_rows'    => true,
+			'suppress_filters' => true,
+		] );
+
+		if ( ! empty( $sa_posts ) ) {
+			foreach ( $sa_posts as $sa ) {
+				// Read city/state from MYLS-native meta key
+				$cs_raw = trim( (string) get_post_meta( $sa->ID, '_myls_city_state', true ) );
+
+				if ( $cs_raw === '' ) {
+					// Fallback: strip trailing state abbreviation from post title
+					$cs_raw = preg_replace(
+						'/[,\s]+[A-Z]{2}$/i', '',
+						html_entity_decode(
+							get_the_title( $sa->ID ),
+							ENT_QUOTES | ENT_HTML5,
+							'UTF-8'
+						)
+					);
+				}
+
+				$cs_raw    = trim( $cs_raw );
+				$area_type = ( stripos( $cs_raw, 'county' ) !== false )
+					? 'AdministrativeArea'
+					: 'City';
+
+				// Strip trailing state abbreviation for clean city name
+				$city_name = trim( preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $cs_raw ) );
+
+				if ( $city_name === '' ) continue;
+
+				$area_served[] = [
+					'@type' => $area_type,
+					'name'  => $city_name,
+					'url'   => get_permalink( $sa->ID ),
+				];
+			}
+		}
+
+		// Fallback: no service_area CPTs — use org-level areas (no URLs).
+		if ( empty( $area_served ) && ! empty( $org_areas_served ) ) {
+			$area_served = myls_wrap_areas_as_admin_area( $org_areas_served );
 		}
 	}
 
@@ -653,13 +704,14 @@ add_filter('myls_schema_graph', function(array $graph) {
 	 * ---------------------------- */
 
 	$service = [
-		'@type'       => 'Service',
-		'@id'         => $service_id,
-		'name'        => $service_name,   // ✅ subtype drives name
-		'url'         => $service_url,
-		'description' => wp_strip_all_tags($description),
-		'provider'    => $provider,       // ✅ LocalBusiness first
-		'serviceType' => $service_type,   // ✅ ALWAYS present
+		'@type'            => 'Service',
+		'@id'              => $service_id,
+		'name'             => $service_name,   // ✅ subtype drives name
+		'url'              => $service_url,
+		'description'      => wp_strip_all_tags($description),
+		'provider'         => $provider,       // ✅ LocalBusiness first
+		'serviceType'      => $service_type,   // ✅ ALWAYS present
+		'mainEntityOfPage' => [ '@id' => trailingslashit( $service_url ) . '#webpage' ],
 	];
 
 	// dateModified: helps search engines understand content freshness
