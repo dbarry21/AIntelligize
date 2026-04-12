@@ -184,79 +184,9 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			}
 		}
 
-		// hasOfferCatalog: structured service catalog from the service CPT.
-		// Tells AI systems exactly what services this business offers.
-		$offer_catalog = null;
-		if ( post_type_exists( 'service' ) ) {
-			$svc_posts = get_posts( [
-				'post_type'        => 'service',
-				'post_status'      => 'publish',
-				'post_parent'      => 0,
-				'posts_per_page'   => 100,
-				'orderby'          => 'menu_order title',
-				'order'            => 'ASC',
-				'no_found_rows'    => true,
-				'suppress_filters' => true,
-			] );
-			if ( ! empty( $svc_posts ) ) {
-				$offer_items = [];
-				foreach ( $svc_posts as $svc ) {
-					// Skip pages opted out of the catalog via the per-post checkbox.
-					if ( get_post_meta( $svc->ID, '_myls_schema_exclude_from_catalog', true ) === '1' ) {
-						continue;
-					}
-					$offer_items[] = [
-						'@type'        => 'Offer',
-						'itemOffered'  => [
-							'@type' => 'Service',
-							'name'  => wp_specialchars_decode( get_the_title( $svc->ID ), ENT_QUOTES ),
-							'url'   => get_permalink( $svc->ID ),
-						],
-					];
-				}
-				$catalog_name = sanitize_text_field( get_option( 'myls_org_service_name_label', '' ) );
-				// Guard: if the saved value is a Schema.org @type string saved accidentally
-				// as the catalog name, discard it. $valid_lb_types is defined later in this function.
-				if ( ! empty( $catalog_name ) && in_array( $catalog_name, $valid_lb_types, true ) ) {
-					$catalog_name = '';
-				}
-				if ( empty( $catalog_name ) ) {
-					// Use org name only — never $loc['name'] which is location-specific.
-					$catalog_name = wp_specialchars_decode( trim( $org_name ), ENT_QUOTES ) . ' Services';
-				}
-				$offer_catalog = [
-					'@type'           => 'OfferCatalog',
-					'name'            => $catalog_name,
-					'itemListElement' => $offer_items,
-				];
-			}
-		}
-
-		// Decode HTML entities — JSON-LD strings must be plain text, not HTML-encoded.
-		$lb_name = wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES );
-
-		// mainEntityOfPage: always points to the homepage WebPage node.
-		// LocalBusiness is a site-wide entity — its primary page is the homepage,
-		// not whichever service or city page happens to be rendering it.
-		$main_entity_of_page = [ '@id' => trailingslashit( home_url( '/' ) ) . '#webpage' ];
-
-		// sameAs: shared with Organization — social profile URLs.
-		// Both entities should carry sameAs so AI crawlers / knowledge-graph tools
-		// can resolve the brand across both the site-wide identity node and the
-		// specific business-type node.
-		$socials = get_option( 'myls_org_social_profiles', [] );
-		if ( ! is_array( $socials ) ) $socials = [];
-		$socials = array_values( array_filter( array_map( 'trim', $socials ) ) );
-		$same_as = ! empty( $socials )
-			? array_map( function( $u ) {
-				return esc_url_raw( html_entity_decode( $u, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
-			}, $socials )
-			: null;
-
-		// Business type: driven by myls_org_default_service_label option.
-		// Full Schema.org LocalBusiness hierarchy — must stay in sync with
-		// the dropdown in admin/tabs/schema/subtab-organization.php.
-		$business_type = sanitize_text_field( get_option( 'myls_org_default_service_label', 'RoofingContractor' ) );
+		// Valid Schema.org LocalBusiness @type hierarchy — used by the catalog-name
+		// guard below and by business-type validation at the end of this function.
+		// Must stay in sync with the dropdown in admin/tabs/schema/subtab-organization.php.
 		$valid_lb_types = [
 			'LocalBusiness',
 			// Automotive
@@ -312,6 +242,79 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			'RecyclingCenter', 'SelfStorage', 'ShoppingCenter',
 			'TelevisionStation', 'TouristInformationCenter', 'TravelAgency',
 		];
+
+		// hasOfferCatalog: structured service catalog from the service CPT.
+		// Tells AI systems exactly what services this business offers.
+		$offer_catalog = null;
+		if ( post_type_exists( 'service' ) ) {
+			$svc_posts = get_posts( [
+				'post_type'        => 'service',
+				'post_status'      => 'publish',
+				'post_parent'      => 0,
+				'posts_per_page'   => 100,
+				'orderby'          => 'menu_order title',
+				'order'            => 'ASC',
+				'no_found_rows'    => true,
+				'suppress_filters' => true,
+			] );
+			if ( ! empty( $svc_posts ) ) {
+				$offer_items = [];
+				foreach ( $svc_posts as $svc ) {
+					// Skip pages opted out of the catalog via the per-post checkbox.
+					if ( get_post_meta( $svc->ID, '_myls_schema_exclude_from_catalog', true ) === '1' ) {
+						continue;
+					}
+					$offer_items[] = [
+						'@type'        => 'Offer',
+						'itemOffered'  => [
+							'@type' => 'Service',
+							'name'  => wp_specialchars_decode( get_the_title( $svc->ID ), ENT_QUOTES ),
+							'url'   => get_permalink( $svc->ID ),
+						],
+					];
+				}
+				$catalog_name = sanitize_text_field( get_option( 'myls_org_service_name_label', '' ) );
+				// Guard: if the saved value is a Schema.org @type string saved accidentally
+				// as the catalog name, discard it.
+				if ( ! empty( $catalog_name ) && in_array( $catalog_name, $valid_lb_types, true ) ) {
+					$catalog_name = '';
+				}
+				if ( empty( $catalog_name ) ) {
+					// Use org name only — never $loc['name'] which is location-specific.
+					$catalog_name = wp_specialchars_decode( trim( $org_name ), ENT_QUOTES ) . ' Services';
+				}
+				$offer_catalog = [
+					'@type'           => 'OfferCatalog',
+					'name'            => $catalog_name,
+					'itemListElement' => $offer_items,
+				];
+			}
+		}
+
+		// Decode HTML entities — JSON-LD strings must be plain text, not HTML-encoded.
+		$lb_name = wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES );
+
+		// mainEntityOfPage: always points to the homepage WebPage node.
+		// LocalBusiness is a site-wide entity — its primary page is the homepage,
+		// not whichever service or city page happens to be rendering it.
+		$main_entity_of_page = [ '@id' => trailingslashit( home_url( '/' ) ) . '#webpage' ];
+
+		// sameAs: shared with Organization — social profile URLs.
+		// Both entities should carry sameAs so AI crawlers / knowledge-graph tools
+		// can resolve the brand across both the site-wide identity node and the
+		// specific business-type node.
+		$socials = get_option( 'myls_org_social_profiles', [] );
+		if ( ! is_array( $socials ) ) $socials = [];
+		$socials = array_values( array_filter( array_map( 'trim', $socials ) ) );
+		$same_as = ! empty( $socials )
+			? array_map( function( $u ) {
+				return esc_url_raw( html_entity_decode( $u, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+			}, $socials )
+			: null;
+
+		// Business type: driven by myls_org_default_service_label option.
+		// $valid_lb_types is defined earlier in this function.
+		$business_type = sanitize_text_field( get_option( 'myls_org_default_service_label', 'RoofingContractor' ) );
 		if ( ! in_array( $business_type, $valid_lb_types, true ) ) {
 			$business_type = 'LocalBusiness';
 		}
