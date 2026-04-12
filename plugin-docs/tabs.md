@@ -54,6 +54,7 @@ Manages all structured data output for the site.
   - **AggregateRating** *(v7.8.65)*: `ratingCount` = Google Places `user_ratings_total`; `reviewCount` = manual written review count (`myls_google_places_review_count_manual`). Falls back to `ratingCount` if manual value absent.
   - **Fallback node enrichment** *(v7.8.69)*: service pages not assigned to a location get a fully enriched fallback LocalBusiness node (image, priceRange, openingHoursSpecification, aggregateRating, award, hasCertification).
   - **`areaServed`** *(v7.9.0)*: pulls root-level `service_area` CPT posts as typed `City` objects with name and URL.
+  - **GeoShape circle** *(v7.9.18.90)*: `areaServed` now prepends a `GeoShape` circle entry using `myls_org_lat`/`myls_org_lng` and `myls_org_area_radius` (default 50 km, `ssseo_org_area_radius` legacy fallback). Only emitted when lat/lng are set. Admin input in Address/Geo section.
   - **`hasOfferCatalog`** *(v7.9.1)*: structured `OfferCatalog` listing all `service` CPT posts as `Offer` → `Service` items on LocalBusiness.
 
 - **Service Area Service Schema** *(v7.9.1)* — Emits `Service` nodes on `service_area` pages via `service-area-service.php` provider.
