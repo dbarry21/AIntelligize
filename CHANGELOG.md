@@ -1,3 +1,33 @@
+## v7.9.18.85 — Schema Architecture: Single-Location Merge + Service Fixes
+
+### Changed
+- **LocalBusiness + Organization merge (single-location)**: When `myls_lb_locations`
+  contains one or zero rows the plugin now emits a single merged node with
+  `@type: [BusinessType, "Organization"]` and `@id: /#organization`. No separate
+  `#localbusiness` node is emitted. Eliminates the self-referential
+  `parentOrganization` loop present in all single-location installs.
+- **Organization node suppressed in single-location mode**: `organization.php`
+  respects new `myls_allow_org_node_emit` filter set by `localbusiness.php`;
+  returns early when the merged node already carries `#organization` @id.
+- **`myls_find_primary_localbusiness_id()`**: Third-pass matcher added to
+  recognize merged single-location node (`@id` ends with `#organization` AND
+  `@type` array contains a known LocalBusiness subtype).
+- **`Service.provider`**: Removed Person @id reference. Provider is now always
+  a single business entity `@id` reference per Schema.org spec.
+- **`Service.mainEntityOfPage`**: Added bidirectional `#webpage` back-reference.
+  Mirrors fix applied to LocalBusiness in v7.9.18.58.
+- **`Service.areaServed`**: Service CPT pages now query root `service_area` CPT
+  posts using `_myls_city_state` meta for city names and `get_permalink()` for
+  URLs. Falls back to `myls_org_areas` plain-text values when no CPT posts exist.
+- **`FAQPage.isPartOf`**: Added `isPartOf: {#website}` to FAQPage node.
+- **Organization `foundingDate`**: New Founding Date input in Schema →
+  Organization tab → Organization Basics. Saves as `myls_org_founding_date`
+  with `ssseo_org_founding_date` legacy fallback. Wired into both
+  `organization.php` (multi-location) and `localbusiness.php` merged node
+  (single-location).
+
+**Files changed:** `inc/schema/providers/localbusiness.php`, `inc/schema/providers/organization.php`, `inc/schema/providers/build-service-schema.php`, `inc/schema/providers/faq.php`, `admin/tabs/schema/subtab-organization.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.84 — 2026-04-12
 
 ### Added — VideoObject `contentUrl` property

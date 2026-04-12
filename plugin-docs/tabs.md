@@ -21,18 +21,23 @@ Landing page with quick links to key features, system status checks (API keys, s
 Manages all structured data output for the site.
 
 **Subtabs:**
-- **Organization** — Business name, logo, address, phone, social profiles, awards, certifications.
+- **Organization** — Business name, logo, address, phone, social profiles, awards, certifications, founding date.
   - **Org Image URL field** *(v7.8.70)*: Direct image URL input with Media Library picker (Select Image / ✕ / thumbnail preview). Used as tertiary fallback in LocalBusiness image chain.
   - Awards and certifications: double-escaping fixed in v7.8.72 — `wp_unslash()` applied at save, no re-sanitize on read.
+  - **Founding Date** *(v7.9.18.85)*: Date input (`myls_org_founding_date`, legacy `ssseo_org_founding_date`). Outputs as `foundingDate` on Organization node (multi-location) and merged LB+Org node (single-location).
   - Outputs Organization and LocalBusiness schema.
+  - **Single-location merge** *(v7.9.18.85)*: When `myls_lb_locations` has ≤1 row, localbusiness.php emits a single merged node with `@type: [BusinessType, "Organization"]` and `@id: /#organization`. The separate Organization node is suppressed via `myls_allow_org_node_emit` filter. Eliminates the self-referential `parentOrganization` loop.
 
 - **Person** — Multi-person E-E-A-T schema with Wikidata/Wikipedia expertise linking, LinkedIn import, PDF export. Supports multiple person profiles.
 
 - **Service** — Service schema markup for service pages and the Service CPT.
   - **Price Ranges** repeater: assign low/high price ranges to specific posts; outputs as `offers → PriceSpecification` (minPrice/maxPrice). Option key: `myls_service_price_ranges`.
   - Provider node enrichment *(v7.8.68)*: fallback `$org_provider` (for pages not assigned to a location) now includes `award`, `hasCertification`, and `aggregateRating`.
+  - **`Service.provider`** *(v7.9.18.85)*: Always a single business entity `@id` reference. Person @id removed per Schema.org spec.
+  - **`Service.mainEntityOfPage`** *(v7.9.18.85)*: Bidirectional `#webpage` back-reference added. Mirrors LocalBusiness pattern from v7.9.18.58.
   - `aggregateRating` removed from Service node *(v7.8.66)* — not valid per Google's spec; remains on LocalBusiness.
   - `areaServed` typed as `City` objects with `addressRegion` *(v7.9.2; was AdministrativeArea in v7.8.69)*.
+  - **`areaServed` CPT enrichment** *(v7.9.18.85)*: Service CPT pages now query root `service_area` CPT posts with `_myls_city_state` meta and `get_permalink()` URLs. Falls back to `myls_org_areas` plain-text if no CPT posts.
 
 - **WebPage** — WebPage schema for all singular pages *(v7.8.77)*.
   - `about` → Service `@id` on service pages *(v7.9.2)*; fallback to LocalBusiness on non-service pages.
@@ -55,6 +60,7 @@ Manages all structured data output for the site.
   - Toggle: `add_filter('myls_service_area_service_schema_enabled', '__return_false');`
 
 - **FAQ** — FAQ schema settings and accordion configuration.
+  - **`FAQPage.isPartOf`** *(v7.9.18.85)*: FAQPage node now includes `isPartOf: {#website}` linking it to the WebSite entity.
   - **FAQ schema answer length (v7.9.13):** `acceptedAnswer.text` in FAQPage JSON-LD
     now contains only the first paragraph of each answer (40–60 words) rather than
     the full multi-paragraph HTML. This matches the AI citability target — models
