@@ -1,3 +1,20 @@
+## v7.9.18.95 — Service Name Geographic Context
+
+### Added
+- **Service.name geographic append**: On service pages with no city-specific
+  context (`city_state` / `_myls_city_state` meta empty), the default service
+  area label is appended to `Service.name`. Example: "Rust Stain Removal
+  Service" → "Rust Stain Removal Service in Tampa Bay, FL". `serviceType`
+  remains as the raw page title (no append).
+- **Default Service Area admin field**: New text input in Schema →
+  Organization tab → Organization Basics. Saves as
+  `myls_org_default_service_area` with `ssseo_org_default_service_area`
+  legacy fallback. When blank, auto-builds from `myls_org_locality` +
+  `myls_org_region` (existing org address fields). City-specific pages
+  (with `city_state` or `_myls_city_state` meta) are never affected.
+
+**Files changed:** `inc/schema/providers/build-service-schema.php`, `admin/tabs/schema/subtab-organization.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.94 — WebPage hasPart + breadcrumb property
 
 ### Added

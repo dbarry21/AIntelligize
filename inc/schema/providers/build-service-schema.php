@@ -545,10 +545,50 @@ add_filter('myls_schema_graph', function(array $graph) {
 	// ✅ serviceType MUST be present: ALWAYS page title (string)
 	$service_type = wp_strip_all_tags($page_title);
 
-	// Service name: always the WordPress page title.
-	// Keeps schema name consistent with visible page content for AI crawlers.
-	// serviceType also uses $service_type (page title) — both are aligned.
+	// Service name: WordPress page title, optionally with default service
+	// area appended when the page has no city-specific context.
 	$service_name = $service_type;
+
+	// Determine whether this page has a city-specific context.
+	// Check all three city_state sources used elsewhere in this file.
+	$page_city_context = '';
+	if ( function_exists( 'get_field' ) ) {
+		$page_city_context = trim( (string) get_field( 'city_state', $post_id ) );
+	}
+	if ( $page_city_context === '' ) {
+		$page_city_context = trim( (string) get_post_meta( $post_id, 'city_state', true ) );
+	}
+	if ( $page_city_context === '' ) {
+		$page_city_context = trim( (string) get_post_meta( $post_id, '_myls_city_state', true ) );
+	}
+
+	// Only append when no city context exists on this page.
+	if ( $page_city_context === '' ) {
+		// Read the configured default service area label.
+		$default_area = trim( (string) get_option(
+			'myls_org_default_service_area',
+			get_option( 'ssseo_org_default_service_area', '' )
+		) );
+
+		// Smart fallback: build from org locality + region if option not set.
+		if ( $default_area === '' ) {
+			$org_locality = trim( (string) get_option( 'myls_org_locality',
+				get_option( 'ssseo_organization_locality', '' ) ) );
+			$org_region   = trim( (string) get_option( 'myls_org_region',
+				get_option( 'ssseo_organization_state', '' ) ) );
+
+			if ( $org_locality !== '' && $org_region !== '' ) {
+				$default_area = $org_locality . ', ' . $org_region;
+			} elseif ( $org_locality !== '' ) {
+				$default_area = $org_locality;
+			}
+		}
+
+		// Append "in {area}" when a default area is available.
+		if ( $default_area !== '' ) {
+			$service_name = $service_type . ' in ' . $default_area;
+		}
+	}
 
 	// serviceOutput: noun-phrase describing the tangible deliverable.
 	// Priority: 1) explicit admin field  2) smart default derived from service type
