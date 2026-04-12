@@ -68,6 +68,8 @@ Manages all structured data output for the site.
     accordion. All FAQ schema paths updated via single function change in
     `inc/schema/helpers.php`.
 
+- **HowTo** — HowTo schema for pages with `_myls_howto_steps` post meta. Provider resolves dynamically: `/#organization` (single-location) or `/#localbusiness` (multi-location) via `myls_howto_resolve_provider_id()` *(v7.9.18.86)*.
+
 - **About Page** — AboutPage schema for company/about pages.
 
 - **VideoObject Auto-Detector** *(v7.8.74)*: no UI — auto-runs on every singular page.
