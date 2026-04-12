@@ -79,20 +79,27 @@ function myls_person_build_jsonld( array $p ) : array {
     // worksFor — @id reference to Organization (no inline duplicate)
     $schema['worksFor'] = [ '@id' => home_url( '/#organization' ) ];
 
-    // knowsAbout — use Thing with Wikidata/Wikipedia for max KG impact
+    // knowsAbout — plain strings when no Wikidata/Wikipedia links,
+    // Thing objects with @id/sameAs when structured data is available.
     $knows = (array) ($p['knows_about'] ?? []);
     $knows_output = [];
     foreach ( $knows as $k ) {
         $kname = trim( $k['name'] ?? '' );
         if ( ! $kname ) continue;
 
+        $wikidata  = trim( $k['wikidata'] ?? '' );
+        $wikipedia = trim( $k['wikipedia'] ?? '' );
+
+        // Use plain string when no structured links are available.
+        if ( $wikidata === '' && $wikipedia === '' ) {
+            $knows_output[] = $kname;
+            continue;
+        }
+
         $thing = [
             '@type' => 'Thing',
             'name'  => $kname,
         ];
-
-        $wikidata  = trim( $k['wikidata'] ?? '' );
-        $wikipedia = trim( $k['wikipedia'] ?? '' );
 
         if ( $wikidata ) {
             $thing['@id'] = $wikidata;

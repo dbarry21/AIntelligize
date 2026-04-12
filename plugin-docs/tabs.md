@@ -54,7 +54,7 @@ Manages all structured data output for the site.
   - **Image fallback chain** *(v7.8.67)*: per-location Business Image URL → org logo attachment (`myls_org_logo_id`) → org image direct URL (`myls_org_image_url`).
   - **priceRange fallback chain** *(v7.8.67)*: per-location → site-wide default.
   - **Media library picker** for Business Image URL on each location row *(v7.8.71)*. Delegated event listener covers dynamically added rows.
-  - **knowsAbout opt-in block** *(v7.8.64)*: select Service CPT posts + optional service subtype sentinel (`__subtype__`). Ctrl/Cmd multi-select. Empty = omitted. Option: `myls_lb_knows_about_include`.
+  - **knowsAbout opt-in block** *(v7.8.64)*: select Service CPT posts + optional service subtype sentinel (`__subtype__`). Ctrl/Cmd multi-select. Empty = omitted. Option: `myls_lb_knows_about_include`. Values emitted as plain strings *(v7.9.18.97; was `@type: Thing` objects)*.
   - **AggregateRating** *(v7.8.65)*: `ratingCount` = Google Places `user_ratings_total`; `reviewCount` = manual written review count (`myls_google_places_review_count_manual`). Falls back to `ratingCount` if manual value absent.
   - **Fallback node enrichment** *(v7.8.69)*: service pages not assigned to a location get a fully enriched fallback LocalBusiness node (image, priceRange, openingHoursSpecification, aggregateRating, award, hasCertification).
   - **`areaServed`** *(v7.9.0)*: pulls root-level `service_area` CPT posts as typed `City` objects with name and URL.
