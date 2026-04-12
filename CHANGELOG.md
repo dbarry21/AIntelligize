@@ -1,3 +1,13 @@
+## 7.9.18.83 — 2026-04-12
+
+### Fixed — LocalBusiness schema display-time org fallbacks
+- Schema builder now falls back to org-level options (`myls_org_tel`, `myls_org_street`,
+  `myls_org_locality`, `myls_org_postal`, `myls_org_lat`, `myls_org_lng`) at display time
+  when per-location fields are blank — ensures telephone, address, and geo are always
+  populated in schema output even if DB values are empty or stale
+
+**Files changed:** `inc/schema/providers/localbusiness.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.82 — 2026-04-12
 
 ### Fixed — LocalBusiness schema output corrections
