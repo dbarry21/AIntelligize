@@ -130,6 +130,7 @@ function myls_insert_video_archive_itemlist_schema() {
 				'description'      => sanitize_text_field($description),
 				'thumbnailUrl'     => $thumbnail ? [ esc_url($thumbnail) ] : null,
 				'uploadDate'       => $publish_c,
+				'contentUrl'       => esc_url($permalink),
 				'embedUrl'         => $embed_url ? esc_url($embed_url) : null,
 			]),
 		];
@@ -220,6 +221,7 @@ function myls_insert_single_video_schema() {
 		'thumbnailUrl'         => [ esc_url($thumbnailUrl) ],
 		'uploadDate'           => $uploadDate,
 		'duration'             => $duration ?: null, // only include if known
+		'contentUrl'           => esc_url( get_permalink($post_id) ),
 		'embedUrl'             => esc_url($embedUrl),
 		'interactionStatistic' => ($viewCount !== '' ? array_filter([
 			'@type'                 => 'InteractionCounter',
