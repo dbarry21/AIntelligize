@@ -1,3 +1,17 @@
+## v7.9.18.94 — WebPage hasPart + breadcrumb property
+
+### Added
+- **WebPage.hasPart**: WebPage node now declares hasPart referencing
+  all sub-entity nodes present on the page — HowTo (scanned from graph,
+  priority 55), VideoObject (scanned from graph, priority 46), and
+  FAQPage (@id computed directly since it runs at same priority 60).
+  Array only emitted when at least one sub-entity exists.
+- **WebPage.breadcrumb**: Added breadcrumb @id reference to WebPage node
+  using same pattern as breadcrumb.php. Conditional on
+  myls_schema_breadcrumb_enabled option.
+
+**Files changed:** `inc/schema/providers/webpage.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.93 — Service Schema Name Always Uses Page Title
 
 ### Changed

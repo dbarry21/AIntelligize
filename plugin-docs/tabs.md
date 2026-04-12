@@ -44,6 +44,8 @@ Manages all structured data output for the site.
   - `about` → Service `@id` on service pages *(v7.9.2)*; fallback to LocalBusiness on non-service pages.
   - **Homepage name** *(v7.9.18.88)*: `name` reads from `myls_org_name` on the front page instead of `get_the_title()`.
   - **Homepage description** *(v7.9.18.88)*: `myls_org_description` is first-priority source on front page. Fallback chain (excerpt → Yoast → RankMath) unchanged for other pages.
+  - **`hasPart`** *(v7.9.18.94)*: References HowTo (graph scan), VideoObject (graph scan), and FAQPage (computed @id) sub-entities on the page. Only emitted when at least one exists.
+  - **`breadcrumb`** *(v7.9.18.94)*: @id reference to BreadcrumbList node. Conditional on `myls_schema_breadcrumb_enabled`.
 
 - **LocalBusiness** — Location-specific schema.
   - **Site-wide Defaults block** *(v7.8.67)*: priceRange default (`myls_lb_default_price_range`) and live image fallback chain status showing which level resolves.
