@@ -1,3 +1,17 @@
+## v7.9.18.97 — knowsAbout simplified to plain strings
+
+### Fixed
+- **knowsAbout validator warning**: Removed `@type: "Thing"` wrapper from
+  `knowsAbout` entries in `myls_get_knows_about()`. Values are now emitted
+  as plain strings per Schema.org specification. `Thing` is the base type
+  of all Schema.org types and its explicit use as a wrapper added no
+  semantic value while triggering structured data validator warnings.
+- **Person knowsAbout**: Plain-name entries (no Wikidata/Wikipedia links)
+  now emit as plain strings. Entries with `@id` (Wikidata) or `sameAs`
+  (Wikipedia) retain the `Thing` wrapper to carry structured data.
+
+**Files changed:** `inc/schema/helpers.php`, `inc/schema/providers/person.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.96 — serviceOutput Per-Page Control + AI Bulk Generator
 
 ### Added

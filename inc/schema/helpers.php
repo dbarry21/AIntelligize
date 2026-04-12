@@ -340,7 +340,7 @@ if ( ! function_exists('myls_get_knows_about') ) {
 	 * Results are request-cached via static variable so both LocalBusiness and
 	 * Organization providers share a single option read per page load.
 	 *
-	 * @return array  Array of ['@type' => 'Thing', 'name' => string], or [].
+	 * @return array  Array of plain strings (knowsAbout values), or [].
 	 */
 	function myls_get_knows_about() : array {
 		static $cache = null;
@@ -378,7 +378,7 @@ if ( ! function_exists('myls_get_knows_about') ) {
 			if ( isset( $seen[ $key ] ) ) continue;
 			$seen[ $key ] = true;
 
-			$out[] = [ '@type' => 'Thing', 'name' => $name ];
+			$out[] = $name;
 		}
 
 		// Allow last-mile additions or removals via filter.
