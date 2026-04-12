@@ -591,14 +591,14 @@ add_filter('myls_schema_graph', function(array $graph) {
 	}
 
 	// serviceOutput: noun-phrase describing the tangible deliverable.
-	// Priority: 1) explicit admin field  2) smart default derived from service type
-	// Never uses the post excerpt — that is a process description, not a deliverable.
-	$service_output_text = trim( (string) get_option( 'myls_service_output', '' ) );
+	// Priority: 1) per-page meta  2) global option  3) noun_map  4) generic
+	$service_output_text = trim( (string) get_post_meta( $post_id, '_myls_service_output', true ) );
 
 	if ( $service_output_text === '' ) {
-		// Derive a sensible noun-phrase from the page title (already used as serviceType).
-		// Strip stop words so "Pressure Washing Services" → "Cleaned pressure washing surfaces".
-		// Simple map: title → noun phrase. Falls back to generic if no match.
+		$service_output_text = trim( (string) get_option( 'myls_service_output', '' ) );
+	}
+
+	if ( $service_output_text === '' ) {
 		$title_lower = strtolower( wp_strip_all_tags( $page_title ) );
 		$noun_map    = [
 			'wash'     => 'Professionally cleaned and washed exterior surfaces',
@@ -619,6 +619,9 @@ add_filter('myls_schema_graph', function(array $graph) {
 			'hvac'     => 'Tested, serviced HVAC system',
 			'plumb'    => 'Repaired, functional plumbing system',
 			'electr'   => 'Inspected, functional electrical system',
+			'rust'     => 'Rust-free, treated exterior surface',
+			'stain'    => 'Stain-free, restored surface',
+			'screen'   => 'Clean, debris-free screen enclosure panels',
 		];
 		foreach ( $noun_map as $keyword => $phrase ) {
 			if ( str_contains( $title_lower, $keyword ) ) {
@@ -626,9 +629,11 @@ add_filter('myls_schema_graph', function(array $graph) {
 				break;
 			}
 		}
-		if ( $service_output_text === '' ) {
-			$service_output_text = 'Completed, professionally delivered ' . strtolower( $service_type ) . ' service';
-		}
+	}
+
+	if ( $service_output_text === '' ) {
+		$service_output_text = 'Completed, professionally delivered '
+			. strtolower( $service_type ) . ' service';
 	}
 
 	$service_output = [

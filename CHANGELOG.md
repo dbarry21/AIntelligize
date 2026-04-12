@@ -1,3 +1,29 @@
+## v7.9.18.96 — serviceOutput Per-Page Control + AI Bulk Generator
+
+### Added
+- **serviceOutput metabox**: New "Service Output (Schema)" sidebar metabox
+  on service CPT edit screens. Saves noun-phrase deliverable description
+  as `_myls_service_output` post meta. Includes live preview and examples.
+- **serviceOutput AI subtab**: New "Service Output" subtab under AI tab
+  (order 45). Two-column layout — left has editable AI prompt template
+  with save/reset, right shows all service posts in a table with per-row
+  manual textarea, Save, Generate (AI), and Clear buttons plus bulk
+  Generate All with skip-existing toggle and results log.
+- **AJAX handlers**: `myls_service_output_generate_single` generates
+  using AI with `{{TITLE}}`, `{{CITY_STATE}}`, `{{PAGE_TEXT}}` token
+  substitution and saves to post meta. `myls_service_output_save_single`
+  saves manual values. Both use nonce `myls_svcout_ops`.
+
+### Changed
+- **serviceOutput priority chain**: `_myls_service_output` per-page meta
+  is now highest priority source for `Service.serviceOutput.name` in
+  `build-service-schema.php`. Falls back to global `myls_service_output`
+  option → noun_map keyword match → generic phrase.
+- **noun_map expanded**: Added `rust`, `stain`, and `screen` entries for
+  better keyword coverage on common service types.
+
+**Files changed:** `modules/cpt/service-metaboxes.php`, `inc/schema/providers/build-service-schema.php`, `admin/tabs/ai/subtab-service-output.php` (new), `inc/ajax/ai-service-output.php` (new), `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.95 — Service Name Geographic Context
 
 ### Added

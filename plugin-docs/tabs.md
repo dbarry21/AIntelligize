@@ -33,6 +33,7 @@ Manages all structured data output for the site.
 - **Service** — Service schema markup for service pages and the Service CPT.
   - **`Service.name`** *(v7.9.18.93)*: Always uses the WordPress page title. Per-page `_myls_service_name` meta and global `myls_service_subtype` option removed from the name resolution chain.
   - **`Service.name` geographic append** *(v7.9.18.95)*: On pages without city-specific meta (`city_state`/`_myls_city_state`), appends " in {area}" from `myls_org_default_service_area` (or auto-built from locality + region). `serviceType` remains raw page title.
+  - **`serviceOutput` per-page control** *(v7.9.18.96)*: Per-page `_myls_service_output` meta is now highest priority for `Service.serviceOutput.name`. Sidebar metabox on service CPT edit screens. AI subtab (order 45) with bulk generation, editable prompt template (`{{TITLE}}`, `{{CITY_STATE}}`, `{{PAGE_TEXT}}`), and noun_map fallback (expanded with `rust`, `stain`, `screen`).
   - **Price Ranges** repeater: assign low/high price ranges to specific posts; outputs as `offers → PriceSpecification` (minPrice/maxPrice). Option key: `myls_service_price_ranges`.
   - Provider node enrichment *(v7.8.68)*: fallback `$org_provider` (for pages not assigned to a location) now includes `award`, `hasCertification`, and `aggregateRating`.
   - **`Service.provider`** *(v7.9.18.85)*: Always a single business entity `@id` reference. Person @id removed per Schema.org spec.
