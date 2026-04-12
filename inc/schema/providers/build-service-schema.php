@@ -545,12 +545,10 @@ add_filter('myls_schema_graph', function(array $graph) {
 	// ✅ serviceType MUST be present: ALWAYS page title (string)
 	$service_type = wp_strip_all_tags($page_title);
 
-	// ✅ Service "name": per-page meta → global subtype option → page title
-	// Per-page meta (_myls_service_name) takes highest priority so individual
-	// pages can override the global setting without affecting all service pages.
-	$per_page_name   = trim( wp_strip_all_tags( (string) get_post_meta( $post_id, '_myls_service_name', true ) ) );
-	$service_subtype = trim( wp_strip_all_tags( (string) get_option( 'myls_service_subtype', '' ) ) );
-	$service_name    = $per_page_name !== '' ? $per_page_name : ( $service_subtype !== '' ? $service_subtype : $service_type );
+	// Service name: always the WordPress page title.
+	// Keeps schema name consistent with visible page content for AI crawlers.
+	// serviceType also uses $service_type (page title) — both are aligned.
+	$service_name = $service_type;
 
 	// serviceOutput: noun-phrase describing the tangible deliverable.
 	// Priority: 1) explicit admin field  2) smart default derived from service type
