@@ -1,3 +1,29 @@
+## v7.9.18.98 — YouTube Video URL Metabox Extended to Service CPT
+
+### Changed
+- **page-video-url metabox extended to service CPT**: YouTube Video URL
+  metabox now registers on both `page` and `service` post types. Save
+  handler added for `save_post_service` hook using `update_post_meta()`
+  directly (never `wp_update_post()`).
+- **ACF migration notice**: When a service post has a legacy `video_url`
+  ACF value but no `_myls_page_video_url`, the metabox displays a yellow
+  migration notice prompting the editor to save to migrate the value.
+- **One-time bulk migration**: On plugin version init, all page and service
+  posts with `video_url` ACF meta but no `_myls_page_video_url` are
+  automatically migrated. Runs once per version via version-keyed option.
+- **ACF fallback removed from shortcode**: `[myls_youtube_embed]`
+  `use_page_video` chain now reads only `_myls_page_video_url`. Legacy
+  `video_url` ACF step removed since migration handles data transfer.
+
+### Important
+After deploying this version, update the Elementor footer template
+shortcode from:
+    [myls_youtube_embed video_id="E7uX5SLKFHU" play_color="#0073aa"]
+to:
+    [myls_youtube_embed use_page_video="1" fallback_id="E7uX5SLKFHU" play_color="#0073aa"]
+
+**Files changed:** `inc/metaboxes/page-video-url.php`, `modules/shortcodes/youtube-embed.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.97 — knowsAbout simplified to plain strings
 
 ### Fixed
