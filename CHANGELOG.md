@@ -1,3 +1,19 @@
+## 7.9.18.82 — 2026-04-12
+
+### Fixed — LocalBusiness schema output corrections
+- `on_save` handler: apply org-level fallbacks (`myls_org_tel`, `myls_org_street`,
+  `myls_org_locality`, `myls_org_postal`, `myls_org_lat`, `myls_org_lng`) for any blank field
+  before writing to `myls_lb_locations` — prevents stale values (e.g. wrong city) and missing
+  fields (phone, street, zip, geo) from persisting in DB and propagating to schema output
+- `hasOfferCatalog.name`: guard rejects Schema.org `@type` strings saved accidentally as
+  catalog name; falls back to org name + " Services"
+- `AggregateRating.ratingValue`: cast to `(float)` so `json_encode()` outputs numeric `5`
+  not string `"5"` — fixes Schema.org type validation error
+- `mainEntityOfPage`: pinned to homepage `#webpage` node; previously resolved to current
+  page URL causing service pages to appear as the primary LB entity page
+
+**Files changed:** `admin/tabs/schema/subtab-localbusiness.php`, `inc/schema/providers/localbusiness.php`, `inc/schema/helpers.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## 7.9.18.81 — 2026-04-10
 
 ### Fixed — Elementor JSON unicode escape matching in Search & Replace

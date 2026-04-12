@@ -288,7 +288,7 @@ if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
 
 		return [
 			'@type'       => 'AggregateRating',
-			'ratingValue' => rtrim( rtrim( number_format( (float) $rating, 1, '.', '' ), '0' ), '.' ),
+			'ratingValue' => (float) rtrim( rtrim( number_format( (float) $rating, 1, '.', '' ), '0' ), '.' ),
 			'reviewCount' => (int)   $count,
 			'bestRating'  => (int)   $best_rating,
 			'worstRating' => (int)   $worst_rating,
