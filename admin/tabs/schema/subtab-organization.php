@@ -223,6 +223,10 @@ $spec = [
 			'areas'       => get_option('myls_org_areas',       get_option('ssseo_organization_areas_served','')),
 			'founding_date' => get_option( 'myls_org_founding_date',
 				get_option( 'ssseo_org_founding_date', '' ) ),
+			'default_service_area' => trim( (string) get_option(
+				'myls_org_default_service_area',
+				get_option( 'ssseo_org_default_service_area', '' )
+			) ),
 		];
 
 		$logo_id  = (int) get_option('myls_org_logo_id', (int) get_option('ssseo_organization_logo', 0));
@@ -390,6 +394,21 @@ $spec = [
 							<div class="form-text">
 								Human-readable label for your primary service offering.
 								Used as <code>hasOfferCatalog.name</code> on the LocalBusiness schema node.
+							</div>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label" for="myls_org_default_service_area">
+								Default Service Area
+							</label>
+							<input type="text"
+								   id="myls_org_default_service_area"
+								   name="myls_org_default_service_area"
+								   value="<?php echo esc_attr( $v['default_service_area'] ); ?>"
+								   placeholder="e.g. Tampa Bay, FL">
+							<div class="form-text">
+								Appended to <code>Service.name</code> on service pages with no
+								city-specific context. Example: "Paver Sealing Service in Tampa Bay, FL".
+								Leave blank to auto-build from City + State fields above.
 							</div>
 						</div>
 						<div class="col-md-6">
@@ -1006,6 +1025,8 @@ $spec = [
 		update_option('myls_org_default_service_label', sanitize_text_field($_POST['myls_org_default_service_label'] ?? ''));
 		update_option('myls_org_service_name_label',    sanitize_text_field($_POST['myls_org_service_name_label']    ?? ''));
 		update_option('myls_org_founding_date',         sanitize_text_field($_POST['myls_org_founding_date']         ?? ''));
+		update_option( 'myls_org_default_service_area',
+			sanitize_text_field( $_POST['myls_org_default_service_area'] ?? '' ) );
 
 		// Logo
 		update_option('myls_org_logo_id', absint($_POST['myls_org_logo_id'] ?? 0));
