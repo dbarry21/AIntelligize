@@ -1,3 +1,17 @@
+## v7.9.18.89 — VideoObject Description Sanitization
+
+### Fixed
+- **VideoObject description cleanup**: Phone numbers, URLs, and connector
+  words (or, call, visit) are now stripped from YouTube API descriptions
+  before schema output and caching. Applies in `myls_fetch_youtube_meta()`
+  after `wp_strip_all_tags()` and before 500-char truncation, ensuring the
+  full useful content window is preserved.
+- **YouTube meta transient cache busted**: Existing cached descriptions
+  containing raw contact info are automatically cleared on first page load
+  after upgrade via the version-keyed bust hook added in v7.9.18.87.
+
+**Files changed:** `inc/schema/providers/video-object-detector.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.88 — Homepage Schema Completeness
 
 ### Fixed

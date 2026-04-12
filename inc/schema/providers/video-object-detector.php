@@ -192,6 +192,35 @@ if ( ! function_exists('myls_fetch_youtube_meta') ) {
 
 		// Truncate YouTube description to 500 chars for schema use
 		$yt_desc = wp_strip_all_tags( $yt_desc_raw );
+
+		// Strip contact info and URLs that YouTube creators put at the top
+		// of descriptions — these are not appropriate for schema output.
+		// Run before truncation so useful content fills the 500-char window.
+
+		// 1. Strip bare URLs (http/https, with or without trailing punctuation)
+		$yt_desc = preg_replace( '~https?://\S+~i', '', $yt_desc );
+
+		// 2. Strip phone numbers in common US formats:
+		//    813-335-2869 / (813) 335-2869 / 813.335.2869 / 8133352869
+		$yt_desc = preg_replace(
+			'/\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4}/',
+			'',
+			$yt_desc
+		);
+
+		// 3. Strip "or" / "call" / "visit" connector words left behind after
+		//    stripping URLs and phones (e.g. "813-335-2869 or " → " or ")
+		$yt_desc = preg_replace(
+			'/\b(?:or|call|visit|contact|reach us at|phone)\b\s*/i',
+			'',
+			$yt_desc
+		);
+
+		// 4. Collapse multiple blank lines and trim
+		$yt_desc = preg_replace( '/\n{3,}/', "\n\n", $yt_desc );
+		$yt_desc = trim( $yt_desc );
+
+		// Truncate to 500 chars after cleaning
 		if ( mb_strlen( $yt_desc ) > 500 ) {
 			$yt_desc = mb_substr( $yt_desc, 0, 497 ) . '…';
 		}
