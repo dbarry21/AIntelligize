@@ -26,6 +26,27 @@
 
 if ( ! defined('ABSPATH') ) exit;
 
+/**
+ * One-time cache bust: clear YouTube meta transients when plugin
+ * version changes so stale entries missing the description field
+ * are refreshed on next page load.
+ */
+add_action( 'init', function() {
+	$last = get_option( 'myls_yt_meta_cache_version', '' );
+	if ( $last === MYLS_VERSION ) return;
+
+	// Clear all myls_yt_meta_* transients globally.
+	// delete_transient() requires exact keys — use $wpdb for wildcard.
+	global $wpdb;
+	$wpdb->query(
+		"DELETE FROM {$wpdb->options}
+		 WHERE option_name LIKE '\_transient\_myls\_yt\_meta\_%'
+		    OR option_name LIKE '\_transient\_timeout\_myls\_yt\_meta\_%'"
+	);
+
+	update_option( 'myls_yt_meta_cache_version', MYLS_VERSION );
+} );
+
 
 /* =========================================================================
  * SECTION 1 — URL UTILITIES

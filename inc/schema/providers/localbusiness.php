@@ -55,6 +55,12 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 	function myls_lb_build_schema_from_location( array $loc, WP_Post $post, bool $is_single = false ) : array {
 		$org_name = get_option( 'myls_org_name', get_bloginfo( 'name' ) );
 
+		$org_desc = trim( wp_specialchars_decode(
+			(string) get_option( 'myls_org_description',
+				get_option( 'ssseo_organization_description', '' ) ),
+			ENT_QUOTES
+		) );
+
 		$awards = get_option('myls_org_awards', []);
 		if ( ! is_array($awards) ) $awards = [];
 		$awards = array_values( array_filter( array_map( 'myls_parse_award_name', $awards ) ) );
@@ -347,6 +353,9 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 
 			'name'       => $lb_name,
 			'url'        => esc_url( $org_url ),
+			// description: only on merged single-location node.
+			// In multi-location mode Organization.php handles this separately.
+			'description' => ( $is_single && $org_desc !== '' ) ? $org_desc : null,
 			'telephone'  => function_exists('myls_normalize_phone_e164')
 				? myls_normalize_phone_e164( $lb_phone )
 				: $lb_phone,
