@@ -137,6 +137,67 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 		}
 	}
 
+	// ── hasPart: declare sub-entities that are components of this WebPage ──
+	$has_part = [];
+
+	// 1. HowTo — scan graph (priority 55, already present)
+	foreach ( $graph as $gn ) {
+		if ( ! is_array( $gn ) ) continue;
+		if ( ( $gn['@type'] ?? '' ) !== 'HowTo' ) continue;
+		$howto_id = (string) ( $gn['@id'] ?? '' );
+		if ( $howto_id !== '' ) {
+			$has_part[] = [ '@id' => $howto_id ];
+		}
+	}
+
+	// 2. VideoObject — scan graph (priority 46, already present)
+	// Collect all VideoObject @ids — detector only runs on current page.
+	foreach ( $graph as $gn ) {
+		if ( ! is_array( $gn ) ) continue;
+		if ( ( $gn['@type'] ?? '' ) !== 'VideoObject' ) continue;
+		$vid_id = (string) ( $gn['@id'] ?? '' );
+		if ( $vid_id !== '' ) {
+			$has_part[] = [ '@id' => $vid_id ];
+		}
+	}
+
+	// 3. FAQPage — compute @id directly (priority 60, NOT in graph yet)
+	// Pattern: trailingslashit( $permalink ) . '#faq'  (confirmed faq.php:169)
+	if ( get_option( 'myls_faq_enabled', '0' ) === '1' ) {
+		$has_faq_items = false;
+
+		if ( function_exists( 'myls_get_faq_items_meta' ) ) {
+			$faq_check     = myls_get_faq_items_meta( $post_id );
+			$has_faq_items = is_array( $faq_check ) && ! empty( $faq_check );
+		}
+		if ( ! $has_faq_items ) {
+			$faq_raw       = get_post_meta( $post_id, '_myls_faq_items', true );
+			$has_faq_items = is_array( $faq_raw ) && ! empty( $faq_raw );
+		}
+		if ( ! $has_faq_items && function_exists( 'have_rows' ) ) {
+			$has_faq_items = have_rows( 'faq_items', $post_id );
+		}
+
+		if ( $has_faq_items ) {
+			$has_part[] = [ '@id' => trailingslashit( $permalink ) . '#faq' ];
+		}
+	}
+
+	// Add hasPart to node only when at least one sub-entity was found.
+	if ( ! empty( $has_part ) ) {
+		$node['hasPart'] = $has_part;
+	}
+
+	// ── breadcrumb property ──────────────────────────────────────────────
+	// Add breadcrumb @id reference if breadcrumb schema is enabled.
+	// Uses same @id pattern as breadcrumb.php.
+	if ( get_option( 'myls_schema_breadcrumb_enabled', '1' ) === '1' ) {
+		$breadcrumb_id = is_front_page()
+			? home_url( '/#breadcrumb' )
+			: trailingslashit( $permalink ) . '#breadcrumb';
+		$node['breadcrumb'] = [ '@id' => $breadcrumb_id ];
+	}
+
 	$graph[] = apply_filters( 'myls_webpage_schema_node', $node, $post_id );
 	return $graph;
 }, 60 ); // Priority 60: run after all entity providers (LB 8, Org 10, Service 50)
