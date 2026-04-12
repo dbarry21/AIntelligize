@@ -1,3 +1,21 @@
+## v7.9.18.99 — Video Detector: Resolve use_page_video Shortcode Dynamically
+
+### Fixed
+- **VideoObject schema mismatch on dynamic template videos**: The Elementor
+  shortcode scanner in `video-object-detector.php` previously only matched
+  `[myls_youtube_embed]` with a hardcoded `video_id=` attribute. Templates
+  using `use_page_video="1"` were ignored or fell through to the fallback,
+  causing the wrong video to appear in schema even when the correct
+  per-page video was rendering on the page.
+- **Resolution chain mirrored**: The detector now replicates the same
+  priority order as `youtube-embed.php`: (1) `_myls_page_video_url` post
+  meta, (2) `fallback_id` shortcode attribute, (3) `myls_ytvb_default_video_id`
+  site option. VideoObject is only emitted when a valid 11-char YouTube ID
+  resolves. The two match paths (`video_id=` vs `use_page_video=`) are
+  mutually exclusive to prevent duplicate nodes.
+
+**Files changed:** `inc/schema/providers/video-object-detector.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.98 — YouTube Video URL Metabox Extended to Service CPT
 
 ### Changed
