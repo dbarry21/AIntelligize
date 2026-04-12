@@ -1,3 +1,22 @@
+## v7.9.18.87 — VideoObject Descriptions, Merged Node Description, Breadcrumb Fix
+
+### Fixed
+- **Merged node missing description**: `myls_org_description` is now read
+  and output in `myls_lb_build_schema_from_location()` when in single-location
+  mode. Previously only `organization.php` read this field, which is suppressed
+  in single-location mode causing description to be absent from the merged node.
+- **VideoObject duplicate descriptions**: Cleared stale `myls_yt_meta_*`
+  transients on version bump. Cached entries stored before the `description`
+  field was added to `myls_fetch_youtube_meta()` returned empty description,
+  causing the fallback post excerpt to be used for all videos. Fresh API fetch
+  will populate unique per-video descriptions from YouTube.
+- **BreadcrumbList root item name**: Position 1 now reads from `myls_org_name`
+  option (with `ssseo_organization_name` legacy fallback) instead of
+  `get_bloginfo('name')`, ensuring the full legal name including LLC suffix
+  is consistent across the graph.
+
+**Files changed:** `inc/schema/providers/localbusiness.php`, `inc/schema/providers/video-object-detector.php`, `inc/schema/providers/breadcrumb.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.86 — Fix HowTo.provider dangling reference
 
 ### Fixed

@@ -27,6 +27,7 @@ Manages all structured data output for the site.
   - **Founding Date** *(v7.9.18.85)*: Date input (`myls_org_founding_date`, legacy `ssseo_org_founding_date`). Outputs as `foundingDate` on Organization node (multi-location) and merged LB+Org node (single-location).
   - Outputs Organization and LocalBusiness schema.
   - **Single-location merge** *(v7.9.18.85)*: When `myls_lb_locations` has ≤1 row, localbusiness.php emits a single merged node with `@type: [BusinessType, "Organization"]` and `@id: /#organization`. The separate Organization node is suppressed via `myls_allow_org_node_emit` filter. Eliminates the self-referential `parentOrganization` loop.
+  - **Merged node description** *(v7.9.18.87)*: `myls_org_description` (with `ssseo_organization_description` legacy fallback) is now included on the merged single-location node. Previously only emitted by the suppressed Organization node.
 
 - **Person** — Multi-person E-E-A-T schema with Wikidata/Wikipedia expertise linking, LinkedIn import, PDF export. Supports multiple person profiles.
 
@@ -75,10 +76,14 @@ Manages all structured data output for the site.
 - **VideoObject Auto-Detector** *(v7.8.74)*: no UI — auto-runs on every singular page.
   - **File:** `inc/schema/providers/video-object-detector.php`
   - Detects videos across: Elementor widget (`video`, `video-playlist`, background), Elementor HTML widget / Text Editor iframes *(v7.8.75)*, Elementor Theme Builder templates (conditions matched via `_elementor_conditions`), Beaver Builder video module, Divi `[et_pb_video]`, WPBakery `[vc_video]`, Gutenberg `wp:embed` / `wp:video`, Classic editor `<iframe>` + bare URLs.
-  - YouTube duration fetched from YouTube Data API v3, cached 30 days per video ID (`myls_yt_dur_{id}` transient).
+  - YouTube duration fetched from YouTube Data API v3, cached 30 days per video ID (`myls_yt_dur_{id}` transient). YouTube meta transients (`myls_yt_meta_*`) auto-cleared on version bump *(v7.9.18.87)* to refresh stale entries missing description field.
   - Theme Builder condition matching *(fixed v7.8.76)*: parses Elementor's actual slash-delimited string format (`"include/general"`, `"include/singular/front_page"`) — not the associative array format that was previously expected.
   - Cross-validation fix *(v7.9.0)*: validation now includes Elementor Theme Builder template content (header/footer), so videos in site-wide templates get proper VideoObject schema.
   - Cross-validation **removed** *(v7.9.16)*: calling `apply_filters('the_content')` and Elementor's `get_builder_content()` during schema rendering triggered nested content renders that corrupted Elementor's Loop Grid state, breaking flip-box widgets and other loop-based elements. Phantom videos in schema are a minor SEO nuisance; broken page layout is not acceptable.
+
+- **BreadcrumbList** *(v7.8.95)*: no UI — auto-runs on all singular pages (except front page).
+  - Trail: Home > [Parent(s)] > Current Page. Root item name reads from `myls_org_name` option with `ssseo_organization_name` legacy fallback *(v7.9.18.87; was `get_bloginfo('name')`)*.
+  - Toggle: `myls_schema_breadcrumb_enabled` option (default `'1'`).
 
 - **ItemList** *(v7.9.0)*: no UI — auto-runs on the front page.
   - **File:** `inc/schema/providers/itemlist.php`

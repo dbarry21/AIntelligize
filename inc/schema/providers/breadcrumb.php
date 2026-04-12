@@ -29,10 +29,18 @@ add_filter( 'myls_schema_graph', function ( array $graph ) : array {
 	$position = 1;
 
 	// 1. Home (decode HTML entities — JSON-LD needs plain text)
+	// Use myls_org_name for full legal name (e.g. including LLC suffix),
+	// with ssseo_ legacy fallback, then get_bloginfo('name') as last resort.
+	$root_name = wp_specialchars_decode(
+		trim( (string) get_option( 'myls_org_name',
+			get_option( 'ssseo_organization_name', get_bloginfo( 'name' ) )
+		) ),
+		ENT_QUOTES
+	);
 	$items[] = [
 		'@type'    => 'ListItem',
 		'position' => $position++,
-		'name'     => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+		'name'     => $root_name,
 		'item'     => home_url( '/' ),
 	];
 
