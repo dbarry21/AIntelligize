@@ -883,10 +883,61 @@ if ( ! function_exists('myls_extract_videos_content') ) {
 			}
 		}
 
-		// ── 5. [myls_youtube_embed video_id="..."] shortcode ──────────────
-		if ( preg_match_all('/\[myls_youtube_embed\s[^\]]*\bvideo_id=["\']([a-zA-Z0-9_\-]{11})["\']/', $content, $m) ) {
+		// ── 5. [myls_youtube_embed] shortcode ────────────────────────────
+		// Case A: hardcoded video_id= attribute — direct match.
+		if ( preg_match_all(
+			'/\[myls_youtube_embed\s[^\]]*\bvideo_id=["\']([a-zA-Z0-9_\-]{11})["\']/',
+			$content,
+			$m
+		) ) {
 			foreach ( $m[1] as $vid_id ) {
 				$add( 'https://www.youtube.com/watch?v=' . rawurlencode( $vid_id ) );
+			}
+		}
+
+		// Case B: use_page_video="1" — mirror the shortcode resolution chain.
+		// Replicates youtube-embed.php priority order:
+		//   1) _myls_page_video_url post meta (plugin-native, highest priority)
+		//   2) fallback_id attribute in the shortcode string
+		//   3) myls_ytvb_default_video_id site option
+		if ( preg_match(
+			'/\[myls_youtube_embed\s[^\]]*\buse_page_video=["\']1["\']/',
+			$content
+		) ) {
+			$resolved_id = '';
+
+			// 1) Per-page meta — highest priority.
+			$page_meta_url = trim( (string) get_post_meta(
+				$post_id, '_myls_page_video_url', true
+			) );
+			if ( $page_meta_url !== '' ) {
+				$resolved_id = myls_extract_youtube_id( $page_meta_url );
+			}
+
+			// 2) fallback_id attribute in the shortcode string.
+			if ( $resolved_id === '' && preg_match(
+				'/\bfallback_id=["\']([a-zA-Z0-9_\-]{11})["\']/',
+				$content,
+				$fb_m
+			) ) {
+				$resolved_id = $fb_m[1];
+			}
+
+			// 3) Site-wide default video ID option.
+			if ( $resolved_id === '' ) {
+				$default_id = trim( (string) get_option(
+					'myls_ytvb_default_video_id', ''
+				) );
+				if ( $default_id !== '' ) {
+					$resolved_id = preg_replace(
+						'/[^A-Za-z0-9_\-]/', '', $default_id
+					);
+				}
+			}
+
+			// Emit only when a valid 11-char ID resolved.
+			if ( $resolved_id !== '' && strlen( $resolved_id ) === 11 ) {
+				$add( 'https://www.youtube.com/watch?v=' . rawurlencode( $resolved_id ) );
 			}
 		}
 

@@ -1,3 +1,19 @@
+## v7.9.18.100 — Video Detector: Fix use_page_video Resolution in Content Scanner
+
+### Fixed
+- **myls_extract_videos_content() shortcode scanner**: The raw post_content
+  scanner now handles `use_page_video="1"` with the same resolution chain
+  as the Elementor widget scanner fixed in v7.9.18.99 — reading
+  `_myls_page_video_url` post meta first, then `fallback_id` attribute,
+  then `myls_ytvb_default_video_id` site option. This fixes the case where
+  Elementor's post_content fallback layer contained the updated template
+  shortcode but the detector was resolving to the wrong video ID because
+  the `video_id=` only regex did not match the `use_page_video="1"` pattern.
+  The `$add()` helper's built-in de-duplication prevents duplicate
+  VideoObject nodes when both Case A and Case B resolve to the same ID.
+
+**Files changed:** `inc/schema/providers/video-object-detector.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.99 — Video Detector: Resolve use_page_video Shortcode Dynamically
 
 ### Fixed
