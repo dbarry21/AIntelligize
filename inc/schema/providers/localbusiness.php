@@ -215,8 +215,14 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 					];
 				}
 				$catalog_name = sanitize_text_field( get_option( 'myls_org_service_name_label', '' ) );
+				// Guard: if the saved value is a Schema.org @type string saved accidentally
+				// as the catalog name, discard it. $valid_lb_types is defined later in this function.
+				if ( ! empty( $catalog_name ) && in_array( $catalog_name, $valid_lb_types, true ) ) {
+					$catalog_name = '';
+				}
 				if ( empty( $catalog_name ) ) {
-					$catalog_name = wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES ) . ' Services';
+					// Use org name only — never $loc['name'] which is location-specific.
+					$catalog_name = wp_specialchars_decode( trim( $org_name ), ENT_QUOTES ) . ' Services';
 				}
 				$offer_catalog = [
 					'@type'           => 'OfferCatalog',
@@ -229,16 +235,10 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 		// Decode HTML entities — JSON-LD strings must be plain text, not HTML-encoded.
 		$lb_name = wp_specialchars_decode( trim( $loc['name'] ?? $org_name ), ENT_QUOTES );
 
-		// Resolve current WebPage @id for mainEntityOfPage back-reference.
-		// Null on non-singular pages; array_filter() in the return block will strip it.
-		$current_post_id     = get_queried_object_id();
-		$main_entity_of_page = null;
-		if ( $current_post_id > 0 ) {
-			$wep_permalink = get_permalink( $current_post_id );
-			if ( $wep_permalink ) {
-				$main_entity_of_page = [ '@id' => trailingslashit( $wep_permalink ) . '#webpage' ];
-			}
-		}
+		// mainEntityOfPage: always points to the homepage WebPage node.
+		// LocalBusiness is a site-wide entity — its primary page is the homepage,
+		// not whichever service or city page happens to be rendering it.
+		$main_entity_of_page = [ '@id' => trailingslashit( home_url( '/' ) ) . '#webpage' ];
 
 		// sameAs: shared with Organization — social profile URLs.
 		// Both entities should carry sameAs so AI crawlers / knowledge-graph tools

@@ -1117,6 +1117,17 @@ document.addEventListener('click', async function(e) {
     $valid_states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC','PR'];
     $valid_countries = ['US','CA','MX','GB','IE','AU','NZ','DE','FR','ES','IT','NL','SE','NO','DK','FI','PT','CH','AT','BE','PL','CZ','JP','SG','IN','ZA','BR','AR'];
 
+    // Org-level fallbacks: mirror the display-time merge so blank fields
+    // inherit org values at save time, preventing stale data from persisting.
+    $org_fb = [
+        'phone'  => trim( (string) get_option( 'myls_org_tel',      '' ) ),
+        'street' => trim( (string) get_option( 'myls_org_street',   '' ) ),
+        'city'   => trim( (string) get_option( 'myls_org_locality', '' ) ),
+        'zip'    => trim( (string) get_option( 'myls_org_postal',   '' ) ),
+        'lat'    => trim( (string) get_option( 'myls_org_lat',      '' ) ),
+        'lng'    => trim( (string) get_option( 'myls_org_lng',      '' ) ),
+    ];
+
     $raw = isset($_POST['myls_locations']) && is_array($_POST['myls_locations']) ? $_POST['myls_locations'] : [];
     $clean = [];
     foreach ($raw as $loc){
@@ -1157,6 +1168,22 @@ document.addEventListener('click', async function(e) {
           if ($d || $o || $c) $one['hours'][] = ['day'=>$d,'open'=>$o,'close'=>$c];
         }
       }
+
+      // Apply org fallbacks for any field left blank in the submitted form.
+      // Per-location value always wins if non-empty; org value fills the gap.
+      foreach ( ['phone','street','city','zip'] as $_fb_key ) {
+          if ( $one[ $_fb_key ] === '' && $org_fb[ $_fb_key ] !== '' ) {
+              $one[ $_fb_key ] = sanitize_text_field( $org_fb[ $_fb_key ] );
+          }
+      }
+      // lat/lng: only apply org fallback if the org value is numeric
+      if ( $one['lat'] === '' && is_numeric( $org_fb['lat'] ) ) {
+          $one['lat'] = (string) (float) $org_fb['lat'];
+      }
+      if ( $one['lng'] === '' && is_numeric( $org_fb['lng'] ) ) {
+          $one['lng'] = (string) (float) $org_fb['lng'];
+      }
+
       $clean[] = $one;
     }
 
