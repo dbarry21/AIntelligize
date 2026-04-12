@@ -1,3 +1,18 @@
+## v7.9.18.90 — GeoShape Coverage Radius in areaServed
+
+### Added
+- **GeoShape circle in areaServed**: The merged LocalBusiness+Organization
+  node now prepends a `GeoShape` circle entry as the first item in
+  `areaServed`, providing AI crawlers and Google with a machine-precise
+  geographic coverage boundary. Uses existing `myls_org_lat`/`myls_org_lng`
+  coordinates with a configurable radius (default 50 km).
+- **Service Radius admin field**: New number input in Schema → Organization
+  tab → Address/Geo section. Saves as `myls_org_area_radius` with
+  `ssseo_org_area_radius` legacy fallback. Accepts 1–500 km. GeoShape
+  is only emitted when both lat and lng are set.
+
+**Files changed:** `inc/schema/providers/localbusiness.php`, `admin/tabs/schema/subtab-organization.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.89 — VideoObject Description Sanitization
 
 ### Fixed

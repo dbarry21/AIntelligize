@@ -178,11 +178,11 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			'no_found_rows'    => true,
 			'suppress_filters' => true,
 		] );
+
+		// Build city/area entries from CPT posts
+		$city_entries = [];
 		if ( ! empty( $sa_roots ) ) {
-			$area_served = [];
 			foreach ( $sa_roots as $sa ) {
-				// Use city_state meta/ACF field (city portion) when available;
-				// myls_sa_extract_city_state() falls back to post title if the field is empty.
 				if ( function_exists( 'myls_sa_extract_city_state' ) ) {
 					$loc        = myls_sa_extract_city_state( $sa->ID );
 					$city_clean = $loc['city'];
@@ -192,12 +192,40 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 						html_entity_decode( get_the_title( $sa->ID ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
 					);
 				}
-				$area_type    = ( stripos( $city_clean, 'county' ) !== false ) ? 'AdministrativeArea' : 'City';
-				$area_served[] = [
+				$area_type      = ( stripos( $city_clean, 'county' ) !== false ) ? 'AdministrativeArea' : 'City';
+				$city_entries[] = [
 					'@type' => $area_type,
 					'name'  => $city_clean,
 					'url'   => get_permalink( $sa->ID ),
 				];
+			}
+		}
+
+		// GeoShape circle: machine-precise coverage boundary.
+		// Prepended as first entry so crawlers resolve geographic scope immediately.
+		// Radius option: myls_org_area_radius (km), default 50.
+		$geo_shape = null;
+		if ( $lb_lat !== '' && $lb_lng !== '' ) {
+			$radius_km = absint(
+				get_option( 'myls_org_area_radius',
+					get_option( 'ssseo_org_area_radius', 50 )
+				)
+			);
+			if ( $radius_km <= 0 ) $radius_km = 50; // safety floor
+			$geo_shape = [
+				'@type'  => 'GeoShape',
+				'circle' => $lb_lat . ' ' . $lb_lng . ' ' . $radius_km,
+			];
+		}
+
+		// Assemble areaServed: GeoShape first, then named city entities.
+		if ( $geo_shape !== null || ! empty( $city_entries ) ) {
+			$area_served = [];
+			if ( $geo_shape !== null ) {
+				$area_served[] = $geo_shape;
+			}
+			foreach ( $city_entries as $ce ) {
+				$area_served[] = $ce;
 			}
 		}
 

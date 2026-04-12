@@ -217,6 +217,8 @@ $spec = [
 			'country'     => get_option('myls_org_country',     get_option('ssseo_organization_country','')),
 			'lat'         => get_option('myls_org_lat',         get_option('ssseo_organization_latitude','')),
 			'lng'         => get_option('myls_org_lng',         get_option('ssseo_organization_longitude','')),
+			'area_radius' => (int) get_option( 'myls_org_area_radius',
+				get_option( 'ssseo_org_area_radius', 50 ) ),
 			'default_service_label' => get_option('myls_org_default_service_label', get_option('ssseo_default_service_label','RoofingContractor')),
 			'areas'       => get_option('myls_org_areas',       get_option('ssseo_organization_areas_served','')),
 			'founding_date' => get_option( 'myls_org_founding_date',
@@ -472,6 +474,23 @@ $spec = [
 						<div class="col-md-3">
 							<label class="form-label">Longitude</label>
 							<input type="text" name="myls_org_lng" value="<?php echo esc_attr($v['lng']); ?>">
+						</div>
+						<div class="col-md-3">
+							<label class="form-label" for="myls_org_area_radius">
+								Service Radius <span style="font-weight:400;color:#6b7280;">(km)</span>
+							</label>
+							<input type="number"
+								   id="myls_org_area_radius"
+								   name="myls_org_area_radius"
+								   value="<?php echo esc_attr( $v['area_radius'] ); ?>"
+								   min="1"
+								   max="500"
+								   placeholder="50">
+							<div class="form-text">
+								Radius in kilometers from your coordinates used for
+								<code>GeoShape</code> in <code>areaServed</code>.
+								Default: 50 km (~31 miles).
+							</div>
 						</div>
 					</div>
 				</div>
@@ -1000,6 +1019,8 @@ $spec = [
 		update_option('myls_org_country',  sanitize_text_field($_POST['myls_org_country'] ?? ''));
 		update_option('myls_org_lat',      sanitize_text_field($_POST['myls_org_lat'] ?? ''));
 		update_option('myls_org_lng',      sanitize_text_field($_POST['myls_org_lng'] ?? ''));
+		update_option( 'myls_org_area_radius',
+			max( 1, absint( $_POST['myls_org_area_radius'] ?? 50 ) ) );
 
 		// Areas
 		update_option('myls_org_areas', sanitize_textarea_field($_POST['myls_org_areas'] ?? ''));
