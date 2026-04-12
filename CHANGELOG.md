@@ -1,3 +1,19 @@
+## v7.9.18.101 — One-Video Cap for Service Pages
+
+### Fixed
+- **Single VideoObject on service pages**: Added a one-video cap in
+  `myls_detect_videos_in_post()` that applies only to the `service` CPT.
+  When multiple videos are detected on a service page — which always
+  indicates a page-specific video plus a template fallback leaking through
+  — only the first detected item is kept. The first item is always the
+  page-specific video since page-level `_elementor_data` is scanned before
+  applied template data. This ensures service pages emit exactly one
+  `VideoObject` in schema and one video reference in `WebPage.hasPart`,
+  with the page video taking full priority over the template fallback.
+  The cap is bypassable via the `myls_service_video_cap` filter.
+
+**Files changed:** `inc/schema/providers/video-object-detector.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.100 — Video Detector: Fix use_page_video Resolution in Content Scanner
 
 ### Fixed
