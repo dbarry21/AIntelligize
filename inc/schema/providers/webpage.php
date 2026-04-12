@@ -35,7 +35,20 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 
 	// Description: post excerpt → page meta description (Yoast/RankMath) → omit
 	$page_desc = '';
-	if ( has_excerpt( $post_id ) ) {
+
+	// Homepage: prefer org description as the authoritative schema description.
+	if ( is_front_page() ) {
+		$org_desc = trim( wp_specialchars_decode(
+			(string) get_option( 'myls_org_description',
+				get_option( 'ssseo_organization_description', '' ) ),
+			ENT_QUOTES
+		) );
+		if ( $org_desc !== '' ) {
+			$page_desc = $org_desc;
+		}
+	}
+
+	if ( $page_desc === '' && has_excerpt( $post_id ) ) {
 		$page_desc = wp_strip_all_tags( get_the_excerpt( $post_id ) );
 	}
 	if ( $page_desc === '' ) {
@@ -50,7 +63,14 @@ add_filter( 'myls_schema_graph', function ( array $graph ) {
 	$node = [
 		'@type'         => 'WebPage',
 		'@id'           => trailingslashit( $permalink ) . '#webpage',
-		'name'          => get_the_title( $post_id ),
+		'name'          => is_front_page()
+			? wp_specialchars_decode(
+				trim( (string) get_option( 'myls_org_name',
+					get_option( 'ssseo_organization_name', get_bloginfo( 'name' ) )
+				) ),
+				ENT_QUOTES
+			  )
+			: wp_specialchars_decode( get_the_title( $post_id ), ENT_QUOTES ),
 		'url'           => $permalink,
 		'datePublished' => get_the_date( 'c', $post_id ),
 		'dateModified'  => get_the_modified_date( 'c', $post_id ),

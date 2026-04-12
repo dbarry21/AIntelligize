@@ -1,3 +1,26 @@
+## v7.9.18.88 — Homepage Schema Completeness
+
+### Fixed
+- **BreadcrumbList on homepage**: Removed `is_front_page()` skip guard.
+  Homepage now emits a single-item BreadcrumbList with the org name.
+  Early-return path prevents duplicate home/current-page items.
+- **WebPage.name on homepage**: Now reads from `myls_org_name` option on
+  the front page instead of `get_the_title()` which returned the WP page
+  title. All other pages unchanged.
+- **WebPage.description on homepage**: `myls_org_description` is now the
+  first-priority source on the front page, ensuring the authoritative
+  business description appears in schema. Existing fallback chain
+  (excerpt → Yoast → RankMath) unchanged for all other pages.
+- **ItemList cross-reference**: Merged node now emits
+  `mentions: {#service-areas-list}` on the front page, linking the
+  entity node to the Service Areas ItemList.
+- **VideoObject name cleaner**: `myls_vs_clean_title()` now applied to
+  ALL name sources in `myls_build_video_object_node()` including
+  admin-entered names. Prevents hashtags, emojis, and URLs from appearing
+  in VideoObject name properties.
+
+**Files changed:** `inc/schema/providers/breadcrumb.php`, `inc/schema/providers/webpage.php`, `inc/schema/providers/localbusiness.php`, `inc/schema/providers/video-object-detector.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.87 — VideoObject Descriptions, Merged Node Description, Breadcrumb Fix
 
 ### Fixed

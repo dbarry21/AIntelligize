@@ -398,6 +398,11 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			// array_filter() removes this when null (non-singular pages).
 			'mainEntityOfPage'   => $main_entity_of_page,
 
+			// mentions: reference to the service areas ItemList (front page only).
+			'mentions' => is_front_page()
+				? [ '@id' => home_url( '/#service-areas-list' ) ]
+				: null,
+
 			// ContactPoint for customer service (mirrors Organization pattern)
 			'contactPoint' => ( $lb_phone !== '' ) ? [[
 				'@type'       => 'ContactPoint',

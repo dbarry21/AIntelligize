@@ -945,17 +945,23 @@ if ( ! function_exists('myls_build_video_object_node') ) {
 		}
 
 		// Name priority: admin entry → YouTube API title → widget caption → post title
-		$name = $admin_name;
-		if ( $name === '' ) {
-			$yt_title_item = trim( (string) ($item['yt_title'] ?? '') );
-			if ( $yt_title_item !== '' ) {
-				$name = $yt_title_item;
-			} elseif ( $item['caption'] !== '' ) {
-				$name = $item['caption'];
-			} else {
-				$name = $post_title ?: 'Video';
-			}
+		$name = $admin_name !== ''
+			? $admin_name
+			: ( trim( (string) ($item['yt_title'] ?? '') ) !== ''
+				? trim( (string) ($item['yt_title'] ?? '') )
+				: ( $item['caption'] !== ''
+					? $item['caption']
+					: ( $post_title ?: 'Video' )
+				  )
+			  );
+
+		// Apply cleaner to ALL name sources — strips hashtags, emojis, URLs.
+		// myls_vs_clean_title() is defined in video-object-detector.php (Section 1)
+		// and handles all cases gracefully including already-clean strings.
+		if ( function_exists( 'myls_vs_clean_title' ) ) {
+			$name = myls_vs_clean_title( $name );
 		}
+
 		// Ensure uniqueness on multi-video pages when falling back to post title
 		if ( $name === $post_title && $index > 0 ) {
 			$name .= ' — Video ' . ( $index + 1 );
