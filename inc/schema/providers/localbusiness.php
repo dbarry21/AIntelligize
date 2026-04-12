@@ -130,6 +130,17 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 
 		$org_url = get_option( 'myls_org_url', home_url('/') );
 
+		// Display-time org fallbacks: if a per-location field is blank,
+		// use the org-level value so schema output is always complete.
+		$lb_phone  = trim( $loc['phone']  ?? '' ) !== '' ? trim( $loc['phone'] )  : trim( (string) get_option( 'myls_org_tel',      '' ) );
+		$lb_street = trim( $loc['street'] ?? '' ) !== '' ? trim( $loc['street'] ) : trim( (string) get_option( 'myls_org_street',   '' ) );
+		$lb_city   = trim( $loc['city']   ?? '' ) !== '' ? trim( $loc['city'] )   : trim( (string) get_option( 'myls_org_locality', '' ) );
+		$lb_zip    = trim( $loc['zip']    ?? '' ) !== '' ? trim( $loc['zip'] )    : trim( (string) get_option( 'myls_org_postal',   '' ) );
+		$lb_lat    = trim( $loc['lat']    ?? '' );
+		$lb_lng    = trim( $loc['lng']    ?? '' );
+		if ( $lb_lat === '' ) $lb_lat = trim( (string) get_option( 'myls_org_lat', '' ) );
+		if ( $lb_lng === '' ) $lb_lng = trim( (string) get_option( 'myls_org_lng', '' ) );
+
 		// knowsAbout: merged Service CPT titles + Service schema name field.
 		// Tells AI crawlers exactly which topics/services this business covers.
 		$knows_about = function_exists('myls_get_knows_about') ? myls_get_knows_about() : [];
@@ -330,8 +341,8 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			'name'       => $lb_name,
 			'url'        => esc_url( $org_url ),
 			'telephone'  => function_exists('myls_normalize_phone_e164')
-				? myls_normalize_phone_e164( trim( $loc['phone'] ?? '' ) )
-				: trim( $loc['phone'] ?? '' ),
+				? myls_normalize_phone_e164( $lb_phone )
+				: $lb_phone,
 			'priceRange' => $price_prop,
 			'award'      => ( $awards ? $awards : null ),
 			'hasCertification' => ( $certs ? array_map(function($c){ return ['@type'=>'Certification','name'=>$c]; }, $certs) : null ),
@@ -341,14 +352,14 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			'memberOf' => myls_lb_build_member_of(),
 			'address'  => array_filter( [
 				'@type'           => 'PostalAddress',
-				'streetAddress'   => wp_specialchars_decode( trim( $loc['street'] ?? '' ), ENT_QUOTES ),
-				'addressLocality' => wp_specialchars_decode( trim( $loc['city'] ?? '' ), ENT_QUOTES ),
+				'streetAddress'   => wp_specialchars_decode( $lb_street, ENT_QUOTES ),
+				'addressLocality' => wp_specialchars_decode( $lb_city, ENT_QUOTES ),
 				'addressRegion'   => trim( $loc['state'] ?? '' ),
-				'postalCode'      => trim( $loc['zip'] ?? '' ),
+				'postalCode'      => $lb_zip,
 				'addressCountry'  => trim( $loc['country'] ?? 'US' ),
 			] ),
 			'geo' => function_exists('myls_build_geo_coordinates')
-				? myls_build_geo_coordinates( $loc['lat'] ?? '', $loc['lng'] ?? '' )
+				? myls_build_geo_coordinates( $lb_lat, $lb_lng )
 				: null,
 			'openingHoursSpecification' => $hours ?: null,
 			'aggregateRating' => function_exists('myls_schema_build_aggregate_rating') ? myls_schema_build_aggregate_rating() : null,
@@ -368,11 +379,11 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 			'mainEntityOfPage'   => $main_entity_of_page,
 
 			// ContactPoint for customer service (mirrors Organization pattern)
-			'contactPoint' => ( trim( $loc['phone'] ?? '' ) !== '' ) ? [[
+			'contactPoint' => ( $lb_phone !== '' ) ? [[
 				'@type'       => 'ContactPoint',
 				'telephone'   => function_exists('myls_normalize_phone_e164')
-					? myls_normalize_phone_e164( trim( $loc['phone'] ?? '' ) )
-					: trim( $loc['phone'] ?? '' ),
+					? myls_normalize_phone_e164( $lb_phone )
+					: $lb_phone,
 				'contactType' => 'customer service',
 			]] : null,
 		] );
