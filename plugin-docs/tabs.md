@@ -31,6 +31,7 @@ Manages all structured data output for the site.
 - **Person** — Multi-person E-E-A-T schema with Wikidata/Wikipedia expertise linking, LinkedIn import, PDF export. Supports multiple person profiles.
 
 - **Service** — Service schema markup for service pages and the Service CPT.
+  - **`Service.name`** *(v7.9.18.93)*: Always uses the WordPress page title. Per-page `_myls_service_name` meta and global `myls_service_subtype` option removed from the name resolution chain.
   - **Price Ranges** repeater: assign low/high price ranges to specific posts; outputs as `offers → PriceSpecification` (minPrice/maxPrice). Option key: `myls_service_price_ranges`.
   - Provider node enrichment *(v7.8.68)*: fallback `$org_provider` (for pages not assigned to a location) now includes `award`, `hasCertification`, and `aggregateRating`.
   - **`Service.provider`** *(v7.9.18.85)*: Always a single business entity `@id` reference. Person @id removed per Schema.org spec.

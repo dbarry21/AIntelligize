@@ -1,3 +1,14 @@
+## v7.9.18.93 — Service Schema Name Always Uses Page Title
+
+### Changed
+- **Service.name**: Now always set to the WordPress page title, matching
+  `serviceType`. Removed the per-page `_myls_service_name` meta override
+  and global `myls_service_subtype` option from the name resolution chain.
+  Keeps schema name consistent with visible page content — the correct
+  signal for AI crawlers and Google rich results.
+
+**Files changed:** `inc/schema/providers/build-service-schema.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.92 — Restore Dual-Node LocalBusiness + Organization Architecture
 
 ### Changed
