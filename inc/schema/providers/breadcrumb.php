@@ -19,9 +19,6 @@ add_filter( 'myls_schema_graph', function ( array $graph ) : array {
 	if ( ! is_singular() ) return $graph;
 	if ( get_option( 'myls_schema_breadcrumb_enabled', '1' ) !== '1' ) return $graph;
 
-	// Skip on front page — breadcrumb trail is just "Home" which is redundant
-	if ( is_front_page() ) return $graph;
-
 	$post = get_queried_object();
 	if ( ! ( $post instanceof WP_Post ) ) return $graph;
 
@@ -43,6 +40,17 @@ add_filter( 'myls_schema_graph', function ( array $graph ) : array {
 		'name'     => $root_name,
 		'item'     => home_url( '/' ),
 	];
+
+	// On front page, home item IS the current page — don't duplicate.
+	if ( is_front_page() ) {
+		$node = [
+			'@type'           => 'BreadcrumbList',
+			'@id'             => home_url( '/#breadcrumb' ),
+			'itemListElement' => $items,
+		];
+		$graph[] = apply_filters( 'myls_breadcrumb_schema_node', $node, $post );
+		return $graph;
+	}
 
 	// 2. Post type archive (for CPTs with has_archive)
 	$pt_obj = get_post_type_object( $post->post_type );

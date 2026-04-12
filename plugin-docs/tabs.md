@@ -42,6 +42,8 @@ Manages all structured data output for the site.
 
 - **WebPage** — WebPage schema for all singular pages *(v7.8.77)*.
   - `about` → Service `@id` on service pages *(v7.9.2)*; fallback to LocalBusiness on non-service pages.
+  - **Homepage name** *(v7.9.18.88)*: `name` reads from `myls_org_name` on the front page instead of `get_the_title()`.
+  - **Homepage description** *(v7.9.18.88)*: `myls_org_description` is first-priority source on front page. Fallback chain (excerpt → Yoast → RankMath) unchanged for other pages.
 
 - **LocalBusiness** — Location-specific schema.
   - **Site-wide Defaults block** *(v7.8.67)*: priceRange default (`myls_lb_default_price_range`) and live image fallback chain status showing which level resolves.
@@ -83,6 +85,7 @@ Manages all structured data output for the site.
 
 - **BreadcrumbList** *(v7.8.95)*: no UI — auto-runs on all singular pages (except front page).
   - Trail: Home > [Parent(s)] > Current Page. Root item name reads from `myls_org_name` option with `ssseo_organization_name` legacy fallback *(v7.9.18.87; was `get_bloginfo('name')`)*.
+  - **Homepage support** *(v7.9.18.88)*: Emits single-item BreadcrumbList on front page. Early-return prevents duplicate home/current-page items.
   - Toggle: `myls_schema_breadcrumb_enabled` option (default `'1'`).
 
 - **ItemList** *(v7.9.0)*: no UI — auto-runs on the front page.
