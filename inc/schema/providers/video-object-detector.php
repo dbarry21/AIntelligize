@@ -1031,7 +1031,25 @@ if ( ! function_exists('myls_detect_videos_in_post') ) {
 		// elements on the page. Removed entirely — phantom videos in schema
 		// are a minor SEO nuisance; broken page layout is not acceptable.
 
-		return apply_filters('myls_detected_video_items', $all, $post_id);
+		// ── One-video cap for service pages ──────────────────────────────
+	// Service pages are designed for exactly one primary video.
+	// Multiple detected videos on a service page are always the result
+	// of a page-specific video plus a template fallback video leaking
+	// through — not intentional multi-video content.
+	// Priority: first item in $all is always the page-specific video
+	// (Elementor page-level data scans before template scans).
+	// When the cap applies, only the first detected video is kept.
+	// Override via filter: add_filter('myls_service_video_cap', '__return_false')
+	if (
+		count( $all ) > 1
+		&& apply_filters( 'myls_service_video_cap', true )
+		&& function_exists( 'get_post_type' )
+		&& get_post_type( $post_id ) === 'service'
+	) {
+		$all = [ $all[0] ];
+	}
+
+	return apply_filters('myls_detected_video_items', $all, $post_id);
 	}
 }
 
