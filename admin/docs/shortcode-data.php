@@ -8,6 +8,7 @@
  * @updated 7.0.2 — added google_reviews_slider, social_links; updated service_grid with aspect_ratio
  * @updated 7.9.18.50 — added myls_pricing_table, service_area_flip_cards, service_area_siblings, myls_tldr
  * @updated 7.9.18.70 — added service_tagline; fixed stale attrs in service_posts, custom_blog_cards, divi_service_posts
+ * @updated 7.9.18.102 — added youtube_channel_list, youtube_with_transcript; rewrote gmb_hours docs (full Google Places API attrs + 24/7 fallback note)
  */
 
 if (!defined('ABSPATH')) exit;
@@ -872,15 +873,31 @@ function mlseo_compile_shortcode_documentation() {
         [
             'name' => 'gmb_hours',
             'category' => 'utility',
-            'description' => 'Displays business hours from Organization schema settings as a formatted table.',
+            'description' => 'Displays business hours pulled from the Google Places API for a given Place ID. Renders a formatted day list with optional today highlighting and rotation.',
             'basic_usage' => '[gmb_hours]',
-            'attributes' => [],
+            'attributes' => [
+                'place_id'         => ['default' => '(default)', 'description' => 'Google Place ID. Falls back to ssseo_get_default_place_id() if blank.'],
+                'show'             => ['default' => 'week',     'description' => '"week" = all seven days, "today" = just today\'s row'],
+                'show_today_first' => ['default' => '0',         'description' => '1 = rotate the list so today is first'],
+                'highlight_today'  => ['default' => '1',         'description' => '1 = wrap today\'s row in <strong> with class="today"'],
+                'compact'          => ['default' => '1',         'description' => '1 = adds Bootstrap "small text-muted" classes for a tight layout'],
+                'class'            => ['default' => '',          'description' => 'Extra CSS classes appended to the wrapper div'],
+                'list_class'       => ['default' => '',          'description' => 'Alias of `class` for back-compat'],
+                'cache'            => ['default' => '60',        'description' => 'Transient cache lifetime in minutes (per place_id + show)'],
+                'debug'            => ['default' => '0',         'description' => '1 = show on-screen debug info (pid source, cache hit/miss, error reasons)'],
+            ],
             'examples' => [
-                ['label' => 'Business hours table', 'code' => '[gmb_hours]'],
+                ['label' => 'Default (full week)',    'code' => '[gmb_hours]'],
+                ['label' => 'Today only',             'code' => '[gmb_hours show="today"]'],
+                ['label' => 'Today first, rotated',   'code' => '[gmb_hours show_today_first="1"]'],
+                ['label' => 'Specific place',         'code' => '[gmb_hours place_id="ChIJN1t_tDeuEmsRUsoyG83frY4"]'],
+                ['label' => 'Longer cache (4 hours)', 'code' => '[gmb_hours cache="240"]'],
             ],
             'tips' => [
-                'Hours are managed in Schema → Organization → Business Hours',
-                'Automatically highlights today\'s hours',
+                'Requires a Google Places API key (configured via ssseo_get_google_places_api_key())',
+                'For 24/7 businesses where Google returns no weekday_text, the shortcode auto-synthesizes "Day: Open 24 hours" rows from the periods array',
+                'Today highlighting uses the WordPress site timezone via current_time(\'w\')',
+                'Use debug="1" to troubleshoot missing API keys, missing Place IDs, or empty hours responses',
             ],
         ],
 
@@ -1168,6 +1185,53 @@ function mlseo_compile_shortcode_documentation() {
                 'Channel ID defaults to the one configured in the YouTube tab',
                 'Videos are pulled from the channel\'s uploads playlist',
                 'Thumbnails link directly to YouTube',
+            ],
+        ],
+
+        [
+            'name' => 'youtube_channel_list',
+            'category' => 'youtube',
+            'description' => 'Paginated grid of recent videos from a YouTube channel with thumbnail-launched modal player and optional ItemList JSON-LD schema.',
+            'basic_usage' => '[youtube_channel_list]',
+            'attributes' => [
+                'pagesize' => ['default' => '12',   'description' => 'Items per page (1–50)'],
+                'max'      => ['default' => '0',    'description' => 'Hard cap for the API response (0–50). 0 = no cap.'],
+                'channel'  => ['default' => '',     'description' => 'Override channel ID (defaults to plugin setting)'],
+                'schema'   => ['default' => 'auto', 'description' => 'ItemList JSON-LD output: auto, inline, or off'],
+                'page'     => ['default' => '',     'description' => 'Explicit page number override (otherwise uses ?ycl_page= URL param)'],
+            ],
+            'examples' => [
+                ['label' => 'Default 12 per page', 'code' => '[youtube_channel_list]'],
+                ['label' => '24 per page',          'code' => '[youtube_channel_list pagesize="24"]'],
+                ['label' => 'Specific channel',     'code' => '[youtube_channel_list channel="UCxxxxxxx" pagesize="9"]'],
+                ['label' => 'Disable schema',       'code' => '[youtube_channel_list schema="off"]'],
+            ],
+            'tips' => [
+                'Requires YouTube Data API key in plugin settings',
+                'Pagination is driven by the ?ycl_page= query parameter',
+                'Clicking a thumbnail opens a Bootstrap modal with the embedded player (autoplay, no related videos)',
+                'Use [youtube_channel_list_detailed] for a richer card layout without modal/pagination',
+            ],
+        ],
+
+        [
+            'name' => 'youtube_with_transcript',
+            'category' => 'youtube',
+            'description' => 'Embeds a single YouTube video with its description (when API key is configured) and a best-effort public transcript pulled from YouTube\'s timedtext endpoint.',
+            'basic_usage' => '[youtube_with_transcript url="https://youtube.com/watch?v=..."]',
+            'attributes' => [
+                'url' => ['default' => '', 'description' => 'YouTube URL (watch / embed / shorts / youtu.be). Required.'],
+            ],
+            'examples' => [
+                ['label' => 'Watch URL',  'code' => '[youtube_with_transcript url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"]'],
+                ['label' => 'Short URL',  'code' => '[youtube_with_transcript url="https://youtu.be/dQw4w9WgXcQ"]'],
+                ['label' => 'Shorts URL', 'code' => '[youtube_with_transcript url="https://www.youtube.com/shorts/dQw4w9WgXcQ"]'],
+            ],
+            'tips' => [
+                'Description requires YouTube Data API key; transcript fetch is unauthenticated and may be empty for videos without public captions',
+                'Transcript renders inside a collapsed Bootstrap accordion below the video',
+                'For full per-video panels with hand-curated transcripts, prefer [myls_youtube_panel]',
+                'Note: similar tag to [myls_youtube_with_transcript] but a different implementation — this one fetches transcripts at render time',
             ],
         ],
 

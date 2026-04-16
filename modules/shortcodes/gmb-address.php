@@ -341,7 +341,22 @@ function ssseo_gmb_hours_shortcode( $atts ) {
 		set_transient( $cache_key, $hours, max(1,(int)$atts['cache']) * MINUTE_IN_SECONDS );
 	}
 
-	if ( empty( $hours['weekday_text'] ) ) return ( $atts['debug'] ? '<em>gmb_hours: no hours for this place</em>' : '<!-- gmb_hours: no hours -->' );
+	if ( empty( $hours['weekday_text'] ) ) {
+		$periods = $hours['periods'] ?? [];
+		if ( count( $periods ) === 1 && isset( $periods[0]['open'] ) && empty( $periods[0]['close'] ) ) {
+			$hours['weekday_text'] = [
+				'Monday: Open 24 hours',
+				'Tuesday: Open 24 hours',
+				'Wednesday: Open 24 hours',
+				'Thursday: Open 24 hours',
+				'Friday: Open 24 hours',
+				'Saturday: Open 24 hours',
+				'Sunday: Open 24 hours',
+			];
+		} else {
+			return ( $atts['debug'] ? '<em>gmb_hours: no hours for this place</em>' : '<!-- gmb_hours: no hours -->' );
+		}
+	}
 
 	$days = $hours['weekday_text'];
 

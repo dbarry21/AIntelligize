@@ -74,7 +74,7 @@ AIntelligize is a comprehensive WordPress plugin designed for local businesses a
 - **Services**: service_grid, service_posts, service_area_grid, service_area_list, service_area_children, service_area_siblings, service_area_flip_cards, and more
 - **Schema**: faq_schema_accordion, yoast_title, post_author
 - **Social**: social_share, social_share_icon
-- **YouTube**: myls_youtube_panel, myls_youtube_with_transcript, youtube_channel_list_detailed
+- **YouTube**: myls_youtube_panel, myls_youtube_with_transcript, youtube_channel_list, youtube_channel_list_detailed, youtube_with_transcript
 - **Utility**: gmb_address, gmb_hours, ssseo_places_status, ssseo_map_embed, myls_ajax_search
 
 ## Quick Start Guide

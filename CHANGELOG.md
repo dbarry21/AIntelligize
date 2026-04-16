@@ -1,3 +1,32 @@
+## v7.9.18.102 — Shortcode Docs Sync + gmb_hours 24/7 Fallback
+
+### Added
+- **`[gmb_hours]` 24/7 fallback**: When the Google Places API returns no
+  `weekday_text` but the structured `periods` array shows the 24/7 signature
+  (single period with `open` and no `close`), the shortcode now synthesizes
+  a "Day: Open 24 hours" row for each day of the week instead of rendering
+  nothing. Previously these places fell through to the empty-hours
+  short-circuit and produced an HTML comment with no visible output.
+
+### Documentation
+- **Interactive Shortcodes tab**: Added missing entries for
+  `[youtube_channel_list]` (paginated channel video grid with modal player)
+  and `[youtube_with_transcript]` (single video + best-effort timedtext
+  transcript). Brings documented coverage to all real shortcodes —
+  back-compat aliases (`seo_title`, `myls_flip_grid`, `ssseo_card_grid`,
+  `ssseo_flip_grid`) remain noted inside their parent entries.
+- **`[gmb_hours]` documentation rewrite**: The previous entry incorrectly
+  described it as reading from "Organization schema settings" with no
+  documented attributes. Replaced with accurate description (Google Places
+  API), full nine-attribute table (`place_id`, `show`, `show_today_first`,
+  `highlight_today`, `compact`, `class`, `list_class`, `cache`, `debug`),
+  five usage examples, and tips covering API key requirement, the new
+  24/7 fallback, timezone handling, and `debug="1"` troubleshooting.
+- **`plugin-docs/index.md`**: Added `youtube_channel_list` and
+  `youtube_with_transcript` to the YouTube shortcode summary list.
+
+**Files changed:** `modules/shortcodes/gmb-address.php`, `admin/docs/shortcode-data.php`, `plugin-docs/index.md`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.101 — One-Video Cap for Service Pages
 
 ### Fixed
