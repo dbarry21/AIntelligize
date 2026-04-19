@@ -9,6 +9,7 @@
  * @updated 7.9.18.50 — added myls_pricing_table, service_area_flip_cards, service_area_siblings, myls_tldr
  * @updated 7.9.18.70 — added service_tagline; fixed stale attrs in service_posts, custom_blog_cards, divi_service_posts
  * @updated 7.9.18.102 — added youtube_channel_list, youtube_with_transcript; rewrote gmb_hours docs (full Google Places API attrs + 24/7 fallback note)
+ * @updated 7.9.18.105 — rewrote gmb_address docs: replaced fake "format" attribute with real "parts" attribute + full Places API attribute list
  */
 
 if (!defined('ABSPATH')) exit;
@@ -853,20 +854,44 @@ function mlseo_compile_shortcode_documentation() {
         [
             'name' => 'gmb_address',
             'category' => 'utility',
-            'description' => 'Displays the business address from Organization schema settings.',
+            'description' => 'Displays the business address from the Google Places API for a given Place ID. Supports component filtering, PostalAddress JSON-LD, a Google Maps link, and an optional Get Directions link.',
             'basic_usage' => '[gmb_address]',
             'attributes' => [
-                'format' => ['default' => 'full',  'description' => 'Address format: full, street, city, state, zip'],
-                'link'   => ['default' => '0',     'description' => '1 = link to Google Maps directions'],
+                'place_id'              => ['default' => '(default)',                    'description' => 'Place ID override. Falls back to the API Integration tab default, then legacy options.'],
+                'company'               => ['default' => '',                             'description' => 'Free-text company name resolved to a Place ID via Find Place From Text (cached).'],
+                'parts'                 => ['default' => 'street,suite,city,state,postal', 'description' => 'Comma-separated components to include. Valid: street, suite, city, state, postal, country'],
+                'join'                  => ['default' => ', ',                           'description' => 'Separator between components'],
+                'link'                  => ['default' => '0',                            'description' => '1 = wrap address in a link to the Google Maps place URL'],
+                'schema'                => ['default' => '0',                            'description' => '1 = emit PostalAddress JSON-LD alongside the rendered address'],
+                'class'                 => ['default' => '',                             'description' => 'Extra CSS classes appended to the wrapper'],
+                'cache'                 => ['default' => '1440',                         'description' => 'Transient cache lifetime in minutes (per place_id + language)'],
+                'region'                => ['default' => 'us',                           'description' => 'Region bias for the company → Place ID lookup'],
+                'language'              => ['default' => 'en',                           'description' => 'Language code passed to the Places Details API'],
+                'directions'            => ['default' => '0',                            'description' => '1 = append a Google Maps "Get Directions" link'],
+                'directions_label'      => ['default' => 'Get Directions',               'description' => 'Link text for the directions link'],
+                'directions_mode'       => ['default' => '',                             'description' => 'Travel mode: driving, walking, bicycling, transit'],
+                'directions_target'     => ['default' => '_blank',                       'description' => 'Anchor target for the directions link'],
+                'directions_class'      => ['default' => 'gmb-directions',               'description' => 'Wrapper class for the directions block'],
+                'directions_link_class' => ['default' => 'gmb-directions-link',          'description' => 'Anchor class for the directions link'],
+                'debug'                 => ['default' => '0',                            'description' => '1 = render visible error messages instead of HTML comments'],
             ],
             'examples' => [
-                ['label' => 'Full address', 'code' => '[gmb_address]'],
-                ['label' => 'With Maps link', 'code' => '[gmb_address link="1"]'],
-                ['label' => 'City only', 'code' => '[gmb_address format="city"]'],
+                ['label' => 'Default full address',      'code' => '[gmb_address]'],
+                ['label' => 'Street only',               'code' => '[gmb_address parts="street"]'],
+                ['label' => 'City, state',               'code' => '[gmb_address parts="city,state"]'],
+                ['label' => 'Include country',           'code' => '[gmb_address parts="street,suite,city,state,postal,country"]'],
+                ['label' => 'Pipe-separated',            'code' => '[gmb_address parts="street,city,state" join=" | "]'],
+                ['label' => 'Link to Maps',              'code' => '[gmb_address link="1"]'],
+                ['label' => 'With PostalAddress schema', 'code' => '[gmb_address schema="1"]'],
+                ['label' => 'Get Directions link',       'code' => '[gmb_address directions="1" directions_mode="driving"]'],
+                ['label' => 'Override Place ID',         'code' => '[gmb_address place_id="ChIJN1t_tDeuEmsRUsoyG83frY4"]'],
+                ['label' => 'Resolve by company name',   'code' => '[gmb_address company="Acme Pavers, Tampa"]'],
             ],
             'tips' => [
-                'Pulls from Schema → Organization settings',
-                'link="1" creates a clickable Google Maps directions link',
+                'Configure API key and default Place ID in the API Integration admin tab (options: myls_google_places_api_key and myls_google_places_place_id). Legacy ssseo_* option names still work as a fallback.',
+                'There is no "format" attribute — use the comma-separated parts attribute to pick which address components render',
+                'Use debug="1" to surface missing-key / missing-place-id / API status errors instead of the silent HTML-comment fallback',
+                'Results are cached per Place ID + language; shorten with cache="60" during testing',
             ],
         ],
 
