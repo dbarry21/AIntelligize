@@ -91,7 +91,57 @@ add_action( 'wp_ajax_myls_aiv_referrers', function () {
 } );
 
 /* -------------------------------------------------------------------------
- * GSC
+ * GSC helpers
+ * ------------------------------------------------------------------------- */
+
+/** Canonicalised inputs for the GSC endpoints: site, dates, rows, filters. */
+function myls_aiv_gsc_inputs( int $days ) : array {
+	$site_prop = trim( (string) get_option('myls_gsc_site_property', '') );
+	if ( $site_prop === '' ) $site_prop = home_url('/');
+
+	$rows = isset($_POST['rows']) ? (int) $_POST['rows'] : 100;
+	if ( ! in_array( $rows, [ 25, 100, 500 ], true ) ) $rows = 100;
+
+	$path_prefix = isset($_POST['path_prefix'])
+		? substr( sanitize_text_field( wp_unslash( (string) $_POST['path_prefix'] ) ), 0, 100 )
+		: '';
+
+	$ai_overview = ! empty($_POST['ai_overview']) && $_POST['ai_overview'] !== '0';
+
+	return [
+		'site'        => $site_prop,
+		'days'        => $days,
+		'start'       => gmdate( 'Y-m-d', time() - ( $days * DAY_IN_SECONDS ) ),
+		'end'         => gmdate( 'Y-m-d' ),
+		'api'         => 'https://www.googleapis.com/webmasters/v3/sites/' . rawurlencode( trailingslashit($site_prop) ) . '/searchAnalytics/query',
+		'rows'        => $rows,
+		'path_prefix' => $path_prefix,
+		'ai_overview' => $ai_overview,
+	];
+}
+
+/**
+ * Build a dimensionFilterGroups array for a GSC query body. Returns an empty
+ * array when no filters apply, so callers can merge without conditionals.
+ *
+ * @param bool   $include_page_prefix  apply the page contains-prefix filter
+ * @param bool   $include_ai_overview  apply the AI_OVERVIEW searchAppearance filter
+ * @param string $path_prefix          prefix to match (ignored if first flag is false)
+ */
+function myls_aiv_gsc_filter_groups( bool $include_page_prefix, bool $include_ai_overview, string $path_prefix ) : array {
+	$filters = [];
+	if ( $include_page_prefix && $path_prefix !== '' ) {
+		$filters[] = [ 'dimension' => 'page', 'operator' => 'contains', 'expression' => $path_prefix ];
+	}
+	if ( $include_ai_overview ) {
+		$filters[] = [ 'dimension' => 'searchAppearance', 'operator' => 'equals', 'expression' => 'AI_OVERVIEW' ];
+	}
+	if ( empty($filters) ) return [];
+	return [ [ 'filters' => $filters ] ];
+}
+
+/* -------------------------------------------------------------------------
+ * GSC — overview + filtered top queries / pages / combos
  * ------------------------------------------------------------------------- */
 
 add_action( 'wp_ajax_myls_aiv_gsc', function () {
@@ -101,62 +151,60 @@ add_action( 'wp_ajax_myls_aiv_gsc', function () {
 		wp_send_json_error([ 'message' => 'Google Search Console is not connected.' ], 400);
 	}
 
-	$site_prop = trim( (string) get_option('myls_gsc_site_property', '') );
-	if ( $site_prop === '' ) $site_prop = home_url('/');
+	$in = myls_aiv_gsc_inputs( $days );
 
-	$cache_key = 'myls_aiv_gsc_' . md5( $site_prop . '|' . $days );
-	$cached    = get_transient( $cache_key );
+	$cache_key = 'myls_aiv_gsc_' . md5( implode('|', [
+		$in['site'], $in['days'], $in['rows'], $in['path_prefix'], $in['ai_overview'] ? '1' : '0',
+	] ) );
+	$cached = get_transient( $cache_key );
 	if ( is_array($cached) ) {
 		$cached['cache'] = 'hit';
 		wp_send_json_success( $cached );
 	}
 
-	$start = gmdate( 'Y-m-d', time() - ( $days * DAY_IN_SECONDS ) );
-	$end   = gmdate( 'Y-m-d' );
+	$filters_all  = myls_aiv_gsc_filter_groups( true,  $in['ai_overview'], $in['path_prefix'] );
+	$filters_aio  = myls_aiv_gsc_filter_groups( false, true,               '' );
 
-	$api = 'https://www.googleapis.com/webmasters/v3/sites/' . rawurlencode( trailingslashit($site_prop) ) . '/searchAnalytics/query';
-
-	// 1) Totals (no dimensions).
-	$totals_resp = myls_gsc_oauth_call( $api, 'POST', [
-		'startDate' => $start,
-		'endDate'   => $end,
+	// 1) Totals (unfiltered — always the raw site KPIs for the range).
+	$totals_resp = myls_gsc_oauth_call( $in['api'], 'POST', [
+		'startDate' => $in['start'],
+		'endDate'   => $in['end'],
 		'rowLimit'  => 1,
 	] );
 	if ( is_wp_error($totals_resp) ) {
 		wp_send_json_error([ 'message' => $totals_resp->get_error_message() ], 502);
 	}
-	$totals_row   = $totals_resp['rows'][0] ?? [];
-	$impressions  = (int)   ( $totals_row['impressions'] ?? 0 );
-	$clicks       = (int)   ( $totals_row['clicks']      ?? 0 );
-	$ctr          = (float) ( $totals_row['ctr']         ?? 0 );
-	$position     = (float) ( $totals_row['position']    ?? 0 );
+	$totals_row  = $totals_resp['rows'][0] ?? [];
+	$impressions = (int)   ( $totals_row['impressions'] ?? 0 );
+	$clicks      = (int)   ( $totals_row['clicks']      ?? 0 );
+	$ctr         = (float) ( $totals_row['ctr']         ?? 0 );
+	$position    = (float) ( $totals_row['position']    ?? 0 );
 
-	// 2) AI Overview totals (searchAppearance filter).
-	$aio_resp = myls_gsc_oauth_call( $api, 'POST', [
-		'startDate'  => $start,
-		'endDate'    => $end,
-		'dimensions' => [ 'searchAppearance' ],
-		'rowLimit'   => 50,
+	// 2) AI Overview totals (always fetched, unfiltered by path/rows so the
+	// KPIs stay stable regardless of the user's current filter toggles).
+	$aio_resp = myls_gsc_oauth_call( $in['api'], 'POST', [
+		'startDate'             => $in['start'],
+		'endDate'               => $in['end'],
+		'dimensionFilterGroups' => $filters_aio,
+		'rowLimit'              => 1,
 	] );
 	$aio_impressions = 0;
 	$aio_clicks      = 0;
-	if ( ! is_wp_error($aio_resp) && ! empty($aio_resp['rows']) ) {
-		foreach ( $aio_resp['rows'] as $row ) {
-			$key = strtoupper( (string) ( $row['keys'][0] ?? '' ) );
-			if ( strpos($key, 'AI_OVERVIEW') !== false || strpos($key, 'AI OVERVIEW') !== false ) {
-				$aio_impressions += (int) ( $row['impressions'] ?? 0 );
-				$aio_clicks      += (int) ( $row['clicks']      ?? 0 );
-			}
-		}
+	if ( ! is_wp_error($aio_resp) && ! empty($aio_resp['rows'][0]) ) {
+		$aio_impressions = (int) ( $aio_resp['rows'][0]['impressions'] ?? 0 );
+		$aio_clicks      = (int) ( $aio_resp['rows'][0]['clicks']      ?? 0 );
 	}
 
-	// 3) Top queries.
-	$q_resp = myls_gsc_oauth_call( $api, 'POST', [
-		'startDate'  => $start,
-		'endDate'    => $end,
+	// 3) Top queries (filtered by active toggles).
+	$q_body = [
+		'startDate'  => $in['start'],
+		'endDate'    => $in['end'],
 		'dimensions' => [ 'query' ],
-		'rowLimit'   => 25,
-	] );
+		'rowLimit'   => $in['rows'],
+	];
+	if ( ! empty($filters_all) ) $q_body['dimensionFilterGroups'] = $filters_all;
+	$q_resp = myls_gsc_oauth_call( $in['api'], 'POST', $q_body );
+
 	$top_queries = [];
 	if ( ! is_wp_error($q_resp) && ! empty($q_resp['rows']) ) {
 		foreach ( $q_resp['rows'] as $row ) {
@@ -169,13 +217,16 @@ add_action( 'wp_ajax_myls_aiv_gsc', function () {
 		}
 	}
 
-	// 4) Top pages.
-	$p_resp = myls_gsc_oauth_call( $api, 'POST', [
-		'startDate'  => $start,
-		'endDate'    => $end,
+	// 4) Top pages (same filters).
+	$p_body = [
+		'startDate'  => $in['start'],
+		'endDate'    => $in['end'],
 		'dimensions' => [ 'page' ],
-		'rowLimit'   => 25,
-	] );
+		'rowLimit'   => $in['rows'],
+	];
+	if ( ! empty($filters_all) ) $p_body['dimensionFilterGroups'] = $filters_all;
+	$p_resp = myls_gsc_oauth_call( $in['api'], 'POST', $p_body );
+
 	$top_pages = [];
 	if ( ! is_wp_error($p_resp) && ! empty($p_resp['rows']) ) {
 		foreach ( $p_resp['rows'] as $row ) {
@@ -188,9 +239,35 @@ add_action( 'wp_ajax_myls_aiv_gsc', function () {
 		}
 	}
 
+	// 5) Query × Page combos (capped at 50; same filters).
+	$c_body = [
+		'startDate'  => $in['start'],
+		'endDate'    => $in['end'],
+		'dimensions' => [ 'query', 'page' ],
+		'rowLimit'   => 50,
+	];
+	if ( ! empty($filters_all) ) $c_body['dimensionFilterGroups'] = $filters_all;
+	$c_resp = myls_gsc_oauth_call( $in['api'], 'POST', $c_body );
+
+	$combos = [];
+	if ( ! is_wp_error($c_resp) && ! empty($c_resp['rows']) ) {
+		foreach ( $c_resp['rows'] as $row ) {
+			$combos[] = [
+				'query'       => (string) ( $row['keys'][0] ?? '' ),
+				'page'        => (string) ( $row['keys'][1] ?? '' ),
+				'impressions' => (int)    ( $row['impressions'] ?? 0 ),
+				'clicks'      => (int)    ( $row['clicks']      ?? 0 ),
+				'position'    => (float)  ( $row['position']    ?? 0 ),
+			];
+		}
+	}
+
 	$out = [
 		'days'            => $days,
-		'site'            => $site_prop,
+		'site'            => $in['site'],
+		'rows'            => $in['rows'],
+		'path_prefix'     => $in['path_prefix'],
+		'ai_overview'     => $in['ai_overview'],
 		'impressions'     => $impressions,
 		'clicks'          => $clicks,
 		'ctr'             => $ctr,
@@ -199,7 +276,83 @@ add_action( 'wp_ajax_myls_aiv_gsc', function () {
 		'aio_clicks'      => $aio_clicks,
 		'top_queries'     => $top_queries,
 		'top_pages'       => $top_pages,
+		'combos'          => $combos,
 		'cache'           => 'miss',
+	];
+
+	set_transient( $cache_key, $out, HOUR_IN_SECONDS );
+	wp_send_json_success( $out );
+} );
+
+/* -------------------------------------------------------------------------
+ * GSC — click-drill endpoint: one query → top pages, or one page → top queries
+ * ------------------------------------------------------------------------- */
+
+add_action( 'wp_ajax_myls_aiv_gsc_drill', function () {
+	$days = myls_aiv_check_request();
+
+	if ( ! function_exists('myls_gsc_is_connected') || ! myls_gsc_is_connected() ) {
+		wp_send_json_error([ 'message' => 'Google Search Console is not connected.' ], 400);
+	}
+
+	$by = isset($_POST['by']) ? sanitize_key( $_POST['by'] ) : '';
+	if ( ! in_array( $by, [ 'query', 'page' ], true ) ) {
+		wp_send_json_error([ 'message' => 'Invalid drill dimension.' ], 400);
+	}
+	$value = isset($_POST['value'])
+		? substr( sanitize_text_field( wp_unslash( (string) $_POST['value'] ) ), 0, 500 )
+		: '';
+	if ( $value === '' ) {
+		wp_send_json_error([ 'message' => 'Missing drill value.' ], 400);
+	}
+
+	$in = myls_aiv_gsc_inputs( $days );
+
+	$cache_key = 'myls_aiv_gsc_drill_' . md5( implode('|', [
+		$in['site'], $in['days'], $by, $value, $in['ai_overview'] ? '1' : '0',
+	] ) );
+	$cached = get_transient( $cache_key );
+	if ( is_array($cached) ) {
+		$cached['cache'] = 'hit';
+		wp_send_json_success( $cached );
+	}
+
+	$other = ( $by === 'query' ) ? 'page' : 'query';
+
+	$filters = [ [ 'dimension' => $by, 'operator' => 'equals', 'expression' => $value ] ];
+	if ( $in['ai_overview'] ) {
+		$filters[] = [ 'dimension' => 'searchAppearance', 'operator' => 'equals', 'expression' => 'AI_OVERVIEW' ];
+	}
+
+	$resp = myls_gsc_oauth_call( $in['api'], 'POST', [
+		'startDate'             => $in['start'],
+		'endDate'               => $in['end'],
+		'dimensions'            => [ $other ],
+		'dimensionFilterGroups' => [ [ 'filters' => $filters ] ],
+		'rowLimit'              => 10,
+	] );
+	if ( is_wp_error($resp) ) {
+		wp_send_json_error([ 'message' => $resp->get_error_message() ], 502);
+	}
+
+	$rows = [];
+	if ( ! empty($resp['rows']) ) {
+		foreach ( $resp['rows'] as $row ) {
+			$rows[] = [
+				$other         => (string) ( $row['keys'][0] ?? '' ),
+				'impressions'  => (int)    ( $row['impressions'] ?? 0 ),
+				'clicks'       => (int)    ( $row['clicks']      ?? 0 ),
+				'position'     => (float)  ( $row['position']    ?? 0 ),
+			];
+		}
+	}
+
+	$out = [
+		'by'    => $by,
+		'value' => $value,
+		'other' => $other,
+		'rows'  => $rows,
+		'cache' => 'miss',
 	];
 
 	set_transient( $cache_key, $out, HOUR_IN_SECONDS );

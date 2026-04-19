@@ -452,3 +452,38 @@
 
 .myls-aiv-settings { max-width: 720px; }
 
+/* ----- v7.9.18.108 additions ----- */
+
+/* AI Overview checkbox lives inline with the range-label pills in the
+   toolbar; keep it visually tight but aligned. */
+.myls-aiv-toolbar .myls-aiv-check { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+
+/* Row-count / path-prefix inputs inline inside the toolbar. */
+.myls-aiv-toolbar input[type="text"].myls-aiv-gsc-prefix { padding: 4px 6px; margin-left: 6px; }
+.myls-aiv-toolbar select.myls-aiv-gsc-rows { margin-left: 6px; }
+
+/* Per-table client-side filter input above each data table. */
+.myls-aiv-local-filter {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 0 10px;
+  padding: 5px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+}
+
+/* Drill-trigger rows: chevron rotates when the row is expanded. */
+.myls-aiv-drillable tbody tr.myls-aiv-drill-trigger { cursor: pointer; }
+.myls-aiv-drillable tbody tr.myls-aiv-drill-trigger:hover { background: #eef4ff; }
+.myls-aiv-chev { display: inline-block; transition: transform .15s ease; color: #6c757d; }
+.myls-aiv-drillable tbody tr.is-open .myls-aiv-chev { transform: rotate(90deg); color: #0d6efd; }
+
+/* The inline panel a drill injects as a <tr> below the clicked row.
+   !important beats WP's .widefat.striped nth-child striping which has
+   higher natural specificity than a single class selector. */
+.myls-aiv-drill-panel td { background: #f8fafc !important; padding: 8px 12px; border-top: 0; }
+.myls-aiv-drill-panel .myls-aiv-drill-inner { max-width: 100%; overflow-x: auto; }
+.myls-aiv-drill-panel .myls-aiv-drill-inner table { margin: 0; font-size: 13px; }
+.myls-aiv-drill-panel .myls-aiv-drill-inner th,
+.myls-aiv-drill-panel .myls-aiv-drill-inner td { padding: 6px 10px; }
+

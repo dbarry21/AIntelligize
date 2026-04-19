@@ -5,6 +5,10 @@
  *
  * Fetches chart + table data via the admin-ajax endpoints in
  * admin/tabs/ai-visibility/ajax.php and renders Chart.js instances.
+ *
+ * v7.9.18.108: GSC row-count selector, path prefix + AI Overview filters,
+ *              query×page combos table, click-drill expansion on
+ *              query/page rows, client-side text filter per table.
  */
 (function () {
 	'use strict';
@@ -39,33 +43,60 @@
 		});
 	}
 
-	function fillTable(target, rows, cols) {
-		const tbody = document.querySelector('[data-table="' + target + '"] tbody');
-		if (!tbody) return;
-		if (!rows || !rows.length) {
-			tbody.innerHTML = '<tr><td colspan="' + cols.length + '">No data yet for this range.</td></tr>';
-			return;
-		}
-		tbody.innerHTML = rows.map(r => {
-			return '<tr>' + cols.map(c => {
-				const cls = c.num ? ' class="num"' : '';
-				let v = r[c.key];
-				if (c.fmt) v = c.fmt(v, r);
-				return '<td' + cls + '>' + (v === undefined || v === null ? '' : v) + '</td>';
-			}).join('') + '</tr>';
-		}).join('');
-	}
-
 	function escapeHtml(s) {
-		return String(s || '').replace(/[&<>"']/g, m => ({
+		return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, m => ({
 			'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
 		}[m]));
 	}
 
 	/**
-	 * Pivot a flat [{day, key_field, hits/visits}] list into Chart.js
-	 * stacked-line datasets.
+	 * Fill a table with data rows. Each column spec:
+	 *   { key, num?:bool, fmt?:(v,row)=>htmlString, html?:bool }
+	 * If `html` is true, the returned string is inserted as HTML; otherwise it
+	 * is escaped. Rows can carry optional data attributes for drill by
+	 * supplying `_drillKey` and `_drillValue` on the row object.
 	 */
+	function fillTable(target, rows, cols, opts) {
+		const tbody = document.querySelector('[data-table="' + target + '"] tbody');
+		if (!tbody) return;
+		const colspan = cols.length;
+		if (!rows || !rows.length) {
+			tbody.innerHTML = '<tr><td colspan="' + colspan + '">No data for the current filters.</td></tr>';
+			return;
+		}
+		const drillable = !!(opts && opts.drillable);
+		tbody.innerHTML = rows.map(r => {
+			const rowAttrs = drillable
+				? ' class="myls-aiv-drill-trigger" data-drill-by="' + escapeHtml(r._drillKey || '') + '" data-drill-value="' + escapeHtml(r._drillValue || '') + '"'
+				: '';
+			return '<tr' + rowAttrs + '>' + cols.map(c => {
+				const cls = c.num ? ' class="num"' : '';
+				let v = r[c.key];
+				if (c.fmt) v = c.fmt(v, r);
+				const content = (c.html ? String(v === undefined || v === null ? '' : v) : escapeHtml(v));
+				return '<td' + cls + '>' + content + '</td>';
+			}).join('') + '</tr>';
+		}).join('');
+	}
+
+	/** Apply an in-memory substring filter to every row in a table. Drill
+	 *  panels mirror their trigger row's visibility so filtered-out rows
+	 *  don't leave orphan panels behind. */
+	function applyLocalFilter(target, needle) {
+		const tbody = document.querySelector('[data-table="' + target + '"] tbody');
+		if (!tbody) return;
+		const q = (needle || '').trim().toLowerCase();
+		tbody.querySelectorAll('tr').forEach(tr => {
+			if (tr.classList.contains('myls-aiv-drill-panel')) {
+				const prev = tr.previousElementSibling;
+				tr.style.display = (prev && prev.style.display === 'none') ? 'none' : '';
+				return;
+			}
+			if (!q) { tr.style.display = ''; return; }
+			tr.style.display = tr.textContent.toLowerCase().indexOf(q) !== -1 ? '' : 'none';
+		});
+	}
+
 	function pivotStacked(rows, keyField, valueField) {
 		const days = [];
 		const daySet = new Set();
@@ -126,14 +157,18 @@
 	}
 
 	/* -----------------------------------------------------------------
-	 * Data loaders
+	 * AJAX helper
 	 * ----------------------------------------------------------------- */
 
 	async function postAJAX(action, payload) {
 		const fd = new FormData();
 		fd.append('action', action);
 		fd.append('nonce', MYLS_AIV.nonce || '');
-		Object.keys(payload || {}).forEach(k => fd.append(k, payload[k]));
+		Object.keys(payload || {}).forEach(k => {
+			const v = payload[k];
+			if (v === undefined || v === null) return;
+			fd.append(k, v);
+		});
 
 		const res = await fetch(MYLS_AIV.ajaxurl, { method: 'POST', credentials: 'same-origin', body: fd });
 		const txt = await res.text();
@@ -147,6 +182,10 @@
 		return json.data;
 	}
 
+	/* -----------------------------------------------------------------
+	 * Crawlers + Referrers loaders (unchanged)
+	 * ----------------------------------------------------------------- */
+
 	async function loadCrawlers(days) {
 		setStatus('crawlers', 'Loading…');
 		try {
@@ -158,13 +197,13 @@
 			renderStackedLine('myls-aiv-crawlers-chart', pivotStacked(d.by_day || [], 'bot_name', 'hits'));
 
 			fillTable('crawlers-by-bot', d.by_bot || [], [
-				{ key: 'bot_name', fmt: v => escapeHtml(v) },
+				{ key: 'bot_name' },
 				{ key: 'hits', num: true, fmt: v => fmt(Number(v)) },
 			]);
 
 			fillTable('crawlers-top-paths', d.top_paths || [], [
-				{ key: 'url_path', fmt: v => escapeHtml(v) },
-				{ key: 'bot_name', fmt: v => escapeHtml(v) },
+				{ key: 'url_path' },
+				{ key: 'bot_name' },
 				{ key: 'hits', num: true, fmt: v => fmt(Number(v)) },
 			]);
 
@@ -185,19 +224,19 @@
 			renderStackedLine('myls-aiv-referrers-chart', pivotStacked(d.by_day || [], 'source', 'visits'));
 
 			fillTable('referrers-by-source', d.by_source || [], [
-				{ key: 'source', fmt: v => escapeHtml(v) },
+				{ key: 'source' },
 				{ key: 'visits', num: true, fmt: v => fmt(Number(v)) },
 			]);
 
 			fillTable('referrers-top-pages', d.top_pages || [], [
-				{ key: 'title', fmt: (v, r) => {
+				{ key: 'title', html: true, fmt: (v, r) => {
 					const label = escapeHtml(v || r.landing);
-					if (r.post_id) {
+					if (r.landing) {
 						return '<a href="' + escapeHtml(r.landing) + '" target="_blank" rel="noopener">' + label + '</a>';
 					}
 					return label;
 				}},
-				{ key: 'source', fmt: v => escapeHtml(v) },
+				{ key: 'source' },
 				{ key: 'visits', num: true, fmt: v => fmt(Number(v)) },
 			]);
 
@@ -207,10 +246,27 @@
 		}
 	}
 
+	/* -----------------------------------------------------------------
+	 * GSC loader with filters + combos
+	 * ----------------------------------------------------------------- */
+
+	function currentGscFilters() {
+		const rowsSel = document.querySelector('.myls-aiv-gsc-rows');
+		const pfxInp  = document.querySelector('.myls-aiv-gsc-prefix');
+		const aioChk  = document.querySelector('.myls-aiv-gsc-aio');
+		return {
+			rows: rowsSel ? Number(rowsSel.value) : 100,
+			path_prefix: pfxInp ? pfxInp.value.trim() : '',
+			ai_overview: aioChk && aioChk.checked ? '1' : '0',
+		};
+	}
+
 	async function loadGsc(days) {
 		setStatus('gsc', 'Loading…');
 		try {
-			const d = await postAJAX('myls_aiv_gsc', { days });
+			const filters = currentGscFilters();
+			const d = await postAJAX('myls_aiv_gsc', Object.assign({ days }, filters));
+
 			setKpi('gsc-impressions', fmt(d.impressions));
 			setKpi('gsc-clicks',      fmt(d.clicks));
 			setKpi('gsc-ctr',         (Number(d.ctr) * 100).toFixed(2) + '%');
@@ -218,19 +274,40 @@
 			setKpi('gsc-aio-impressions', fmt(d.aio_impressions));
 			setKpi('gsc-aio-clicks',      fmt(d.aio_clicks));
 
-			fillTable('gsc-queries', d.top_queries || [], [
-				{ key: 'query', fmt: v => escapeHtml(v) },
+			const queryRows = (d.top_queries || []).map(r => Object.assign({
+				_drillKey: 'query', _drillValue: r.query,
+			}, r));
+			fillTable('gsc-queries', queryRows, [
+				{ key: '_icon',       html: true, fmt: () => '<span class="myls-aiv-chev bi bi-chevron-right"></span>' },
+				{ key: 'query' },
+				{ key: 'impressions', num: true, fmt: v => fmt(Number(v)) },
+				{ key: 'clicks',      num: true, fmt: v => fmt(Number(v)) },
+				{ key: 'position',    num: true, fmt: v => Number(v).toFixed(1) },
+			], { drillable: true });
+
+			const pageRows = (d.top_pages || []).map(r => Object.assign({
+				_drillKey: 'page', _drillValue: r.page,
+			}, r));
+			fillTable('gsc-pages', pageRows, [
+				{ key: '_icon',       html: true, fmt: () => '<span class="myls-aiv-chev bi bi-chevron-right"></span>' },
+				{ key: 'page',        html: true, fmt: v => '<a href="' + escapeHtml(v) + '" target="_blank" rel="noopener" onclick="event.stopPropagation();">' + escapeHtml(v) + '</a>' },
+				{ key: 'impressions', num: true, fmt: v => fmt(Number(v)) },
+				{ key: 'clicks',      num: true, fmt: v => fmt(Number(v)) },
+				{ key: 'position',    num: true, fmt: v => Number(v).toFixed(1) },
+			], { drillable: true });
+
+			fillTable('gsc-combos', d.combos || [], [
+				{ key: 'query' },
+				{ key: 'page', html: true, fmt: v => '<a href="' + escapeHtml(v) + '" target="_blank" rel="noopener">' + escapeHtml(v) + '</a>' },
 				{ key: 'impressions', num: true, fmt: v => fmt(Number(v)) },
 				{ key: 'clicks',      num: true, fmt: v => fmt(Number(v)) },
 				{ key: 'position',    num: true, fmt: v => Number(v).toFixed(1) },
 			]);
 
-			fillTable('gsc-pages', d.top_pages || [], [
-				{ key: 'page', fmt: v => '<a href="' + escapeHtml(v) + '" target="_blank" rel="noopener">' + escapeHtml(v) + '</a>' },
-				{ key: 'impressions', num: true, fmt: v => fmt(Number(v)) },
-				{ key: 'clicks',      num: true, fmt: v => fmt(Number(v)) },
-				{ key: 'position',    num: true, fmt: v => Number(v).toFixed(1) },
-			]);
+			// Re-apply any active local filters after a reload.
+			document.querySelectorAll('.myls-aiv-local-filter').forEach(inp => {
+				if (inp.value) applyLocalFilter(inp.dataset.filter, inp.value);
+			});
 
 			setStatus('gsc', d.cache === 'hit' ? 'Cached (1 hour)' : '');
 		} catch (e) {
@@ -239,10 +316,75 @@
 	}
 
 	/* -----------------------------------------------------------------
+	 * Drill expansion (inline row) for GSC query/page tables
+	 * ----------------------------------------------------------------- */
+
+	async function toggleDrillRow(tr) {
+		const by    = tr.dataset.drillBy;
+		const value = tr.dataset.drillValue;
+		if (!by || !value) return;
+
+		const colspan = tr.children.length;
+
+		// If the next sibling is our drill panel, toggle it off.
+		const next = tr.nextElementSibling;
+		if (next && next.classList.contains('myls-aiv-drill-panel') && next.dataset.for === value) {
+			next.remove();
+			tr.classList.remove('is-open');
+			return;
+		}
+
+		// Close any other open drill panels in the same table.
+		const tbody = tr.parentNode;
+		tbody.querySelectorAll('.myls-aiv-drill-panel').forEach(el => el.remove());
+		tbody.querySelectorAll('tr.is-open').forEach(el => el.classList.remove('is-open'));
+
+		// Insert a loading panel.
+		const panel = document.createElement('tr');
+		panel.className = 'myls-aiv-drill-panel';
+		panel.dataset.for = value;
+		panel.innerHTML = '<td colspan="' + colspan + '">Loading…</td>';
+		tr.parentNode.insertBefore(panel, tr.nextSibling);
+		tr.classList.add('is-open');
+
+		try {
+			const rangeSel = document.querySelector('.myls-aiv-range[data-target="gsc"]');
+			const days = rangeSel ? Number(rangeSel.value) : 28;
+			const filters = currentGscFilters();
+			const d = await postAJAX('myls_aiv_gsc_drill', Object.assign({ days, by, value }, filters));
+
+			const otherLabel = d.other === 'page' ? 'Landing page' : 'Query';
+			const rows = d.rows || [];
+			if (!rows.length) {
+				panel.innerHTML = '<td colspan="' + colspan + '">No related ' + escapeHtml(d.other) + 's in range.</td>';
+				return;
+			}
+			const head = '<thead><tr><th>' + otherLabel + '</th><th class="num">Impr.</th><th class="num">Clicks</th><th class="num">Pos.</th></tr></thead>';
+			const body = rows.map(r => {
+				const otherVal = r[d.other] || '';
+				const label = d.other === 'page'
+					? '<a href="' + escapeHtml(otherVal) + '" target="_blank" rel="noopener">' + escapeHtml(otherVal) + '</a>'
+					: escapeHtml(otherVal);
+				return '<tr>' +
+					'<td>' + label + '</td>' +
+					'<td class="num">' + fmt(Number(r.impressions)) + '</td>' +
+					'<td class="num">' + fmt(Number(r.clicks))      + '</td>' +
+					'<td class="num">' + Number(r.position).toFixed(1) + '</td>' +
+					'</tr>';
+			}).join('');
+
+			panel.innerHTML = '<td colspan="' + colspan + '"><div class="myls-aiv-drill-inner"><table class="widefat striped">' + head + '<tbody>' + body + '</tbody></table></div></td>';
+		} catch (e) {
+			panel.innerHTML = '<td colspan="' + colspan + '"><em>' + escapeHtml(e.message) + '</em></td>';
+		}
+	}
+
+	/* -----------------------------------------------------------------
 	 * Boot
 	 * ----------------------------------------------------------------- */
 
 	function init() {
+		// Range pickers (per subtab).
 		document.querySelectorAll('.myls-aiv-range').forEach(sel => {
 			sel.addEventListener('change', () => {
 				const target = sel.dataset.target;
@@ -250,6 +392,35 @@
 				if (target === 'crawlers') loadCrawlers(days);
 				if (target === 'referrers') loadReferrers(days);
 				if (target === 'gsc') loadGsc(days);
+			});
+		});
+
+		// GSC filter controls — debounce the "Apply" click so accidental
+		// double-clicks don't fire duplicate API calls mid-flight.
+		const applyBtn = document.querySelector('.myls-aiv-gsc-apply');
+		if (applyBtn) {
+			applyBtn.addEventListener('click', () => {
+				const rangeSel = document.querySelector('.myls-aiv-range[data-target="gsc"]');
+				const days = rangeSel ? Number(rangeSel.value) : 28;
+				loadGsc(days);
+			});
+		}
+
+		// Local (client-side) filter inputs on each table.
+		document.querySelectorAll('.myls-aiv-local-filter').forEach(inp => {
+			inp.addEventListener('input', () => {
+				applyLocalFilter(inp.dataset.filter, inp.value);
+			});
+		});
+
+		// Drill expansion: delegated click on rows inside drillable tables.
+		document.querySelectorAll('.myls-aiv-drillable').forEach(table => {
+			table.addEventListener('click', ev => {
+				const tr = ev.target.closest('tr.myls-aiv-drill-trigger');
+				if (!tr || !table.contains(tr)) return;
+				// Ignore clicks on inner links (let them navigate).
+				if (ev.target.closest('a')) return;
+				toggleDrillRow(tr);
 			});
 		});
 
