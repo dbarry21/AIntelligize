@@ -16,9 +16,13 @@ if ( ! defined('ABSPATH') ) exit;
  * Helpers
  * --------------------------------------------------------------------- */
 
-/** Get Places API Key from Site Options */
+/** Get Places API Key from Site Options (current tab option, falls back to legacy) */
 if ( ! function_exists('ssseo_get_google_places_api_key') ) {
 	function ssseo_get_google_places_api_key() {
+		// API Integration tab writes to myls_google_places_api_key; the
+		// ssseo_* name is the legacy option from older installs.
+		$val = trim( (string) get_option('myls_google_places_api_key', '') );
+		if ( $val !== '' ) return $val;
 		return trim( (string) get_option('ssseo_google_places_api_key', '') );
 	}
 }
@@ -26,7 +30,9 @@ if ( ! function_exists('ssseo_get_google_places_api_key') ) {
 /** Strong default Place ID resolver (Site Options first, then ACF/legacy/constant/filter) */
 if ( ! function_exists('ssseo_get_default_place_id') ) {
 	function ssseo_get_default_place_id( $post_id = 0 ) {
-		// 0) Site Options (your admin tab)
+		// 0) Site Options (current admin tab option, then legacy)
+		$val = trim( (string) get_option('myls_google_places_place_id', '') );
+		if ( $val !== '' ) return $val;
 		$val = trim( (string) get_option('ssseo_google_places_place_id', '') );
 		if ( $val !== '' ) return $val;
 
