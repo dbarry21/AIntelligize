@@ -1,3 +1,27 @@
+## v7.9.18.103 — FAQ Quick Editor: Prevent Silent Full Wipe on Multi-Delete
+
+### Fixed
+- **FAQ Quick Editor was deleting every FAQ on a post when the user marked
+  multiple rows for deletion**. The `save_batch_v1` and `save_faqs_v1` AJAX
+  handlers called `delete_post_meta('_myls_faq_items')` whenever the
+  sanitized result array came back empty. That empty state could be reached
+  two different ways: the user explicitly marked every row for deletion
+  (legitimate) *or* the user marked some rows for deletion and the one
+  row they kept happened to fail the sanitizer's "empty question / blank
+  answer" validity checks (silent drop). In the second case the handler
+  nuked the whole meta key even though the user had only intended to
+  delete a subset — producing "I marked 2 of 3, all 3 are gone" reports.
+
+  Added `myls_faq_editor_analyze_rows()` that returns `input_count` and
+  `delete_count` for the raw input, plus `myls_faq_editor_apply_save()`
+  which only calls `delete_post_meta()` when the input was empty *or*
+  every input row was explicitly flagged for deletion. When the sanitizer
+  silently drops non-deleted rows as invalid, the handler now preserves
+  existing meta instead of wiping it. The sanitizer's signature stays
+  unchanged for the bulk import/export caller that uses it as a callback.
+
+**Files changed:** `inc/utilities/faq-editor.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.102 — Shortcode Docs Sync + gmb_hours 24/7 Fallback
 
 ### Added

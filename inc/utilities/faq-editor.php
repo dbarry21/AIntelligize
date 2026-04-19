@@ -80,6 +80,55 @@ if ( ! function_exists('myls_faq_editor_sanitize_items') ) {
 
 }
 
+if ( ! function_exists('myls_faq_editor_analyze_rows') ) {
+  /**
+   * Count input rows and delete-flagged rows so the save handlers can tell
+   * "user explicitly deleted everything" apart from "sanitizer silently
+   * dropped invalid rows". Without this distinction an input like
+   *   [ {q:"Q1",a:"A1",delete:0}, {q:"Q2",a:"A2",delete:1}, {q:"Q3",a:"A3",delete:1} ]
+   * combined with a single row that fails is_blank_html() would produce an
+   * empty sanitized set and wipe the entire meta key.
+   */
+  function myls_faq_editor_analyze_rows( array $rows ) : array {
+    $input = 0;
+    $deletes = 0;
+    foreach ( $rows as $row ) {
+      if ( ! is_array($row) ) continue;
+      $input++;
+      $del_raw = $row['delete'] ?? ($row['del'] ?? ($row['delete_on_save'] ?? ($row['_delete'] ?? 0)));
+      if ( is_bool($del_raw) ) {
+        if ( $del_raw ) $deletes++;
+      } elseif ( in_array((string)$del_raw, ['1','true','on','yes'], true) ) {
+        $deletes++;
+      }
+    }
+    return [ 'input_count' => $input, 'delete_count' => $deletes ];
+  }
+}
+
+if ( ! function_exists('myls_faq_editor_apply_save') ) {
+  /**
+   * Safely persist sanitized FAQ rows to post meta. Only deletes the meta key
+   * when the caller explicitly wiped every row — never because the sanitizer
+   * silently dropped invalid ones.
+   */
+  function myls_faq_editor_apply_save( int $post_id, array $clean, array $stats ) : void {
+    if ( ! empty($clean) ) {
+      update_post_meta($post_id, '_myls_faq_items', array_values($clean));
+      return;
+    }
+    $input   = (int) ($stats['input_count']  ?? 0);
+    $deletes = (int) ($stats['delete_count'] ?? 0);
+    // Wipe only when input was empty (user removed every row) or every input
+    // row was explicitly flagged for deletion.
+    if ( $input === 0 || $deletes >= $input ) {
+      delete_post_meta($post_id, '_myls_faq_items');
+    }
+    // Otherwise: preserve existing meta. A non-deleted row got dropped as
+    // invalid (blank q/a) — treat as a no-op rather than a destructive wipe.
+  }
+}
+
 if ( ! function_exists('myls_faq_editor_docx_escape') ) {
   function myls_faq_editor_docx_escape( string $text ) : string {
     $text = wp_strip_all_tags($text);
@@ -377,13 +426,9 @@ add_action('wp_ajax_myls_faq_editor_save_faqs_v1', function(){
   }
   if ( ! is_array($raw) ) $raw = [];
 
+  $stats = myls_faq_editor_analyze_rows($raw);
   $clean = myls_faq_editor_sanitize_items($raw);
-
-  if ( empty($clean) ) {
-    delete_post_meta($post_id, '_myls_faq_items');
-  } else {
-    update_post_meta($post_id, '_myls_faq_items', array_values($clean));
-  }
+  myls_faq_editor_apply_save($post_id, $clean, $stats);
 
   wp_send_json_success([
     'post_id' => $post_id,
@@ -429,13 +474,9 @@ add_action('wp_ajax_myls_faq_editor_save_batch_v1', function(){
     }
     if ( ! is_array($items) ) $items = [];
 
+    $stats = myls_faq_editor_analyze_rows($items);
     $clean = myls_faq_editor_sanitize_items($items);
-
-    if ( empty($clean) ) {
-      delete_post_meta($post_id, '_myls_faq_items');
-    } else {
-      update_post_meta($post_id, '_myls_faq_items', array_values($clean));
-    }
+    myls_faq_editor_apply_save($post_id, $clean, $stats);
 
     $saved_map[(string)$post_id] = count($clean);
     $updated_posts++;
