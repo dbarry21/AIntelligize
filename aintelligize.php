@@ -3,7 +3,7 @@
  * Plugin Name:       AIntelligize
  * Plugin URI:        https://aintelligize.com/
  * Description:       Modular local SEO toolkit with schema, AI tools, bulk operations, and shortcode utilities.
- * Version: 7.9.18.106
+ * Version: 7.9.18.107
  * Author:            Dave Barry
  * Author URI:        https://davebarry.io/
  * Text Domain:       aintelligize
@@ -16,7 +16,7 @@ if ( ! defined('ABSPATH') ) exit;
  * Canonical constants & helpers (single source of truth)
  * ───────────────────────────────────────────────────────────────────────── */
 // Keep in sync with plugin header above.
-if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.9.18.106');
+if ( ! defined('MYLS_VERSION') )     define('MYLS_VERSION','7.9.18.107');
 if ( ! defined('MYLS_MAIN_FILE') )   define('MYLS_MAIN_FILE', __FILE__);
 if ( ! defined('MYLS_PATH') )        define('MYLS_PATH', plugin_dir_path(MYLS_MAIN_FILE));
 if ( ! defined('MYLS_URL') )         define('MYLS_URL',  plugins_url('', MYLS_MAIN_FILE));
@@ -72,6 +72,7 @@ require_once MYLS_PATH . 'admin/admin-docs-menu.php';
 require_once MYLS_PATH . 'admin/admin-stats-menu.php';
 require_once MYLS_PATH . 'admin/admin-search-stats-menu.php';
 require_once MYLS_PATH . 'admin/admin-video-transcripts-menu.php';
+require_once MYLS_PATH . 'admin/admin-ai-visibility-menu.php';
 
 /** Release notes helpers (Docs → Release Notes + optional changelog queue) */
 require_once MYLS_PATH . 'inc/release-notes.php';
@@ -128,6 +129,11 @@ require_once MYLS_PATH . 'inc/db/search-demand-table.php';
 
 /** Video Transcripts DB table + CRUD */
 require_once MYLS_PATH . 'inc/db/video-transcripts-table.php';
+
+/** AI Visibility — crawler hits table + tracker hook + retention cron */
+require_once MYLS_PATH . 'inc/db/ai-visibility-table.php';
+require_once MYLS_PATH . 'inc/ai-visibility-tracker.php';
+require_once MYLS_PATH . 'inc/ai-visibility-cron.php';
 
 
 /** Schema */
