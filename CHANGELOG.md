@@ -1,3 +1,20 @@
+## v7.9.18.104 — gmb_address: Read API Key / Place ID from API Integration Tab
+
+### Fixed
+- **`[gmb_address]` (and `[gmb_hours]`, `[ssseo_places_status]`) silently
+  rendered nothing when the API key and Place ID were configured via the
+  "API Integration" admin tab.** The tab writes to
+  `myls_google_places_api_key` / `myls_google_places_place_id`, but the
+  legacy helpers `ssseo_get_google_places_api_key()` and
+  `ssseo_get_default_place_id()` only read from the old `ssseo_*` option
+  names. Result: the shortcodes returned an invisible HTML comment
+  (`<!-- gmb_address: missing api key -->`) unless users added
+  `debug="1"` to see the reason. Both helpers now check the current
+  `myls_*` option first and fall back to the legacy `ssseo_*` option so
+  older installs keep working.
+
+**Files changed:** `modules/shortcodes/gmb-address.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.103 — FAQ Quick Editor: Prevent Silent Full Wipe on Multi-Delete
 
 ### Fixed
