@@ -1,3 +1,46 @@
+## v7.9.18.108 — AI Visibility → Google Search: Filters, Row Controls, Query×Page Combos, Click-Drill
+
+### Added
+- **Row-count selector (25 / 100 / 500)** on the Google Search subtab toolbar
+  — default bumped from a hardcoded 25 to a configurable **100**. Applies to
+  both the Top Queries and Top Pages tables.
+- **Path-contains filter** — narrow top queries and top pages to a URL
+  substring (e.g. `/service/`, `/blog/`). Passed as a GSC
+  `dimensionFilterGroups` filter (`dimension=page, operator=contains`).
+- **"AI Overview only" toggle** — restricts top queries and top pages to rows
+  with `searchAppearance=AI_OVERVIEW`. KPIs for AI Overview impressions /
+  clicks moved to a true filtered-totals API call instead of summing a
+  `searchAppearance` dimension result, which is more accurate.
+- **Query × Page combinations table** (top 50 by impressions) — a flat
+  `dimensions=['query','page']` view that surfaces intent/landing
+  mismatches (e.g. "paver sealing cost" landing on `/faq/` instead of
+  `/service/paver-sealing/`).
+- **Click-drill expansion** on the Top Queries and Top Pages tables. Click
+  any query row to inline-expand its top 10 landing pages; click any page
+  row to inline-expand its top 10 queries. Each drill hits a new
+  `wp_ajax_myls_aiv_gsc_drill` endpoint and is cached in a 1-hour
+  transient. Respects the AI-Overview filter.
+- **Client-side text filter** on each table (queries, pages, combos) — fast,
+  free, no API call. Local filter correctly mirrors visibility to drill
+  panels so filtering out a trigger row also hides its expanded panel.
+
+### Changed
+- `wp_ajax_myls_aiv_gsc` now accepts `rows`, `path_prefix`, and `ai_overview`
+  POST params and factors them into the transient cache key so distinct
+  filter combinations cache independently.
+- GSC-totals call remains unfiltered so the site-level KPIs stay stable
+  regardless of active filter toggles.
+- Extracted `myls_aiv_gsc_inputs()` and `myls_aiv_gsc_filter_groups()` as
+  shared helpers used by both the main and drill endpoints — keeps cache
+  keys and filter construction consistent.
+
+### Fixed
+- Drill panel background no longer outstriped by WP admin's
+  `.widefat.striped` nth-child rule (scoped `!important` on the drill-panel
+  `td`).
+
+**Files changed:** `admin/tabs/ai-visibility/ajax.php`, `admin/tabs/ai-visibility/subtab-gsc.php`, `assets/js/myls-ai-visibility.js`, `assets/css/admin.css`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.107 — AI Visibility Submenu (Phase 1: Crawlers, Referrers, Google Search)
 
 ### Added
