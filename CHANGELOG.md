@@ -1,3 +1,28 @@
+## v7.9.18.106 — Service Schema: "Price starts at" / "Price up to" for One-Sided Ranges
+
+### Changed
+- **Service JSON-LD `hasOfferCatalog` offers now express "starting price"
+  semantics explicitly when a price range has only a low or only a high
+  value.** Previously an entry like `low=100, high=""` emitted a bare
+  `priceSpecification.minPrice` with no human-readable hint and no flat
+  `offer.price` for Google rich results to surface. The builder now also
+  adds `offer.price = $low` (or `$high` for the mirror case) and
+  auto-generates `offer.name = "Price starts at $100"` (or
+  `"Price up to $X"`) when the user has not supplied their own `label`.
+  When both low and high are set, behavior is unchanged. A user-supplied
+  `label` always wins and is never overwritten.
+
+### Changed
+- **`[myls_pricing_table]` shortcode matches the schema semantics.** Rows
+  with only a low value render a single centered "Starts at $X" cell
+  spanning the price columns instead of leaving the "Up To" column blank;
+  one-sided high rows render "Up to $X". Two-sided rows keep the original
+  Starting At / Up To two-column layout. Currency-symbol mapping is now
+  shared between the schema emitter and the shortcode via a new helper,
+  `myls_service_price_currency_symbol()`.
+
+**Files changed:** `inc/schema/providers/build-service-schema.php`, `modules/shortcodes/pricing-table.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.105 — Documentation: gmb_address Attribute List Rewrite
 
 ### Documentation
