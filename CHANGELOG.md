@@ -1,3 +1,56 @@
+## v7.9.18.107 — AI Visibility Submenu (Phase 1: Crawlers, Referrers, Google Search)
+
+### Added
+- **New admin page: AIntelligize → AI Visibility.** Dedicated submenu (slug
+  `myls-ai-visibility`) with three subtabs — query-arg driven, Bootstrap-styled,
+  Chart.js-powered — that answer three questions with free data only:
+  1. *Who's reading us?* **AI Crawlers** tab logs every GPTBot / ClaudeBot /
+     PerplexityBot / Google-Extended / ChatGPT-User / Applebot-Extended /
+     cohere-ai / Bytespider / CCBot / Amazonbot / anthropic-ai / OAI-SearchBot /
+     Diffbot / YouBot / Meta-ExternalAgent hit in a new
+     `{prefix}myls_ai_crawler_hits` aggregate table (daily × bot × path —
+     not per-request rows, so months fit in a few MB). `template_redirect` @
+     priority 5 with a fast-fail UA substring scan so normal browser requests
+     pay ~1 `strpos`. Upsert via `INSERT … ON DUPLICATE KEY UPDATE`.
+  2. *Who's sending us AI-chatbot clicks?* **AI Referrers** tab is a read-only
+     UI over the pre-existing `{prefix}myls_ai_referrals` table populated by
+     `inc/ai-referral-tracker.php` (source map covers ChatGPT, Perplexity,
+     Claude, Gemini, Copilot, You.com, Phind, Poe, MetaAI).
+  3. *How are we doing on Google?* **Google Search** tab hits GSC via the
+     existing `myls_gsc_oauth_call()` wrapper — shows total
+     impressions/clicks/CTR/avg position, top 25 queries, top 25 pages, plus
+     AI Overview impressions/clicks filtered on `searchAppearance=AI_OVERVIEW`.
+     Results cached in a 1-hour transient per site × range.
+- **Retention cron.** Nightly `myls_aiv_purge_cron` trims both the new crawler
+  table and the existing AI referrals table past the `myls_aiv_retention_days`
+  window (default 180 days, clamped 7–3650).
+- **Per-tab settings.** The Crawlers tab exposes a tracking-enable toggle
+  (`myls_aiv_tracking_enabled`) and the retention knob; the Referrers tab
+  exposes the existing AI-referral toggle (`myls_ai_referral_enabled`).
+
+### Files added
+- `inc/db/ai-visibility-table.php` — table + `myls_aiv_upsert_hit()`,
+  `myls_aiv_get_range()`, `myls_aiv_purge()`.
+- `inc/ai-visibility-tracker.php` — `template_redirect` hook +
+  `myls_aiv_match_bot()` / `myls_aiv_bot_patterns()` (filter: `myls_aiv_bot_patterns`).
+- `inc/ai-visibility-cron.php` — daily purge scheduling + handler.
+- `admin/admin-ai-visibility-menu.php` — submenu registration, asset enqueue,
+  subtab router, nonce action `myls_aiv`.
+- `admin/tabs/ai-visibility/subtab-crawlers.php`, `subtab-referrers.php`,
+  `subtab-gsc.php` — spec-array subtabs auto-discovered by the router.
+- `admin/tabs/ai-visibility/ajax.php` — three endpoints
+  (`myls_aiv_crawlers`, `myls_aiv_referrers`, `myls_aiv_gsc`), each guarded by
+  `current_user_can('manage_options')` + `check_ajax_referer`.
+- `assets/js/myls-ai-visibility.js` — Chart.js stacked-line charts + table
+  rendering + range picker.
+
+### Files modified
+- `aintelligize.php` — `require_once` the five new `inc/` and `admin/` files.
+- `assets/css/admin.css` — appended scoped `.myls-aiv-*` styles (no existing
+  rules touched).
+
+**Files changed:** `aintelligize.php`, `readme.txt`, `CHANGELOG.md`, `assets/css/admin.css`, plus 10 new files under `inc/`, `admin/`, `assets/js/`.
+
 ## v7.9.18.106 — Service Schema: "Price starts at" / "Price up to" for One-Sided Ranges
 
 ### Changed
