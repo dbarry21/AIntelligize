@@ -1,3 +1,21 @@
+## v7.9.18.105 — Documentation: gmb_address Attribute List Rewrite
+
+### Documentation
+- **`[gmb_address]` Interactive Shortcodes entry was documenting a `format`
+  attribute that the shortcode does not accept** (and incorrectly
+  attributed output to "Organization schema settings" rather than the
+  Google Places API). Replaced with the real attribute list from the
+  shortcode signature: `place_id`, `company`, `parts` (the actual
+  component selector — valid values: street, suite, city, state, postal,
+  country), `join`, `link`, `schema`, `class`, `cache`, `region`,
+  `language`, all six `directions_*` attributes, and `debug`. Added ten
+  representative usage examples and tips that call out the real option
+  keys (`myls_google_places_api_key`, `myls_google_places_place_id`) with
+  the legacy `ssseo_*` fallback, and the `debug="1"` flag for surfacing
+  the otherwise-invisible error comments.
+
+**Files changed:** `admin/docs/shortcode-data.php`, `aintelligize.php`, `readme.txt`, `CHANGELOG.md`
+
 ## v7.9.18.104 — gmb_address: Read API Key / Place ID from API Integration Tab
 
 ### Fixed
