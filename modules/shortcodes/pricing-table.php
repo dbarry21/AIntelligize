@@ -59,10 +59,18 @@ function myls_pricing_table_shortcode( array $atts ): string {
 
         // Include: global ranges (no post_ids set) OR ranges assigned to this post.
         if ( empty( $post_ids ) || ( $post_id > 0 && in_array( $post_id, $post_ids, true ) ) ) {
-            $symbol   = isset( [ 'EUR' => '€', 'GBP' => '£', 'CAD' => 'CA$' ][ $currency ] ) ? [ 'EUR' => '€', 'GBP' => '£', 'CAD' => 'CA$' ][ $currency ] : '$';
+            $symbol   = function_exists('myls_service_price_currency_symbol')
+                ? myls_service_price_currency_symbol( $currency )
+                : '$';
             $low_fmt  = $low  !== '' ? $symbol . number_format( (float) $low,  0 ) : '';
             $high_fmt = $high !== '' ? $symbol . number_format( (float) $high, 0 ) : '';
-            $rows[]   = [ 'label' => $label, 'low' => $low_fmt, 'high' => $high_fmt ];
+            $rows[]   = [
+                'label'     => $label,
+                'low'       => $low_fmt,
+                'high'      => $high_fmt,
+                'only_low'  => ( $low  !== '' && $high === '' ),
+                'only_high' => ( $low  === '' && $high !== '' ),
+            ];
         }
     }
 
@@ -89,8 +97,14 @@ function myls_pricing_table_shortcode( array $atts ): string {
             ?>
             <tr style="background:<?php echo esc_attr( $bg ); ?>;">
                 <td style="padding:9px 12px;border-bottom:1px solid #e9d5ff;font-weight:600;color:#1e1b4b;"><?php echo esc_html( $row['label'] ); ?></td>
-                <td style="padding:9px 12px;border-bottom:1px solid #e9d5ff;text-align:center;color:#6d28d9;font-weight:700;"><?php echo esc_html( $row['low'] ); ?></td>
-                <td style="padding:9px 12px;border-bottom:1px solid #e9d5ff;text-align:center;color:#6d28d9;"><?php echo esc_html( $row['high'] ); ?></td>
+                <?php if ( $row['only_low'] ) : ?>
+                    <td colspan="2" style="padding:9px 12px;border-bottom:1px solid #e9d5ff;text-align:center;color:#6d28d9;font-weight:700;">Starts at <?php echo esc_html( $row['low'] ); ?></td>
+                <?php elseif ( $row['only_high'] ) : ?>
+                    <td colspan="2" style="padding:9px 12px;border-bottom:1px solid #e9d5ff;text-align:center;color:#6d28d9;font-weight:700;">Up to <?php echo esc_html( $row['high'] ); ?></td>
+                <?php else : ?>
+                    <td style="padding:9px 12px;border-bottom:1px solid #e9d5ff;text-align:center;color:#6d28d9;font-weight:700;"><?php echo esc_html( $row['low'] ); ?></td>
+                    <td style="padding:9px 12px;border-bottom:1px solid #e9d5ff;text-align:center;color:#6d28d9;"><?php echo esc_html( $row['high'] ); ?></td>
+                <?php endif; ?>
             </tr>
             <?php endforeach; ?>
         </tbody>

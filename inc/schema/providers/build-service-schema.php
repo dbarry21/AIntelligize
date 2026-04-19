@@ -29,6 +29,20 @@ if ( ! function_exists('myls_opt') ) {
 	}
 }
 
+if ( ! function_exists('myls_service_price_currency_symbol') ) {
+	/**
+	 * Map an ISO currency code to a short display symbol used in the
+	 * Service schema auto-generated "Price starts at / up to $X" label and
+	 * in the [myls_pricing_table] shortcode. Keep the mapping in sync in
+	 * both callers — this helper is the one source of truth.
+	 */
+	function myls_service_price_currency_symbol( string $currency ) : string {
+		$map = [ 'USD' => '$', 'EUR' => '€', 'GBP' => '£', 'CAD' => 'CA$' ];
+		$key = strtoupper( trim( $currency ) );
+		return $map[ $key ] ?? '$';
+	}
+}
+
 if ( ! function_exists('myls_plaintext_from_content') ) {
 	function myls_plaintext_from_content(string $html) : string {
 		$html = do_shortcode($html);
@@ -774,6 +788,10 @@ add_filter('myls_schema_graph', function(array $graph) {
 		// Need at least one price value to output valid schema
 		if ( $low === '' && $high === '' ) continue;
 
+		$only_low  = ( $low  !== '' && $high === '' );
+		$only_high = ( $low  === '' && $high !== '' );
+		$symbol    = myls_service_price_currency_symbol( $currency );
+
 		$price_spec = [ '@type' => 'UnitPriceSpecification', 'priceCurrency' => $currency ];
 		if ( $low  !== '' ) $price_spec['minPrice'] = $low;
 		if ( $high !== '' ) $price_spec['maxPrice'] = $high;
@@ -783,6 +801,19 @@ add_filter('myls_schema_graph', function(array $graph) {
 			'priceCurrency'      => $currency,
 			'priceSpecification' => $price_spec,
 		];
+
+		// Best-practice "starts at" / "up to" semantics when one side is open:
+		// emit a flat offer.price (Google rich-result friendly) and an
+		// auto-generated offer.name explaining the range is one-sided. A
+		// user-supplied label always wins (set further down).
+		if ( $only_low ) {
+			$offer['price'] = $low;
+			$offer['name']  = sprintf( 'Price starts at %s%s', $symbol, $low );
+		} elseif ( $only_high ) {
+			$offer['price'] = $high;
+			$offer['name']  = sprintf( 'Price up to %s%s', $symbol, $high );
+		}
+
 		if ( $label !== '' ) $offer['name'] = $label;
 
 		$offer_items[] = $offer;
