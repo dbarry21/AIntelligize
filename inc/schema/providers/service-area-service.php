@@ -21,33 +21,124 @@
 if ( ! defined('ABSPATH') ) exit;
 
 /**
- * Extract city name and state from a service_area post title.
+ * Clean a raw "city" string so it's safe to emit as schema City.name.
  *
- * Handles: "Bradenton FL", "Bradenton, FL", "Apollo Beach, FL", "Tampa"
+ * Strips, in order:
+ *   1. Trailing primary-service-keyword suffix (myls_service_subtype option) —
+ *      e.g. "Tampa Dog Training" → "Tampa" when the subtype is "Dog Training".
+ *   2. Trailing 2-letter state abbreviation — e.g. "Wesley Chapel, FL" → "Wesley Chapel".
+ *
+ * If both strips together would empty the string, the original raw value is
+ * preserved (and a notice is logged when WP_DEBUG is on) so we never emit
+ * an empty City.name.
+ *
+ * Result is filterable via `aintelligize_service_area_city_name`:
+ *   add_filter( 'aintelligize_service_area_city_name', function( $name, $post_id, $context ) {
+ *       return $post_id === 123 ? 'Saint Petersburg' : $name;
+ *   }, 10, 3 );
+ *
+ * @param  string   $raw      Raw value (post title or _myls_city_state meta).
+ * @param  int|null $post_id  Originating post ID (passed to filter).
+ * @param  array    $context  Optional context for the filter (e.g. ['source' => 'acf_city_state']).
+ * @return string             Cleaned city name.
+ */
+if ( ! function_exists('myls_sa_clean_city_name') ) {
+	function myls_sa_clean_city_name( string $raw, ?int $post_id = null, array $context = [] ) : string {
+		$raw = trim( wp_specialchars_decode( $raw, ENT_QUOTES ) );
+		if ( $raw === '' ) {
+			return (string) apply_filters( 'aintelligize_service_area_city_name', '', (int) $post_id, $context );
+		}
+
+		$cleaned = $raw;
+
+		// 1. Strip trailing primary-service-keyword (e.g. " Dog Training").
+		// Requires at least one whitespace before the keyword so we don't
+		// destroy a title that *is* just the service name.
+		$primary_service = trim( (string) get_option( 'myls_service_subtype', '' ) );
+		if ( $primary_service !== '' ) {
+			$pattern = '/\s+' . preg_quote( $primary_service, '/' ) . '$/i';
+			$stripped = preg_replace( $pattern, '', $cleaned );
+			if ( is_string( $stripped ) ) $cleaned = $stripped;
+		}
+
+		// 2. Strip trailing state abbreviation (e.g. ", FL" or " FL").
+		$cleaned = preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $cleaned );
+
+		// Collapse whitespace.
+		$cleaned = trim( preg_replace( '/\s+/', ' ', $cleaned ) );
+
+		// Empty after stripping → fall back to raw, log notice once per page render.
+		if ( $cleaned === '' ) {
+			if ( defined('WP_DEBUG') && WP_DEBUG ) {
+				error_log( sprintf(
+					'[aintelligize] city-name strip emptied result; preserving raw "%s" for post %d.',
+					$raw,
+					(int) $post_id
+				) );
+			}
+			$cleaned = $raw;
+		}
+
+		return (string) apply_filters( 'aintelligize_service_area_city_name', $cleaned, (int) $post_id, $context );
+	}
+}
+
+/**
+ * Resolve a state code from `myls_org_region` or the first LB location, when
+ * the per-page source didn't carry one. Returns '' if nothing usable is found.
+ */
+if ( ! function_exists('myls_sa_org_state_fallback') ) {
+	function myls_sa_org_state_fallback() : string {
+		$org_region = strtoupper( trim( (string) get_option( 'myls_org_region', '' ) ) );
+		if ( preg_match( '/^[A-Z]{2}$/', $org_region ) ) return $org_region;
+
+		$lb_locs = get_option( 'myls_lb_locations', [] );
+		if ( ! empty( $lb_locs[0]['state'] ) ) {
+			$candidate = strtoupper( trim( (string) $lb_locs[0]['state'] ) );
+			if ( preg_match( '/^[A-Z]{2}$/', $candidate ) ) return $candidate;
+		}
+
+		return '';
+	}
+}
+
+/**
+ * Extract city name and state from a service_area post.
+ *
+ * Reads _myls_city_state meta first (canonical), falls back to post title.
+ * State falls back to org-level (myls_org_region / first LB location) when
+ * the per-page source doesn't carry a 2-letter code, so Service.name and
+ * City.addressRegion stay consistent across pages.
+ *
+ * Handles: "Bradenton FL", "Bradenton, FL", "Apollo Beach, FL", "Tampa",
+ *          "Tampa Dog Training" (with myls_service_subtype = "Dog Training")
  * Returns: ['city' => 'Bradenton', 'state' => 'FL']
  */
 if ( ! function_exists('myls_sa_extract_city_state') ) {
 	function myls_sa_extract_city_state( int $post_id ) : array {
-		// Use the plugin-canonical helper (inc/city-state.php):
-		// reads _myls_city_state first, falls back to bare city_state key.
 		$city_state = function_exists( 'myls_get_city_state' )
 			? myls_get_city_state( $post_id )
 			: trim( (string) get_post_meta( $post_id, '_myls_city_state', true ) );
 
-		// Final fallback to post title when field is empty.
-		$raw = ( $city_state !== '' ) ? $city_state : wp_specialchars_decode( get_the_title( $post_id ), ENT_QUOTES );
+		$raw = ( $city_state !== '' )
+			? $city_state
+			: wp_specialchars_decode( get_the_title( $post_id ), ENT_QUOTES );
 
+		// State extraction works against the raw value (before keyword strip).
 		$state = '';
-		$city  = $raw;
-
-		// Extract 2-letter state abbreviation from end
 		if ( preg_match( '/[,\s]+([A-Z]{2})$/i', $raw, $m ) ) {
 			$state = strtoupper( $m[1] );
-			$city  = preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $raw );
 		}
 
+		// Fall back to org-level state when the per-page source is unstated.
+		if ( $state === '' ) {
+			$state = myls_sa_org_state_fallback();
+		}
+
+		$city = myls_sa_clean_city_name( $raw, $post_id, [ 'source' => 'service_area_post' ] );
+
 		return [
-			'city'  => trim( $city ),
+			'city'  => $city,
 			'state' => $state,
 		];
 	}
