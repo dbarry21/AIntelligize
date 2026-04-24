@@ -455,6 +455,165 @@ $spec = [
               <?php endforeach; ?>
             </div>
 
+            <?php
+            // Build state/country option lists for the new-location <template>.
+            ob_start();
+            echo '<option value="">— Select —</option>';
+            foreach ($us_states as $code => $name) {
+              printf('<option value="%s">%s</option>', esc_attr($code), esc_html($name));
+            }
+            $tpl_state_options = ob_get_clean();
+
+            ob_start();
+            foreach ($countries as $code => $name) {
+              printf('<option value="%s"%s>%s</option>',
+                esc_attr($code),
+                $code === 'US' ? ' selected' : '',
+                esc_html($name)
+              );
+            }
+            $tpl_country_options = ob_get_clean();
+            ?>
+
+            <template id="myls-location-template">
+              <details class="myls-fold" open>
+                <summary>Location #__IDX1__</summary>
+
+                <div class="myls-row">
+                  <div class="myls-col col-6">
+                    <label class="form-label">Location Label</label>
+                    <input type="text" name="myls_locations[__IDX__][location_label]" value="">
+                  </div>
+                  <div class="myls-col col-6">
+                    <label class="form-label">Business Name</label>
+                    <input type="text" name="myls_locations[__IDX__][name]" value="">
+                  </div>
+
+                  <div class="myls-col col-6">
+                    <label class="form-label">Business Image URL</label>
+                    <div style="display:flex;gap:.4rem;align-items:center;">
+                      <input type="url" class="myls-loc-image-url" name="myls_locations[__IDX__][image_url]" value="" placeholder="https://example.com/path/to/image.jpg" style="flex:1;">
+                      <button type="button" class="myls-btn myls-btn-outline myls-loc-image-pick" style="white-space:nowrap;">Select</button>
+                      <button type="button" class="myls-btn myls-btn-danger myls-loc-image-clear" style="padding:0 8px;">✕</button>
+                    </div>
+                  </div>
+
+                  <div class="myls-col col-6">
+                    <label class="form-label">Phone</label>
+                    <input class="myls-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(555) 555-1234"
+                           name="myls_locations[__IDX__][phone]" value="">
+                  </div>
+                  <div class="myls-col col-6">
+                    <label class="form-label">Price Range</label>
+                    <input type="text" name="myls_locations[__IDX__][price]" value="">
+                  </div>
+
+                  <div class="myls-col col-6">
+                    <label class="form-label">Street</label>
+                    <input type="text" name="myls_locations[__IDX__][street]" value="">
+                  </div>
+                  <div class="myls-col col-3">
+                    <label class="form-label">City</label>
+                    <input type="text" name="myls_locations[__IDX__][city]" value="">
+                  </div>
+                  <div class="myls-col col-3">
+                    <label class="form-label">State</label>
+                    <select name="myls_locations[__IDX__][state]"><?php echo $tpl_state_options; ?></select>
+                  </div>
+                  <div class="myls-col col-3">
+                    <label class="form-label">ZIP</label>
+                    <input type="text" name="myls_locations[__IDX__][zip]" value="">
+                  </div>
+                  <div class="myls-col col-3">
+                    <label class="form-label">Country</label>
+                    <select name="myls_locations[__IDX__][country]"><?php echo $tpl_country_options; ?></select>
+                  </div>
+
+                  <div class="myls-col col-3">
+                    <label class="form-label">Latitude</label>
+                    <input type="text"
+                           class="myls-lat-field"
+                           name="myls_locations[__IDX__][lat]"
+                           value=""
+                           placeholder="e.g. 28.186431">
+                  </div>
+                  <div class="myls-col col-3">
+                    <label class="form-label">Longitude</label>
+                    <input type="text"
+                           class="myls-lng-field"
+                           name="myls_locations[__IDX__][lng]"
+                           value=""
+                           placeholder="e.g. -82.407297">
+                  </div>
+                  <div class="myls-col col-6" style="display:flex;align-items:flex-end;gap:.5rem;padding-bottom:.75rem;">
+                    <button type="button"
+                            class="myls-btn myls-btn-outline myls-geocode-btn"
+                            data-index="__IDX__"
+                            title="Look up coordinates from address">
+                        📍 Get Coordinates
+                    </button>
+                    <span class="myls-geo-status" style="font-size:12px;color:#6b7280;"></span>
+                  </div>
+
+                  <div class="myls-col col-6">
+                    <label class="form-label">Google Place ID</label>
+                    <input type="text"
+                           name="myls_locations[__IDX__][place_id]"
+                           value=""
+                           placeholder="ChIJ..."
+                           class="regular-text">
+                    <p class="form-text" style="font-size:12px;margin-top:4px;">
+                      Google Maps Place ID for this location — used to fetch live ratings.
+                      <a href="https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder"
+                         target="_blank" rel="noopener">Find your Place ID ↗</a>
+                    </p>
+                    <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;cursor:pointer;">
+                      <input type="hidden"
+                             name="myls_locations[__IDX__][rating_enabled]"
+                             value="0">
+                      <input type="checkbox"
+                             name="myls_locations[__IDX__][rating_enabled]"
+                             value="1"
+                             checked>
+                      Enable location-specific ratings
+                    </label>
+                    <p class="form-text" style="font-size:12px;margin-top:2px;color:#6b7280;">
+                      When disabled, rating shortcodes fall back to the Default Place ID.
+                    </p>
+                  </div>
+                </div>
+
+                <hr class="myls-hr">
+
+                <label class="form-label">Opening Hours</label>
+                <div class="myls-hours-wrap">
+                  <div class="myls-hours-list" id="hours-__IDX__">
+                    <div class="myls-hours-row">
+                      <div class="myls-col">
+                        <select name="myls_locations[__IDX__][hours][0][day]">
+                          <option value="">-- Day --</option>
+                          <?php foreach (["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"] as $d): ?>
+                            <option value="<?php echo esc_attr($d); ?>"><?php echo esc_html($d); ?></option>
+                          <?php endforeach; ?>
+                        </select>
+                      </div>
+                      <div class="myls-col">
+                        <input type="time" name="myls_locations[__IDX__][hours][0][open]">
+                      </div>
+                      <div class="myls-col">
+                        <input type="time" name="myls_locations[__IDX__][hours][0][close]">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="myls-actions">
+                  <button type="button" class="myls-btn myls-btn-outline myls-add-hours" data-target="hours-__IDX__" data-index="__IDX__">+ Add Hours Row</button>
+                  <button type="submit" name="myls_delete_location" value="__IDX__" class="myls-btn myls-btn-danger">Delete This Location</button>
+                </div>
+              </details>
+            </template>
+
             <div class="myls-actions">
               <button type="button" class="myls-btn myls-btn-outline" id="myls-add-location">+ Add Location</button>
               <button class="myls-btn myls-btn-primary" type="submit">Save Locations</button>
@@ -922,17 +1081,36 @@ $spec = [
     rebuildAllHiddenInputs();
   });
 
-  // When adding a NEW location dynamically, append one <option> and init array
+  // When adding a NEW location dynamically, clone the template into the list
+  // and append a matching option to the assignment dropdown.
   document.getElementById('myls-add-location')?.addEventListener('click', () => {
-    // wait for DOM insert
-    requestAnimationFrame(() => {
-      const idx = assignLocSel.options.length; // next index
-      const opt = document.createElement('option');
-      opt.value = String(idx);
-      opt.textContent = getLocationLabel(idx);
-      assignLocSel.appendChild(opt);
-      if (!Array.isArray(LOC_PAGES[idx])) LOC_PAGES[idx] = [];
-    });
+    const tpl  = document.getElementById('myls-location-template');
+    const list = document.getElementById('myls-location-list');
+    if (!tpl || !list) return;
+
+    const idx = list.querySelectorAll(':scope > details.myls-fold').length;
+    const html = tpl.innerHTML
+      .replace(/__IDX1__/g, String(idx + 1))
+      .replace(/__IDX__/g, String(idx));
+
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html.trim();
+    const node = wrapper.firstElementChild;
+    if (!node) return;
+
+    list.appendChild(node);
+
+    const opt = document.createElement('option');
+    opt.value = String(idx);
+    opt.textContent = getLocationLabel(idx);
+    assignLocSel.appendChild(opt);
+    if (!Array.isArray(LOC_PAGES[idx])) LOC_PAGES[idx] = [];
+
+    attachPhoneMask(node);
+
+    node.open = true;
+    node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    node.querySelector('input[name$="[location_label]"]')?.focus();
   });
 
   // --- HOURS: Add row ---
