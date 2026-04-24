@@ -674,13 +674,20 @@ add_filter('myls_schema_graph', function(array $graph) {
 		$city_state = trim(wp_strip_all_tags($city_state));
 
 		if ( $city_state !== '' ) {
-			$city_obj = [ '@type' => 'City' ];
+			$state_code = '';
 			if ( preg_match( '/[,\s]+([A-Z]{2})$/i', $city_state, $csm ) ) {
-				$city_obj['name']          = trim( preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $city_state ) );
-				$city_obj['addressRegion'] = strtoupper( $csm[1] );
-			} else {
-				$city_obj['name'] = $city_state;
+				$state_code = strtoupper( $csm[1] );
+			} elseif ( function_exists('myls_sa_org_state_fallback') ) {
+				$state_code = myls_sa_org_state_fallback();
 			}
+
+			$clean_city = function_exists('myls_sa_clean_city_name')
+				? myls_sa_clean_city_name( $city_state, $post_id, [ 'source' => 'acf_city_state' ] )
+				: trim( (string) preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $city_state ) );
+
+			$city_obj = [ '@type' => 'City', 'name' => $clean_city ];
+			if ( $state_code !== '' ) $city_obj['addressRegion'] = $state_code;
+
 			$area_served = [ $city_obj ];
 		} elseif ( ! empty($org_areas_served) ) {
 			// Wrap plain strings as typed AdministrativeArea objects.
@@ -702,36 +709,34 @@ add_filter('myls_schema_graph', function(array $graph) {
 
 		if ( ! empty( $sa_posts ) ) {
 			foreach ( $sa_posts as $sa ) {
-				// Read city/state from MYLS-native meta key
-				$cs_raw = trim( (string) get_post_meta( $sa->ID, '_myls_city_state', true ) );
-
-				if ( $cs_raw === '' ) {
-					// Fallback: strip trailing state abbreviation from post title
-					$cs_raw = preg_replace(
+				if ( function_exists( 'myls_sa_extract_city_state' ) ) {
+					$loc        = myls_sa_extract_city_state( $sa->ID );
+					$city_name  = $loc['city'];
+					$state_code = $loc['state'];
+				} else {
+					$city_name = trim( (string) preg_replace(
 						'/[,\s]+[A-Z]{2}$/i', '',
-						html_entity_decode(
-							get_the_title( $sa->ID ),
-							ENT_QUOTES | ENT_HTML5,
-							'UTF-8'
-						)
-					);
+						html_entity_decode( get_the_title( $sa->ID ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
+					) );
+					$state_code = '';
 				}
-
-				$cs_raw    = trim( $cs_raw );
-				$area_type = ( stripos( $cs_raw, 'county' ) !== false )
-					? 'AdministrativeArea'
-					: 'City';
-
-				// Strip trailing state abbreviation for clean city name
-				$city_name = trim( preg_replace( '/[,\s]+[A-Z]{2}$/i', '', $cs_raw ) );
 
 				if ( $city_name === '' ) continue;
 
-				$area_served[] = [
+				$area_type = ( stripos( $city_name, 'county' ) !== false )
+					? 'AdministrativeArea'
+					: 'City';
+
+				$entry = [
 					'@type' => $area_type,
 					'name'  => $city_name,
 					'url'   => get_permalink( $sa->ID ),
 				];
+				if ( $state_code !== '' && $area_type === 'City' ) {
+					$entry['addressRegion'] = $state_code;
+				}
+
+				$area_served[] = $entry;
 			}
 		}
 

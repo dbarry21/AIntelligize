@@ -177,21 +177,28 @@ if ( ! function_exists('myls_lb_build_schema_from_location') ) {
 		$city_entries = [];
 		if ( ! empty( $sa_roots ) ) {
 			foreach ( $sa_roots as $sa ) {
+				$state_code = '';
 				if ( function_exists( 'myls_sa_extract_city_state' ) ) {
 					$loc        = myls_sa_extract_city_state( $sa->ID );
 					$city_clean = $loc['city'];
+					$state_code = $loc['state'];
 				} else {
 					$city_clean = preg_replace(
 						'/[,\s]+[A-Z]{2}$/i', '',
 						html_entity_decode( get_the_title( $sa->ID ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
 					);
 				}
-				$area_type      = ( stripos( $city_clean, 'county' ) !== false ) ? 'AdministrativeArea' : 'City';
-				$city_entries[] = [
+				$area_type = ( stripos( $city_clean, 'county' ) !== false ) ? 'AdministrativeArea' : 'City';
+
+				$entry = [
 					'@type' => $area_type,
 					'name'  => $city_clean,
 					'url'   => get_permalink( $sa->ID ),
 				];
+				if ( $state_code !== '' && $area_type === 'City' ) {
+					$entry['addressRegion'] = $state_code;
+				}
+				$city_entries[] = $entry;
 			}
 		}
 
