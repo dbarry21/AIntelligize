@@ -1,3 +1,20 @@
+## v7.9.18.109 — Schema → Local Business: Fix "Add Location" button
+
+### Fixed
+- **Add Location button now actually adds a location.** The click handler in
+  Schema → Local Business previously only appended an `<option>` to the
+  Assignments dropdown — it never created the editable form, so users saw
+  nothing happen in the location list. Added a `<template id="myls-location-template">`
+  with the full empty form (label, name, image picker, phone, price,
+  address, lat/lng, geocode, Place ID, ratings toggle, hours) using
+  `__IDX__` / `__IDX1__` placeholders, and updated the handler to clone the
+  template, substitute the next index, append to `#myls-location-list`,
+  wire the phone mask, open the section, and scroll/focus into view.
+  Existing delegated handlers for Add Hours, geocode, and image picker
+  already cover dynamically-added rows.
+
+---
+
 ## v7.9.18.108 — AI Visibility → Google Search: Filters, Row Controls, Query×Page Combos, Click-Drill
 
 ### Added
