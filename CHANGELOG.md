@@ -1,3 +1,54 @@
+## v7.9.19.0 — Schema fixes: ratingValue precision + areaServed City.name
+
+### Fixed
+- **`aggregateRating.ratingValue` now emits as a clean decimal** (e.g. `4.9`)
+  instead of a full IEEE 754 float representation
+  (`4.9000000000000003552713678800500929355621337890625`). Root cause was a
+  `(float) rtrim(rtrim(number_format(...), '0'), '.')` round-trip that
+  re-introduced binary precision artifacts; replaced with
+  `round((float) $rating, 1)` at the data layer in the central
+  `myls_schema_build_aggregate_rating()` helper, so every consumer
+  (LocalBusiness, ProfessionalService, Organization, Product, Service) gets
+  the fix in one place. Also tightened the rating guard from `< 0` to `<= 0`
+  so a zero rating omits the entire `aggregateRating` node instead of
+  emitting `"ratingValue": 0`.
+- **`LocalBusiness.areaServed` and `Service` schema now use the clean city
+  name** (e.g. `"Tampa"`) instead of the full service-area page title
+  (e.g. `"Tampa Dog Training"`). The title-fallback regex previously only
+  stripped a trailing 2-letter state code, so a title with no state code
+  leaked the entire string into `City.name` and into `Service.name`
+  concatenations like `"Behavior Modification Training in Tampa Dog Training"`.
+- **`Service.name` and `City.addressRegion` now consistently include the
+  state.** When the per-page `_myls_city_state` meta or title doesn't carry
+  a 2-letter state code, the schema now falls back to `myls_org_region` or
+  the first LocalBusiness location's state, producing
+  `"Behavior Modification Training in Tampa, FL"` and emitting
+  `"addressRegion": "FL"` on each `City` entry.
+
+### Added
+- **`aintelligize_service_area_city_name` filter** for overriding the
+  cleaned city name per service area:
+  ```php
+  add_filter( 'aintelligize_service_area_city_name', function ( $name, $post_id, $context ) {
+      return $post_id === 123 ? 'Saint Petersburg' : $name;
+  }, 10, 3 );
+  ```
+- **`myls_sa_clean_city_name()`** helper — single source of truth for
+  cleaning a raw city/title string. Strips the primary-service-keyword
+  suffix (read from `myls_service_subtype`) and the trailing state code,
+  preserves the raw title when both strips would empty the result (logged
+  under `WP_DEBUG`), and applies the new filter.
+- **`myls_sa_org_state_fallback()`** helper — resolves a state code from
+  org settings when the per-page source doesn't carry one.
+
+### Changed
+- `inc/schema/providers/build-service-schema.php` and
+  `inc/schema/providers/localbusiness.php` no longer duplicate the
+  state-strip regex; both now route through `myls_sa_extract_city_state()`
+  and the cleaning helper.
+
+---
+
 ## v7.9.18.109 — Schema → Local Business: Fix "Add Location" button
 
 ### Fixed
