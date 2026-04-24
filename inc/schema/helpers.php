@@ -269,8 +269,10 @@ if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
 			return null;
 		}
 
-		// Validate rating is numeric and within 0–5 range
-		if ( ! is_numeric( $rating ) || (float) $rating < 0 || (float) $rating > 5 ) {
+		// Validate rating is numeric and within 0–5 range.
+		// Omit the entire node when rating is zero or below — emitting
+		// "ratingValue": 0 would mislead crawlers and Google's Rich Results.
+		if ( ! is_numeric( $rating ) || (float) $rating <= 0 || (float) $rating > 5 ) {
 			return null;
 		}
 
@@ -286,12 +288,15 @@ if ( ! function_exists('myls_schema_build_aggregate_rating') ) {
 		if ( $best_rating  === '' ) $best_rating  = '5';
 		if ( $worst_rating === '' ) $worst_rating = '1';
 
+		// round() at the data layer keeps json_encode out of IEEE 754 territory:
+		// without it, "4.9" round-trips through (float) and serializes as
+		// 4.9000000000000003552... when serialize_precision is unset (-1).
 		return [
 			'@type'       => 'AggregateRating',
-			'ratingValue' => (float) rtrim( rtrim( number_format( (float) $rating, 1, '.', '' ), '0' ), '.' ),
-			'reviewCount' => (int)   $count,
-			'bestRating'  => (int)   $best_rating,
-			'worstRating' => (int)   $worst_rating,
+			'ratingValue' => round( (float) $rating, 1 ),
+			'reviewCount' => (int) $count,
+			'bestRating'  => (int) $best_rating,
+			'worstRating' => (int) $worst_rating,
 		];
 	}
 }
