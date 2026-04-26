@@ -25,6 +25,7 @@
  *   [service_grid aspect_ratio="4/3"]                    // landscape images
  *   [service_grid aspect_ratio="3/4"]                    // portrait images
  *   [service_grid exclude_current="1"]                  // hide current service on single pages
+ *   [service_grid show_button="0"]                       // hide the per-card button
  *
  * Column Options:
  *   columns="2"  // 2 per row on desktop (col-lg-6)
@@ -56,6 +57,7 @@ if ( ! function_exists('ssseo_service_grid_shortcode_v2') ) {
 
       // Button
       'button'         => '1',
+      'show_button'    => '1',  // alias matching show_excerpt / show_tagline pattern
       'button_text'    => 'Learn More',
       'button_class'   => 'btn btn-primary mt-2',
       'button_target'  => '',   // e.g. _blank
@@ -253,7 +255,9 @@ if ( ! function_exists('ssseo_service_grid_shortcode_v2') ) {
           }
         }
 
-        if ( $a['button'] === '1' ) {
+        // Both flags must allow the button to render — keeps existing
+        // button="0" callers working and adds show_button="0" support.
+        if ( $a['button'] === '1' && $a['show_button'] === '1' ) {
           echo '<a href="' . esc_url( $permalink ) . '"'
             . ( $a['button_class'] ? ' class="' . esc_attr( $a['button_class'] ) . ' myls-sg-btn"' : ' class="myls-sg-btn"' )
             . ( $a['button_target'] ? ' target="' . esc_attr( $a['button_target'] ) . '"' : '' )

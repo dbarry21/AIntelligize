@@ -129,6 +129,7 @@ function mlseo_compile_shortcode_documentation() {
                 'show_excerpt'   => ['default' => '1',                    'description' => '1 = show subtext, 0 = hide'],
                 'excerpt_words'  => ['default' => '20',                   'description' => 'Word count for excerpt mode'],
                 'button'         => ['default' => '1',                    'description' => '1 = show button, 0 = hide'],
+                'show_button'    => ['default' => '1',                    'description' => '1 = show button, 0 = hide (alias of button — matches show_excerpt / show_tagline)'],
                 'button_text'    => ['default' => 'Learn More',           'description' => 'Button label text'],
                 'button_class'   => ['default' => 'btn btn-primary mt-2', 'description' => 'CSS classes for button'],
                 'button_target'  => ['default' => '',                     'description' => 'Link target (_blank for new tab)'],

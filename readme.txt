@@ -3,7 +3,7 @@ Contributors: davebarry
 Tags: local seo, schema, ai, faq, utilities, person schema, linkedin
 Requires at least: 6.0
 Tested up to: 6.7.2
-Stable tag: 7.9.19.0
+Stable tag: 7.9.19.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -36,6 +36,9 @@ This plugin provides a modular admin toolkit for local SEO workflows including s
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 
 == Upgrade Notice ==
+
+= 7.9.19.1 =
+[service_grid] now honors `show_button="0"` (alias of `button="0"`) — matches the existing `show_excerpt` / `show_tagline` naming pattern.
 
 = 7.9.19.0 =
 Schema fixes: aggregateRating.ratingValue now serializes as a clean decimal (4.9) instead of an IEEE 754 float dump; LocalBusiness/Service.areaServed City.name uses the cleaned city ("Tampa") instead of the full page title ("Tampa Dog Training"); addressRegion now consistently populated. New `aintelligize_service_area_city_name` filter for per-area overrides.
