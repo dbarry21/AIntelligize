@@ -1,3 +1,19 @@
+## v7.9.19.1 — [service_grid] honors `show_button="0"`
+
+### Fixed
+- `[service_grid show_button="0"]` now actually hides the per-card button.
+  The shortcode previously only recognized `button="0"`, so the natural
+  `show_*` form (matching `show_excerpt` / `show_tagline`) was silently
+  dropped and the default `button="1"` kept rendering.
+
+### Added
+- `show_button` shortcode attribute on `[service_grid]` — alias of `button`,
+  matches the `show_excerpt` / `show_tagline` naming pattern. Both flags
+  must be `"1"` for the button to render, so existing `button="0"` callers
+  continue to work unchanged.
+
+---
+
 ## v7.9.19.0 — Schema fixes: ratingValue precision + areaServed City.name
 
 ### Fixed
