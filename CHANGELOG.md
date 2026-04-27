@@ -1,3 +1,43 @@
+## v7.10.0 — Beaver Builder sub-tab (Utilities)
+
+### Added
+- **Beaver Builder sub-tab** under **Utilities** (order 72, immediately after
+  Elementor Builder). Mirrors the Elementor Builder sub-tab feature-for-feature
+  but generates native Beaver Builder layouts instead of Elementor JSON.
+- New parser class `AIntelligize_Beaver_Builder_Parser`
+  ([inc/class-aintelligize-beaver-builder-parser.php](inc/class-aintelligize-beaver-builder-parser.php))
+  with both **read** (env detection, modules/headings/text extraction) and
+  **write** (build_layout, save_layout, per-section row/column/module builders)
+  surfaces for `_fl_builder_data` / `_fl_builder_draft`.
+- New site analyzer at [inc/beaver-builder-site-analyzer.php](inc/beaver-builder-site-analyzer.php)
+  that samples existing BB-built pages for AI prompt grounding.
+- New AJAX handler at [inc/ajax/ai-beaver-builder.php](inc/ajax/ai-beaver-builder.php)
+  exposing 14 `wp_ajax_myls_bb_*` actions: page generation, prompt save/reset,
+  description history, page-setup snapshots, BB template list, parent-page
+  selector, deferred DALL-E image generation with hero/feature-card patching,
+  debug inspector, and DALL-E connection test.
+- Status panel partial at
+  [admin/tabs/utilities/partials/bb-status-panel.php](admin/tabs/utilities/partials/bb-status-panel.php)
+  showing BB Plugin / Theme / child-theme / Themer detection and
+  supported-version verdict.
+- Default AI prompt at `assets/prompts/beaver-builder.txt` (same JSON schema
+  as the Elementor prompt — only the wrapper text changes; the parser does
+  the BB-specific materialization).
+
+### Notes
+- Sub-tab is always visible. With BB inactive a banner explains the page will
+  render once BB is installed; with BB < 2.0 the sub-tab short-circuits with
+  an admin notice.
+- Generated pages persist `_fl_builder_enabled='1'`, `_fl_builder_data`, and
+  `_fl_builder_draft` (PHP-serialized stdClass node graph). Opening the post
+  with `?fl_builder=1` lands directly in the BB editor.
+- Beaver Themer (`fl-theme-layout`) presence is reported but layouts are not
+  parsed in this version — deferred to a later release.
+- All option keys use the `myls_bb_*` namespace; no overlap with Elementor's
+  `myls_elb_*` keys.
+
+---
+
 ## v7.9.19.1 — [service_grid] honors `show_button="0"`
 
 ### Fixed
