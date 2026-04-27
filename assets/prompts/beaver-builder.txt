@@ -1,0 +1,187 @@
+Create professional, SEO-optimized page content for "{{PAGE_TITLE}}" to be built inside Beaver Builder as native modules.
+
+Business: {{BUSINESS_NAME}} in {{CITY}}
+Phone: {{PHONE}} | Email: {{EMAIL}}
+
+Page Description & Instructions:
+{{DESCRIPTION}}
+
+== CITY RESOLUTION — read first ==
+Determine the correct city using this priority order:
+  1. If the Description contains "TARGET_CITY: [value]" — use that value everywhere. Ignore {{CITY}}.
+  2. If no TARGET_CITY in Description — use the {{CITY}} token value.
+Use the resolved city consistently across all sections. Do not mix city names.
+
+== BUSINESS PROFILE BLOCK ==
+A "--- Business Profile ---" block is appended at the end of this prompt by the plugin.
+It contains the real Google rating, review count, awards, certifications, service areas,
+business hours, and other verified facts pulled from Schema settings.
+  - Use the real star rating and review count in the hero subtitle AND trust bar
+  - Use awards and certifications in at least one feature card description
+  - If the business is veteran-owned or military-affiliated, mention it once naturally in body copy
+  - Never invent or estimate any business fact — only use what appears in the Business Profile block
+  - If the Business Profile block is empty or absent, use only what is in the Description
+
+== HOW TO READ THE DESCRIPTION ==
+Before writing, read every labeled section in the Description above:
+  TARGET_CITY ........ resolved city (see CITY RESOLUTION above)
+  SHOW_PRICING ....... false = omit pricing key entirely / true or absent = include it
+  SERVICE FACTS ...... specific numbers to use throughout for fact density
+  SURFACES ........... reference naturally in intro, features, rich_content
+  TECHNIQUES ......... name these explicitly — never use vague terms like "our process"
+  PROCESS STEPS ...... use the exact step content provided for the process section
+  COMPARISON TABLE ... render as full HTML <table> inside rich_content
+  KEY ANGLES ......... incorporate these framings into intro and features naturally
+
+== WORD COUNT — DISTRIBUTE EVENLY ==
+Total body copy: 600–800 words spread across sections as follows:
+  intro paragraphs ............. 150–180 words  (3 paragraphs, ~55 words each)
+  feature card descriptions ..... 150–180 words  (4 cards, ~40 words each)
+  rich_content body ............. 180–220 words  (h3 + 2 paragraphs + bullet list)
+  process step descriptions ..... 120–150 words  (4 steps, ~35 words each)
+Do not front-load words into intro and leave other sections thin.
+Every section must hit its budget — under-length sections fail GEO.
+
+== CONTENT RULES ==
+- Write for local customers searching for this service in the resolved city
+- Use {{PAGE_TITLE}} keywords naturally in headings and body copy
+- Mention the resolved city 2–3 times across the full page — not in every section
+- Never fabricate any fact not in SERVICE FACTS or the Business Profile block
+- Name specific techniques, PSI values, timelines, and materials from the Description
+- Every sentence must earn its place — no filler, no throat-clearing openers
+- Incorporate KEY ANGLES into intro and features where they fit naturally
+
+== GEO WRITING RULES ==
+WIKI-VOICE: Write declaratively — as if for an encyclopedia entry.
+  Remove all first-person and subjective phrases.
+  BAD:  "We believe our service is the best choice for your home."
+  GOOD: "Professional pressure washing removes mold, mildew, and embedded grime
+         that standard garden hoses operating under 200 PSI cannot dislodge."
+
+FACT DENSITY: Replace every vague claim with a specific number from SERVICE FACTS.
+
+ISLAND TEST: Every paragraph and list item must make sense read in isolation.
+  Replace "it," "they," "this" with the specific noun they refer to.
+
+BRAND REPETITION: Use {{BUSINESS_NAME}} at least once naturally in body copy
+  beyond the hero — woven into a factual statement, not a standalone badge.
+
+QUESTION HEADINGS: At least 2 of the intro, features, and process headings must
+  be phrased as direct questions matching real search intent.
+
+== TRUST BAR RULE ==
+Pull all 4 stats from the Business Profile block appended below.
+Real values only — never invent numbers or ratings.
+  Stat 1: Google star rating      → label "Google Rating"
+  Stat 2: Total review count      → label "Verified Reviews"
+  Stat 3: First award short name  → label with award year
+  Stat 4: Top credential          → label its meaning (e.g. "Licensed & Insured")
+
+== RICH CONTENT RULE ==
+Sits between features and process. Citation-density layer — no marketing language.
+Build the html string in this exact order:
+  1. <h3> — question sub-heading about a specific challenge or outcome
+  2. <p>  — 80–100 words, wiki-voice, specific technique + PSI or measurement
+  3. <p>  — 80–100 words, different angle: outcome, cost of neglect, or local climate
+  4. <ul> — 4–5 <li> items, each a standalone fact
+  5. <table> — full HTML for the COMPARISON TABLE from the Description (if any)
+
+== ICON RULES ==
+Font Awesome 5 solid only (fas prefix). Match icon to concept clearly.
+Available: fas fa-shield-alt, fas fa-star, fas fa-check-circle, fas fa-clock,
+fas fa-users, fas fa-medal, fas fa-home, fas fa-phone, fas fa-calendar-alt,
+fas fa-clipboard-list, fas fa-graduation-cap, fas fa-thumbs-up, fas fa-bolt,
+fas fa-tint, fas fa-broom, fas fa-water, fas fa-leaf, fas fa-map-marker-alt
+
+== OUTPUT RULES ==
+- Output ONLY a valid JSON object — nothing else before or after
+- No markdown, no code fences, no backticks, no preamble, no commentary
+- All strings must be properly JSON-escaped
+- Start with { and end with }
+- Omit "pricing" key entirely if SHOW_PRICING is false in the Description
+
+The JSON output is consumed by AIntelligize_Beaver_Builder_Parser, which
+materializes the following BB modules per section:
+  hero          → row with heading (h1), rich-text subtitle, button
+  tldr          → row with rich-text "TL;DR" paragraph
+  trust_bar     → row with 4 columns of rich-text (icon + stat + label)
+  intro         → row with heading (h2) + rich-text paragraphs
+  features      → grid of rows (cols × rows), each card = icon/photo + heading (h3) + rich-text
+  rich_content  → row with one rich-text module containing the full HTML
+  process       → grid of rows, each step = icon + heading + description
+  pricing       → row with heading + rich-text containing [myls_service_price_range] shortcode
+  cta           → row with heading + rich-text + button
+
+== JSON STRUCTURE ==
+Replace every [bracketed placeholder] with real generated content.
+
+{
+  "hero": {
+    "title": "[H1: service + resolved city. Action-oriented. 8 words or fewer.]",
+    "subtitle": "[Benefit statement using real star rating and review count from Business Profile. 18 words or fewer.]",
+    "button_text": "[CTA verb phrase — 3 to 5 words]",
+    "button_url": "/contact/"
+  },
+  "tldr": {
+    "text": "[Single sentence, 40–60 words. What service + who does it + resolved city + one measurable fact from SERVICE FACTS + business name. Standalone — no marketing language. AI crawlers extract this first.]"
+  },
+  "trust_bar": {
+    "stats": [
+      { "icon": "[fas icon]", "stat": "[star rating from Business Profile]",    "label": "Google Rating"    },
+      { "icon": "[fas icon]", "stat": "[review count from Business Profile]",   "label": "Verified Reviews" },
+      { "icon": "[fas icon]", "stat": "[award name from Business Profile]",     "label": "[award year from Business Profile]" },
+      { "icon": "[fas icon]", "stat": "[credential from Business Profile]",     "label": "[credential meaning]" }
+    ]
+  },
+  "intro": {
+    "heading": "[H2 phrased as a direct question matching real search intent for this service]",
+    "paragraphs": [
+      "[~55 words. What this service is and what problem it solves in the resolved city. Wiki-voice. Use a KEY ANGLE from Description.]",
+      "[~55 words. How {{BUSINESS_NAME}} delivers this service. Name a specific technique or PSI value from SERVICE FACTS. No first-person opinions.]",
+      "[~55 words. Outcome — what the property owner ends up with. Must stand alone if excerpted. Use a second KEY ANGLE if not yet used.]"
+    ]
+  },
+  "features": {
+    "heading": "[H2 phrased as a direct question or clear benefit statement — distinct from intro heading]",
+    "items": [
+      { "icon": "[fas icon]", "title": "[Distinct benefit — not repeated in intro or process]", "description": "[~40 words. Specific fact or technique from SERVICE FACTS. Reference a credential from Business Profile if it fits naturally.]" },
+      { "icon": "[fas icon]", "title": "[Distinct benefit]", "description": "[~40 words. Specific material, timeline, or measurable outcome from SERVICE FACTS.]" },
+      { "icon": "[fas icon]", "title": "[Distinct benefit]", "description": "[~40 words. Different surface type or protection angle. No overlap with other cards.]" },
+      { "icon": "[fas icon]", "title": "[Distinct benefit]", "description": "[~40 words. Final unique benefit — each card covers entirely different ground.]" }
+    ]
+  },
+  "rich_content": {
+    "html": "[Full HTML per RICH CONTENT RULE: h3 + p (~90 words) + p (~90 words) + ul (4–5 li items) + full comparison table + table-note p. All Island Test. No marketing language. Properly JSON-escaped.]"
+  },
+  "process": {
+    "heading": "[H2 customer-journey question — how does this service work from start to finish?]",
+    "steps": [
+      { "icon": "fas fa-phone",          "title": "[Step 1 name from PROCESS STEPS]", "description": "[~35 words using Step 1 content from Description.]" },
+      { "icon": "fas fa-clipboard-list", "title": "[Step 2 name from PROCESS STEPS]", "description": "[~35 words using Step 2 content.]" },
+      { "icon": "fas fa-graduation-cap", "title": "[Step 3 name from PROCESS STEPS]", "description": "[~35 words using Step 3 content.]" },
+      { "icon": "fas fa-check-circle",   "title": "[Step 4 name from PROCESS STEPS]", "description": "[~35 words using Step 4 content.]" }
+    ]
+  },
+  "cta": {
+    "heading": "[Action-oriented H2 — urgency or desire. Meaningfully distinct from hero title.]",
+    "subtitle": "[One sentence value proposition. Mention resolved city naturally. Do not repeat hero subtitle.]",
+    "button_text": "[Strong CTA verb phrase — 3 to 5 words]",
+    "button_url": "/contact/"
+  }
+}
+
+== ANTI-DUPLICATION — verify before outputting ==
+- No benefit appears in more than one of: intro, features, process
+- Every section heading is meaningfully distinct from all others
+- No sentence structure reused across the three intro paragraphs
+- rich_content introduces facts and angles not already in intro or features
+
+== BANNED PHRASES ==
+"Whether you need", "Look no further", "Our team of experts", "We pride ourselves",
+"second to none", "comprehensive solutions", "dedicated to providing",
+"committed to excellence", "state-of-the-art", "world-class", "in the heart of",
+"we believe", "we are proud", "passion for", "game-changer",
+"take it to the next level", "at the end of the day", "needless to say",
+"it goes without saying", "transformative", "tailored solutions"
+
+OUTPUT: Respond with ONLY the JSON object. Start with { and end with }. Nothing else.
